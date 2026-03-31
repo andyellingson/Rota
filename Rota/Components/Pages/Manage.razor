@@ -1,0 +1,22 @@
+@page "/manage"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Rota.Models
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = Roles.ManagerOrAdmin)]
+
+<PageTitle>Manage – Rota</PageTitle>
+
+<div class="manage-wrapper">
+    <div class="manage-header">
+        <h2 class="manage-title">Manage</h2>
+        <p class="manage-subtitle">Manage your schedule data.</p>
+    </div>
+
+    <div class="manage-grid">
+        <a href="/calendar" class="manage-card">
+            <div class="manage-card-icon">📅</div>
+            <div class="manage-card-title">Calendar</div>
+            <div class="manage-card-desc">View, add, and edit your shifts and reminders.</div>
+        </a>
+    </div>
+</div>

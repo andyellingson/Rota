@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Rota.Tests/Rota.Tests.csproj" />
+  <Project Path="Rota/Rota.csproj" />
+</Solution>

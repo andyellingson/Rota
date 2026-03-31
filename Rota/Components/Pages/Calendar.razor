@@ -1,0 +1,1232 @@
+@page "/calendar"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using System.Globalization
+@using Rota.Models
+@using Rota.Services
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject NavigationManager Navigation
+@inject Microsoft.Extensions.Logging.ILogger<Calendar> Logger
+@inject IRemindersService RemindersService
+@inject IShiftsService ShiftService
+@inject IAbsencesService AbsenceService
+@inject IUserService UserService
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
+
+
+<div class="calendar-card card shadow-sm my-4">
+    <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+            <div class="me-auto">
+                <h4 class="mb-0">Calendar</h4>
+                <small class="text-muted">View and browse your schedule</small>
+            </div>
+
+            <div class="btn-group me-2" role="group" aria-label="View mode">
+                <button class="btn btn-outline-primary" @onclick="(() => SetView(ViewMode.Week))" aria-pressed="@(view == ViewMode.Week)">Week</button>
+                <button class="btn btn-outline-primary" @onclick="(() => SetView(ViewMode.Month))" aria-pressed="@(view == ViewMode.Month)">Month</button>
+            </div>
+
+            <div class="btn-group" role="group" aria-label="Navigation">
+                <button class="btn btn-light" @onclick="Prev">‹</button>
+                <button class="btn btn-light" @onclick="Today">Today</button>
+                <button class="btn btn-light" @onclick="Next">›</button>
+            </div>
+        </div>
+
+        @if (view == ViewMode.Month)
+        {
+            <div class="calendar-month">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong>@current.ToString("MMMM yyyy", CultureInfo.CurrentCulture)</strong>
+                    <div class="text-muted small">Week starts on @CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek</div>
+                </div>
+
+                <div class="calendar-grid">
+                    @foreach (var name in DayNames)
+                    {
+                        <div class="calendar-grid-header">@name</div>
+                    }
+
+                    @foreach (var week in GetMonthMatrix(current))
+                    {
+                        foreach (var day in week)
+                        {
+                            var other = day.Month != current.Month;
+                            var isToday = day == DateOnly.FromDateTime(DateTime.Today);
+                            var dayReminders = GetRemindersForDay(day)
+                            .OrderBy(r => r.ReminderDateTime)
+                            .ToList();
+                            <div class="day-cell @(other ? "other-month" : "") @(isToday ? "today" : "")" @onclick="(() => OpenDayModal(day))">
+                                <div class="day-number">@day.Day</div>
+                                <div class="events events-overlay">
+                                    @foreach (var shift in GetShiftsForDay(day))
+                                    {
+                                        var s = shift;
+                                        <div class="shift-item mb-1" style="border-left-color: @(s.Color ?? "#1890ff");" @onclick:stopPropagation="true" @onclick="(() => { if (canManageShifts) OpenEditShiftModal(s); })">
+                                            <div class="shift-worker-type" style="color: @(s.Color ?? "#1890ff");">@GetShiftDisplayTitle(s)</div>
+                                            <div class="shift-time">@s.Start.ToLocalTime().ToString("t") – @s.End.ToLocalTime().ToString("t")</div>
+                                            @if (!string.IsNullOrEmpty(s.AssignedToUsername))
+                                            {
+                                                <div class="shift-assigned">@GetEmployeeDisplayName(s.AssignedToUsername)</div>
+                                            }
+                                        </div>
+                                    }
+                                    @foreach (var absence in GetAbsencesForDay(day))
+                                    {
+                                        var ab = absence;
+                                        <div class="absence-item mb-1" style="background-color: @(ab.Color ?? "#fa8c16");" @onclick:stopPropagation="true" @onclick="(() => OpenEditAbsenceModal(ab))">
+                                            <div class="absence-title">@ab.Title</div>
+                                            @if (ab.DayCount > 1)
+                                            {
+                                                <div class="absence-days">@ab.DayCount days</div>
+                                            }
+                                        </div>
+                                    }
+                                    @for (var i = 0; i < dayReminders.Count; i++)
+                                    {
+                                        var reminder = dayReminders[i];
+                                        <ReminderItem Reminder="reminder"
+                                                      OnEdit="OpenEditReminderModal" />
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="calendar-week">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong>Week of @StartOfWeek(current).ToString("d", CultureInfo.CurrentCulture)</strong>
+                </div>
+
+                <div class="week-grid">
+                    @foreach (var d in Enumerable.Range(0, 7).Select(i => StartOfWeek(current).AddDays(i)))
+                    {
+                        var isToday = d == DateOnly.FromDateTime(DateTime.Today);
+                        var dayReminders = GetRemindersForDay(d)
+                        .OrderBy(r => r.ReminderDateTime)
+                        .ToList();
+                        <div class="week-day-card card me-2">
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="fw-bold">@d.ToString("ddd", CultureInfo.CurrentCulture)</div>
+                                        <div class="text-muted small">@d.ToString("d", CultureInfo.CurrentCulture)</div>
+                                    </div>
+                                    @if (isToday)
+                                    {
+                                        <span class="badge bg-primary">Today</span>
+                                    }
+                                </div>
+                                <div class="mt-2 events events-overlay">
+                                    @foreach (var shift in GetShiftsForDay(d))
+                                    {
+                                        var s = shift;
+                                        <div class="shift-item mb-1" style="border-left-color: @(s.Color ?? "#1890ff");" @onclick:stopPropagation="true" @onclick="(() => { if (canManageShifts) OpenEditShiftModal(s); })">
+                                            <div class="shift-worker-type" style="color: @(s.Color ?? "#1890ff");">@GetShiftDisplayTitle(s)</div>
+                                            <div class="shift-time">@s.Start.ToLocalTime().ToString("t") – @s.End.ToLocalTime().ToString("t")</div>
+                                            @if (!string.IsNullOrEmpty(s.AssignedToUsername))
+                                            {
+                                                <div class="shift-assigned">@GetEmployeeDisplayName(s.AssignedToUsername)</div>
+                                            }
+                                        </div>
+                                    }
+                                    @foreach (var absence in GetAbsencesForDay(d))
+                                    {
+                                        var ab = absence;
+                                        <div class="absence-item mb-1" style="background-color: @(ab.Color ?? "#fa8c16");" @onclick:stopPropagation="true" @onclick="(() => OpenEditAbsenceModal(ab))">
+                                            <div class="absence-title">@ab.Title</div>
+                                            @if (ab.DayCount > 1)
+                                            {
+                                                <div class="absence-days">@ab.DayCount days</div>
+                                            }
+                                        </div>
+                                    }
+                                    @for (var i = 0; i < dayReminders.Count; i++)
+                                    {
+                                        var reminder = dayReminders[i];
+                                        <ReminderItem Reminder="reminder"
+                                                      OnEdit="OpenEditReminderModal" />
+                                    }
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary w-100 mt-1" @onclick="(() => OpenAddReminderModal(d))">+ Add</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@* Day detail modal – expanded view for a single day *@
+@if (showDayModal)
+{
+    var detailShifts = GetShiftsForDay(dayModalDate).OrderBy(s => s.Start).ToList();
+    var detailReminders = GetRemindersForDay(dayModalDate).OrderBy(r => r.ReminderDateTime).ToList();
+    var detailAbsences = GetAbsencesForDay(dayModalDate).ToList();
+
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-0">@dayModalDate.ToString("dddd", CultureInfo.CurrentCulture)</h5>
+                        <small class="text-muted">@dayModalDate.ToString("d MMMM yyyy", CultureInfo.CurrentCulture)</small>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center ms-auto">
+                        @if (canManageShifts)
+                        {
+                            <button class="btn btn-sm btn-primary" @onclick="AddShiftFromDayModal">+ Shift</button>
+                        }
+                        <button class="btn btn-sm btn-warning text-dark" @onclick="AddAbsenceFromDayModal">+ Absence</button>
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="AddReminderFromDayModal">+ Reminder</button>
+                        <button type="button" class="btn-close ms-1" @onclick="CloseDayModal" aria-label="Close"></button>
+                    </div>
+                </div>
+                <div class="modal-body day-detail-body">
+                    @if (detailShifts.Count > 0)
+                    {
+                        <h6 class="day-detail-section-title">
+                            <span class="day-detail-section-icon">🕐</span> Shifts
+                        </h6>
+                        @foreach (var s in detailShifts)
+                        {
+                            var ds = s;
+                            <div class="day-detail-shift-card" style="border-left-color: @(ds.Color ?? "#1890ff");" @onclick="(() => { if (canManageShifts) OpenEditShiftModal(ds); })">
+                                <div class="day-detail-card-header">
+                                    <span class="day-detail-worker-badge" style="color: @(ds.Color ?? "#1890ff"); background-color: @(ds.Color ?? "#1890ff")1a;">@GetShiftDisplayTitle(ds)</span>
+                                    <span class="day-detail-time-badge">@ds.Start.ToLocalTime().ToString("t") – @ds.End.ToLocalTime().ToString("t")</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(ds.AssignedToUsername))
+                                {
+                                    <div class="day-detail-assigned">👤 @GetEmployeeDisplayName(ds.AssignedToUsername)</div>
+                                }
+                                @if (!string.IsNullOrEmpty(ds.Notes))
+                                {
+                                    <div class="day-detail-item-notes">@ds.Notes</div>
+                                }
+                            </div>
+                        }
+                    }
+                    @if (detailAbsences.Count > 0)
+                    {
+                        <h6 class="day-detail-section-title @(detailShifts.Count > 0 ? "mt-4" : "")">
+                            <span class="day-detail-section-icon">🛇</span> Absences
+                        </h6>
+                        @foreach (var a in detailAbsences)
+                        {
+                            var da = a;
+                            <div class="day-detail-absence-card" style="border-left-color: @(da.Color ?? "#fa8c16"); background-color: @(da.Color ?? "#fa8c16")1a;" @onclick="(() => OpenEditAbsenceModal(da))">
+                                <div class="day-detail-card-header">
+                                    <span class="day-detail-absence-title-text">@da.Title</span>
+                                    <span class="day-detail-time-badge">@(da.DayCount == 1 ? "1 day" : $"{da.DayCount} days")</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(da.Notes))
+                                {
+                                    <div class="day-detail-item-notes">@da.Notes</div>
+                                }
+                            </div>
+                        }
+                    }
+                    @if (detailReminders.Count > 0)
+                    {
+                        <h6 class="day-detail-section-title @((detailShifts.Count > 0 || detailAbsences.Count > 0) ? "mt-4" : "")">
+                            <span class="day-detail-section-icon">🔔</span> Reminders
+                        </h6>
+                        @foreach (var r in detailReminders)
+                        {
+                            var dr = r;
+                            <div class="day-detail-reminder-card" style="border-left-color:@(dr.Color ?? "#ffeb3b");" @onclick="(() => OpenEditReminderModal(dr))">
+                                <div class="day-detail-card-header">
+                                    <span class="day-detail-reminder-title-text">@dr.Title</span>
+                                    <span class="day-detail-time-badge">@dr.ReminderDateTime.ToLocalTime().ToString("t")</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(dr.Notes))
+                                {
+                                    <div class="day-detail-item-notes">@dr.Notes</div>
+                                }
+                            </div>
+                        }
+                    }
+                    @if (detailShifts.Count == 0 && detailAbsences.Count == 0 && detailReminders.Count == 0)
+                    {
+                        <div class="day-detail-empty">
+                            <div class="day-detail-empty-icon">📅</div>
+                            <div class="day-detail-empty-text">Nothing scheduled for this day.</div>
+                            <div class="mt-3">
+                                @if (canManageShifts)
+                                {
+                                    <button class="btn btn-primary btn-sm me-2" @onclick="AddShiftFromDayModal">+ Add Shift</button>
+                                }
+                                <button class="btn btn-warning btn-sm text-dark me-2" @onclick="AddAbsenceFromDayModal">+ Add Absence</button>
+                                <button class="btn btn-outline-secondary btn-sm" @onclick="AddReminderFromDayModal">+ Add Reminder</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+<CalendarEditModal State="modalState"
+                   CanManageShifts="canManageShifts"
+                   Employees="employees"
+                   LinkedUsers="linkedUsers"
+                   ColorChoices="ColorChoices"
+                   OnClose="CloseModal"
+                   OnSaveReminder="SaveReminder"
+                   OnUpdateReminder="UpdateReminder"
+                   OnDeleteReminder="DeleteCurrentReminder"
+                   OnSaveShift="SaveShift"
+                   OnUpdateShift="UpdateShift"
+                   OnDeleteShift="DeleteCurrentShift"
+                   OnDeleteShiftSeries="DeleteShiftSeries"
+                   OnSaveAbsence="SaveAbsence"
+                   OnUpdateAbsence="UpdateAbsence"
+                   OnDeleteAbsence="DeleteCurrentAbsence" />
+
+@code {
+    /// <summary>
+    /// View modes supported by the calendar.
+    /// </summary>
+    private enum ViewMode { Week, Month }
+
+    private ViewMode view = ViewMode.Month;
+
+    // Current user context resolved at initialization
+    private string _username = string.Empty;
+    private string? _managerCode;
+    private string? _userId;
+
+    // Current date used for rendering the calendar context (month or week)
+    private DateOnly current = DateOnly.FromDateTime(DateTime.Today);
+
+    // Loaded reminders for the current view
+    private List<Reminder> reminders = new List<Reminder>();
+    // Loaded Shifts for the current view
+    private List<Shift> shifts = new List<Shift>();
+    // Loaded Absences for the current view
+    private List<Absence> absences = new();
+    private bool isLoading = false;
+
+    // Shift assignment / role state
+    private List<User> employees = new();
+    private List<User> linkedUsers = new();
+    private bool canManageShifts = false;
+
+    // Modal state
+    private readonly CalendarEditModalState modalState = new();
+    private bool showModal { get => modalState.ShowModal; set => modalState.ShowModal = value; }
+    private DateOnly? selectedDate { get => modalState.SelectedDate; set => modalState.SelectedDate = value; }
+    private ModalMode modalMode { get => modalState.ModalMode; set => modalState.ModalMode = value; }
+    private string newReminderTitle { get => modalState.NewReminderTitle; set => modalState.NewReminderTitle = value; }
+    private string? newReminderNotes { get => modalState.NewReminderNotes; set => modalState.NewReminderNotes = value; }
+    private TimeOnly newReminderTime { get => modalState.NewReminderTime; set => modalState.NewReminderTime = value; }
+    private string newReminderColor { get => modalState.NewReminderColor; set => modalState.NewReminderColor = value; }
+    private string newReminderForUsername { get => modalState.NewReminderForUsername; set => modalState.NewReminderForUsername = value; }
+    private string? modalError { get => modalState.ModalError; set => modalState.ModalError = value; }
+    private bool isBusy { get => modalState.IsBusy; set => modalState.IsBusy = value; }
+
+    // Day detail modal state
+    private bool showDayModal = false;
+    private DateOnly dayModalDate;
+
+    // Shift fields for add/edit
+    private Shift? editingShift { get => modalState.EditingShift; set => modalState.EditingShift = value; }
+    private string editShiftId { get => modalState.EditShiftId; set => modalState.EditShiftId = value; }
+    private DateOnly editShiftDate { get => modalState.EditShiftDate; set => modalState.EditShiftDate = value; }
+    private TimeOnly editShiftStartTime { get => modalState.EditShiftStartTime; set => modalState.EditShiftStartTime = value; }
+    private TimeOnly editShiftEndTime { get => modalState.EditShiftEndTime; set => modalState.EditShiftEndTime = value; }
+    private string editShiftTitle { get => modalState.EditShiftTitle; set => modalState.EditShiftTitle = value; }
+    private string? editShiftNotes { get => modalState.EditShiftNotes; set => modalState.EditShiftNotes = value; }
+    private WorkerType editShiftWorkerType { get => modalState.EditShiftWorkerType; set => modalState.EditShiftWorkerType = value; }
+
+    private TimeOnly newShiftStartTime { get => modalState.NewShiftStartTime; set => modalState.NewShiftStartTime = value; }
+    private TimeOnly newShiftEndTime { get => modalState.NewShiftEndTime; set => modalState.NewShiftEndTime = value; }
+    private string newShiftTitle { get => modalState.NewShiftTitle; set => modalState.NewShiftTitle = value; }
+    private string? newShiftNotes { get => modalState.NewShiftNotes; set => modalState.NewShiftNotes = value; }
+    private string newShiftColor { get => modalState.NewShiftColor; set => modalState.NewShiftColor = value; }
+    private WorkerType newShiftWorkerType { get => modalState.NewShiftWorkerType; set => modalState.NewShiftWorkerType = value; }
+    private ShiftRecurrence newShiftRecurrence { get => modalState.NewShiftRecurrence; set => modalState.NewShiftRecurrence = value; }
+    private string newShiftAssignedTo { get => modalState.NewShiftAssignedTo; set => modalState.NewShiftAssignedTo = value; }
+    private string editShiftAssignedTo { get => modalState.EditShiftAssignedTo; set => modalState.EditShiftAssignedTo = value; }
+
+    // Edit state for existing reminder
+    private Reminder? editingReminder { get => modalState.EditingReminder; set => modalState.EditingReminder = value; }
+    private string editReminderTitle { get => modalState.EditReminderTitle; set => modalState.EditReminderTitle = value; }
+    private string? editReminderNotes { get => modalState.EditReminderNotes; set => modalState.EditReminderNotes = value; }
+    private DateOnly editReminderDate { get => modalState.EditReminderDate; set => modalState.EditReminderDate = value; }
+    private TimeOnly editReminderTime { get => modalState.EditReminderTime; set => modalState.EditReminderTime = value; }
+    private string editReminderColor { get => modalState.EditReminderColor; set => modalState.EditReminderColor = value; }
+    private string editReminderForUsername { get => modalState.EditReminderForUsername; set => modalState.EditReminderForUsername = value; }
+
+    // Edit state for existing shift
+    private string editShiftColor { get => modalState.EditShiftColor; set => modalState.EditShiftColor = value; }
+
+    // Absence fields for add/edit
+    private int newAbsenceDayCount { get => modalState.NewAbsenceDayCount; set => modalState.NewAbsenceDayCount = value; }
+    private string newAbsenceTitle { get => modalState.NewAbsenceTitle; set => modalState.NewAbsenceTitle = value; }
+    private string? newAbsenceNotes { get => modalState.NewAbsenceNotes; set => modalState.NewAbsenceNotes = value; }
+    private string newAbsenceColor { get => modalState.NewAbsenceColor; set => modalState.NewAbsenceColor = value; }
+    private string newAbsenceForUsername { get => modalState.NewAbsenceForUsername; set => modalState.NewAbsenceForUsername = value; }
+    private Absence? editingAbsence { get => modalState.EditingAbsence; set => modalState.EditingAbsence = value; }
+    private string editAbsenceStartDateUtc { get => modalState.EditAbsenceStartDateUtc; set => modalState.EditAbsenceStartDateUtc = value; }
+    private int editAbsenceDayCount { get => modalState.EditAbsenceDayCount; set => modalState.EditAbsenceDayCount = value; }
+    private string editAbsenceTitle { get => modalState.EditAbsenceTitle; set => modalState.EditAbsenceTitle = value; }
+    private string? editAbsenceNotes { get => modalState.EditAbsenceNotes; set => modalState.EditAbsenceNotes = value; }
+    private string editAbsenceColor { get => modalState.EditAbsenceColor; set => modalState.EditAbsenceColor = value; }
+    private string editAbsenceForUsername { get => modalState.EditAbsenceForUsername; set => modalState.EditAbsenceForUsername = value; }
+
+    // Preset palette: red, green, blue, orange, gray
+    private readonly string[] ColorChoices = new[] { "#ff4d4f", "#52c41a", "#1890ff", "#fa8c16", "#d3d3d3" };
+
+    // Day names for the calendar header (according to current culture)
+    private string[] DayNames => CultureInfo.CurrentCulture.DateTimeFormat.AbbreviatedDayNames
+        .Skip((int)CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek)
+        .Concat(CultureInfo.CurrentCulture.DateTimeFormat.AbbreviatedDayNames.Take((int)CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek))
+        .ToArray();
+
+    /// <summary>
+    /// Load reminders when the component initializes. The page-level [Authorize] attribute
+    /// ensures the user is authenticated before reaching this component, so we rely on the
+    /// browser's session cookie (credentials: same-origin) for API auth rather than
+    /// querying HttpContextAuthenticationStateProvider, which is null during the SignalR
+    /// interactive phase.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        _username = user.Identity?.Name ?? string.Empty;
+
+        if (!string.IsNullOrEmpty(_username))
+        {
+            var caller = await UserService.GetByUsernameAsync(_username);
+            _userId = caller?.Id;
+
+            canManageShifts = user.IsInRole(Roles.Manager) || user.IsInRole(Roles.Admin);
+            if (canManageShifts)
+            {
+                _managerCode = caller?.ManagerCode;
+                employees = await UserService.GetUsersByRoleAsync(Roles.Employee);
+            }
+            else if (user.IsInRole(Roles.Employee) && !string.IsNullOrEmpty(caller?.ManagerUsername))
+            {
+                var manager = await UserService.GetByUsernameAsync(caller.ManagerUsername);
+                _managerCode = manager?.ManagerCode;
+            }
+
+            var managerUsernameForLinkedUsers = canManageShifts
+                ? _username
+                : caller?.ManagerUsername;
+
+            if (!string.IsNullOrEmpty(managerUsernameForLinkedUsers))
+            {
+                linkedUsers = await UserService.GetLinkedUsersForManagerAsync(managerUsernameForLinkedUsers);
+            }
+
+            if (caller is not null && !linkedUsers.Any(u => u.Username == caller.Username))
+            {
+                linkedUsers.Add(caller);
+                linkedUsers = linkedUsers
+                    .OrderBy(u => u.DisplayName ?? u.Username)
+                    .ThenBy(u => u.Username)
+                    .ToList();
+            }
+
+            newReminderForUsername = _username;
+            newAbsenceForUsername = _username;
+        }
+
+        await LoadReminders();
+    }
+
+    /// <summary>
+    /// Loads reminders and Shifts for the current view range from the server.
+    /// </summary>
+    private async Task LoadReminders()
+    {
+        isLoading = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // Calculate date range based on view
+            DateOnly start, end;
+            if (view == ViewMode.Month)
+            {
+                var firstOfMonth = new DateOnly(current.Year, current.Month, 1);
+                start = StartOfWeek(firstOfMonth);
+                var lastOfMonth = firstOfMonth.AddMonths(1).AddDays(-1);
+                end = StartOfWeek(lastOfMonth).AddDays(6 * 7);
+            }
+            else
+            {
+                start = StartOfWeek(current);
+                end = start.AddDays(6);
+            }
+
+            // Query a slightly broader range to avoid missing items due to UTC/local day boundaries.
+            var queryStart = start.AddDays(-1);
+            var queryEnd = end.AddDays(1);
+
+            reminders = await RemindersService.GetCalendarRemindersAsync(_managerCode, _userId, queryStart, queryEnd);
+            await LoadShifts(queryStart, queryEnd);
+            await LoadAbsences(queryStart, queryEnd);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading calendar data");
+            reminders = new List<Reminder>();
+            shifts = new List<Shift>();
+            absences = new();
+        }
+        finally
+        {
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    /// <summary>
+    /// Gets reminders for a specific day.
+    /// </summary>
+    private List<Reminder> GetRemindersForDay(DateOnly day)
+    {
+        var startLocal = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local);
+        var endLocal = day.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Local);
+
+        var startUtc = startLocal.ToUniversalTime();
+        var endUtc = endLocal.ToUniversalTime();
+
+        var result = reminders
+            .Where(r => r.ReminderDateTime >= startUtc && r.ReminderDateTime < endUtc)
+            .ToList();
+
+        if (result.Any())
+        {
+            Logger.LogInformation("Found {Count} reminder(s) for {Day}", result.Count, day);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Opens the add reminder modal for the specified date.
+    /// </summary>
+    private void OpenAddReminderModal(DateOnly date)
+    {
+        selectedDate = date;
+
+        // Reset reminder fields
+        newReminderTitle = string.Empty;
+        newReminderNotes = null;
+        newReminderTime = TimeOnly.FromDateTime(DateTime.Now);
+        newReminderColor = "#ffeb3b";
+        newReminderForUsername = _username;
+        editingReminder = null;
+
+        // Reset Shift fields
+        newShiftTitle = string.Empty;
+        newShiftNotes = null;
+        newShiftStartTime = new(9, 0);
+        newShiftEndTime = new(17, 0);
+        newShiftWorkerType = WorkerType.General;
+        newShiftRecurrence = ShiftRecurrence.None;
+        newShiftColor = "#1890ff";
+        newShiftAssignedTo = string.Empty;
+        editingShift = null;
+
+        // Reset Absence fields
+        newAbsenceTitle = string.Empty;
+        newAbsenceNotes = null;
+        newAbsenceDayCount = 1;
+        newAbsenceColor = "#fa8c16";
+        newAbsenceForUsername = _username;
+        editingAbsence = null;
+
+        modalMode = ModalMode.Reminder;
+        modalError = null;
+        showModal = true;
+    }
+
+    /// <summary>
+    /// Opens the day detail modal for a specific day.
+    /// </summary>
+    private void OpenDayModal(DateOnly date)
+    {
+        dayModalDate = date;
+        showDayModal = true;
+    }
+
+    /// <summary>
+    /// Closes the day detail modal.
+    /// </summary>
+    private void CloseDayModal()
+    {
+        showDayModal = false;
+    }
+
+    /// <summary>
+    /// Closes the day detail modal and opens the add-shift form for that day.
+    /// </summary>
+    private void AddShiftFromDayModal()
+    {
+        var date = dayModalDate;
+        showDayModal = false;
+        OpenAddReminderModal(date);
+        modalMode = ModalMode.Shift;
+    }
+
+    /// <summary>
+    /// Closes the day detail modal and opens the add-reminder form for that day.
+    /// </summary>
+    private void AddReminderFromDayModal()
+    {
+        var date = dayModalDate;
+        showDayModal = false;
+        OpenAddReminderModal(date);
+    }
+
+    /// <summary>
+    /// Gets Shifts that intersect the specified day.
+    /// </summary>
+    private List<Shift> GetShiftsForDay(DateOnly day)
+    {
+        var startUtc = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
+        var endUtc = day.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
+        return shifts.Where(s => s.Start < endUtc && s.End > startUtc).ToList();
+    }
+
+    private List<Absence> GetAbsencesForDay(DateOnly day)
+    {
+        var startUtc = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
+        var endUtc = day.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
+        return absences.Where(a => a.StartDate < endUtc && a.EndDate > startUtc).ToList();
+    }
+
+    private async Task LoadAbsences(DateOnly queryStart, DateOnly queryEnd)
+    {
+        try
+        {
+            absences = await AbsenceService.GetAbsencesAsync(_managerCode, _userId, queryStart, queryEnd);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading absences");
+            absences = new();
+        }
+    }
+
+    private string GetEmployeeDisplayName(string? username)
+    {
+        if (string.IsNullOrEmpty(username)) return string.Empty;
+        var emp = employees.FirstOrDefault(e => e.Username == username);
+        return emp?.DisplayName ?? username;
+    }
+
+    private User? GetLinkedUser(string? username)
+    {
+        if (string.IsNullOrWhiteSpace(username)) return null;
+        return linkedUsers.FirstOrDefault(u => u.Username == username);
+    }
+
+    private User? GetDefaultLinkedUser()
+    {
+        return GetLinkedUser(_username) ?? linkedUsers.FirstOrDefault();
+    }
+
+    private string GetShiftDisplayTitle(Shift shift)
+    {
+        return string.IsNullOrWhiteSpace(shift.Title)
+            ? shift.WorkerType.ToString()
+            : $"{shift.Title} - {shift.WorkerType}";
+    }
+
+    private void OpenEditAbsenceModal(Absence absence)
+    {
+        showDayModal = false;
+        editingAbsence = absence;
+        editAbsenceStartDateUtc = absence.StartDate.ToString("O");
+        editAbsenceDayCount = absence.DayCount;
+        editAbsenceTitle = absence.Title;
+        editAbsenceNotes = absence.Notes;
+        editAbsenceColor = absence.Color ?? "#fa8c16";
+        editAbsenceForUsername = absence.ForUsername ?? GetLinkedUser(_username)?.Username ?? _username;
+        modalError = null;
+        modalMode = ModalMode.Absence;
+        showModal = true;
+    }
+
+    private void AddAbsenceFromDayModal()
+    {
+        var date = dayModalDate;
+        showDayModal = false;
+        OpenAddReminderModal(date);
+        modalMode = ModalMode.Absence;
+    }
+
+    /// <summary>
+    /// Opens the edit modal for an existing Shift.
+    /// </summary>
+    private void OpenEditShiftModal(Shift shift)
+    {
+        showDayModal = false;
+        editingShift = shift;
+        editShiftId = shift.Id ?? string.Empty;
+        var localStart = shift.Start.ToLocalTime();
+        editShiftDate = DateOnly.FromDateTime(localStart);
+        editShiftStartTime = TimeOnly.FromDateTime(localStart);
+        editShiftEndTime = TimeOnly.FromDateTime(shift.End.ToLocalTime());
+        editShiftTitle = shift.Title ?? string.Empty;
+        editShiftNotes = shift.Notes;
+        editShiftWorkerType = shift.WorkerType;
+        editShiftColor = shift.Color ?? "#1890ff";
+        editShiftAssignedTo = shift.AssignedToUsername ?? string.Empty;
+        modalError = null;
+        modalMode = ModalMode.Shift;
+        showModal = true;
+    }
+
+    /// <summary>
+    /// Loads Shifts for the specified inclusive query range (expects UTC-normalized yyyy-MM-dd values).
+    /// </summary>
+    private async Task LoadShifts(DateOnly queryStart, DateOnly queryEnd)
+    {
+        try
+        {
+            shifts = await ShiftService.GetShiftsAsync(_username, _managerCode, queryStart, queryEnd);
+            Logger.LogInformation("Loaded {Count} Shifts", shifts.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading shifts");
+            shifts = new List<Shift>();
+        }
+    }
+
+    /// <summary>
+    /// Opens the edit reminder modal for an existing reminder.
+    /// </summary>
+    private void OpenEditReminderModal(Reminder reminder)
+    {
+        showDayModal = false;
+        modalMode = ModalMode.Reminder;
+        editingReminder = reminder;
+        editReminderTitle = reminder.Title;
+        editReminderNotes = reminder.Notes;
+        var local = reminder.ReminderDateTime.ToLocalTime();
+        editReminderDate = DateOnly.FromDateTime(local);
+        editReminderTime = TimeOnly.FromDateTime(local);
+        editReminderColor = reminder.Color ?? "#ffeb3b";
+        editReminderForUsername = reminder.ForUsername ?? GetLinkedUser(_username)?.Username ?? _username;
+        modalError = null;
+        showModal = true;
+    }
+
+    /// <summary>
+    /// Closes the add/edit reminder modal.
+    /// </summary>
+    private void CloseModal()
+    {
+        showModal = false;
+        selectedDate = null;
+        editingReminder = null;
+        modalError = null;
+    }
+
+    /// <summary>
+    /// Saves a new reminder to the server.
+    /// </summary>
+    private async Task SaveReminder()
+    {
+        modalError = null;
+        if (selectedDate is null) return;
+
+        if (string.IsNullOrWhiteSpace(newReminderTitle))
+        {
+            modalError = "Title is required";
+            return;
+        }
+
+        try
+        {
+            isBusy = true;
+            var local = selectedDate.Value.ToDateTime(newReminderTime, DateTimeKind.Local);
+            var utc = local.ToUniversalTime();
+            var targetUser = GetLinkedUser(newReminderForUsername) ?? GetDefaultLinkedUser();
+
+            if (targetUser is null)
+            {
+                modalError = "Select a user for the reminder";
+                return;
+            }
+
+            var reminder = new Reminder
+            {
+                Username = _username,
+                OwnerId = targetUser.Id,
+                ManagerCode = _managerCode,
+                Date = utc,
+                Title = newReminderTitle,
+                Notes = newReminderNotes,
+                Color = newReminderColor,
+                ForUsername = targetUser.Username,
+                ForDisplayName = targetUser.DisplayName ?? targetUser.Username
+            };
+            await RemindersService.CreateReminderAsync(reminder);
+            CloseModal();
+            await LoadReminders();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving reminder");
+            modalError = "An error occurred. Please try again.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Saves a new Shift to the server.
+    /// </summary>
+    private async Task SaveShift()
+    {
+        modalError = null;
+        if (selectedDate is null) return;
+
+        if (string.IsNullOrWhiteSpace(newShiftTitle))
+        {
+            modalError = "Shift title is required";
+            return;
+        }
+
+        try
+        {
+            isBusy = true;
+
+            // Generate a shared SeriesId when creating a repeating shift
+            Guid? seriesId = newShiftRecurrence != ShiftRecurrence.None ? Guid.NewGuid() : null;
+
+            async Task CreateShiftForDate(DateOnly d)
+            {
+                var startLocal = d.ToDateTime(newShiftStartTime, DateTimeKind.Local);
+                var endLocal = d.ToDateTime(newShiftEndTime, DateTimeKind.Local);
+                var startUtc = startLocal.ToUniversalTime();
+                var endUtc = endLocal.ToUniversalTime();
+
+                if (endUtc <= startUtc)
+                {
+                    modalError = "End time must be after start time";
+                    return;
+                }
+
+                var shift = new Shift
+                {
+                    Username = _username,
+                    Start = startUtc,
+                    End = endUtc,
+                    Title = newShiftTitle,
+                    Notes = newShiftNotes,
+                    WorkerType = newShiftWorkerType,
+                    Color = newShiftColor,
+                    AssignedToUsername = string.IsNullOrEmpty(newShiftAssignedTo) ? null : newShiftAssignedTo,
+                    ManagerCode = _managerCode,
+                    SeriesId = seriesId
+                };
+                await ShiftService.CreateShiftAsync(shift);
+            }
+
+            if (newShiftRecurrence == ShiftRecurrence.None)
+            {
+                await CreateShiftForDate(selectedDate.Value);
+            }
+            else
+            {
+                var monthStart = new DateOnly(selectedDate.Value.Year, selectedDate.Value.Month, 1);
+                var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+                for (var day = monthStart; day <= monthEnd; day = day.AddDays(1))
+                {
+                    if (modalError is not null) break;
+                    if (newShiftRecurrence == ShiftRecurrence.Daily)
+                    {
+                        await CreateShiftForDate(day);
+                    }
+                    else if (newShiftRecurrence == ShiftRecurrence.Workdays)
+                    {
+                        var dow = day.DayOfWeek;
+                        if (dow >= DayOfWeek.Monday && dow <= DayOfWeek.Friday)
+                            await CreateShiftForDate(day);
+                    }
+                    else if (newShiftRecurrence == ShiftRecurrence.Weekends)
+                    {
+                        var dow = day.DayOfWeek;
+                        if (dow == DayOfWeek.Saturday || dow == DayOfWeek.Sunday)
+                            await CreateShiftForDate(day);
+                    }
+                }
+            }
+
+            if (modalError is null)
+            {
+                CloseModal();
+                await LoadReminders();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving Shift");
+            modalError = "An error occurred. Please try again.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Deletes a reminder by ID.
+    /// </summary>
+    private async Task DeleteReminder(string id)
+    {
+        try
+        {
+            await RemindersService.DeleteReminderAsync(id, _username);
+            await LoadReminders();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting reminder {Id}", id);
+        }
+    }
+
+    /// <summary>
+    /// Deletes the currently editing reminder and closes the modal.
+    /// </summary>
+    private async Task DeleteCurrentReminder()
+    {
+        if (editingReminder?.Id is null) return;
+
+        try
+        {
+            isBusy = true;
+            await RemindersService.DeleteReminderAsync(editingReminder.Id, _username);
+            CloseModal();
+            await LoadReminders();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting reminder {Id}", editingReminder.Id);
+            modalError = "An error occurred. Please try again.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing reminder with new values.
+    /// </summary>
+    private async Task UpdateReminder()
+    {
+        modalError = null;
+        if (editingReminder?.Id is null) return;
+
+        if (string.IsNullOrWhiteSpace(editReminderTitle))
+        {
+            modalError = "Title is required";
+            return;
+        }
+
+        try
+        {
+            isBusy = true;
+            var local = editReminderDate.ToDateTime(editReminderTime, DateTimeKind.Local);
+            var utc = local.ToUniversalTime();
+            var targetUser = GetLinkedUser(editReminderForUsername) ?? GetDefaultLinkedUser();
+
+            if (targetUser is null)
+            {
+                modalError = "Select a user for the reminder";
+                return;
+            }
+
+            var updated = await RemindersService.UpdateReminderAsync(editingReminder.Id, _username, editReminderTitle, editReminderNotes, utc, editReminderColor, targetUser.Id, targetUser.Username, targetUser.DisplayName ?? targetUser.Username, _managerCode);
+            if (updated is null)
+            {
+                modalError = "Failed to update reminder";
+            }
+            else
+            {
+                CloseModal();
+                await LoadReminders();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating reminder {Id}", editingReminder.Id);
+            modalError = "An error occurred. Please try again.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Sets the current view (Week or Month) and reloads reminders.
+    /// </summary>
+    private async Task SetView(ViewMode m)
+    {
+        view = m;
+        await LoadReminders();
+    }
+
+    private async Task SaveAbsence()
+    {
+        modalError = null;
+        if (selectedDate is null) return;
+        if (string.IsNullOrWhiteSpace(newAbsenceTitle)) { modalError = "Title is required"; return; }
+        isBusy = true;
+        try
+        {
+            var startUtc = DateTime.SpecifyKind(selectedDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime(), DateTimeKind.Utc);
+            var dayCount = Math.Max(1, Math.Min(newAbsenceDayCount, 365));
+            var endUtc = startUtc.AddDays(dayCount);
+            var targetUser = GetLinkedUser(newAbsenceForUsername) ?? GetDefaultLinkedUser();
+
+            if (targetUser is null)
+            {
+                modalError = "Select a user for the absence";
+                return;
+            }
+
+            var absence = new Absence
+            {
+                Username = _username,
+                UserId = targetUser.Id,
+                ManagerCode = _managerCode,
+                StartDate = startUtc,
+                EndDate = endUtc,
+                DayCount = dayCount,
+                Title = newAbsenceTitle,
+                Notes = newAbsenceNotes,
+                Color = newAbsenceColor,
+                ForUsername = targetUser.Username,
+                ForDisplayName = targetUser.DisplayName ?? targetUser.Username
+            };
+            await AbsenceService.CreateAbsenceAsync(absence);
+            CloseModal();
+            await LoadReminders();
+        }
+        catch (Exception ex) { Logger.LogError(ex, "Error saving absence"); modalError = "An error occurred."; }
+        finally { isBusy = false; }
+    }
+
+    private async Task UpdateAbsence()
+    {
+        if (editingAbsence?.Id is null) return;
+        isBusy = true;
+        try
+        {
+            var startUtc = DateTime.SpecifyKind(DateTime.Parse(editAbsenceStartDateUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind), DateTimeKind.Utc);
+            var dayCount = Math.Max(1, Math.Min(editAbsenceDayCount, 365));
+            var endUtc = startUtc.AddDays(dayCount);
+            var targetUser = GetLinkedUser(editAbsenceForUsername) ?? GetDefaultLinkedUser();
+
+            if (targetUser is null)
+            {
+                modalError = "Select a user for the absence";
+                return;
+            }
+
+            await AbsenceService.UpdateAbsenceAsync(editingAbsence.Id, _username, editAbsenceTitle, editAbsenceNotes, startUtc, endUtc, dayCount, editAbsenceColor, targetUser.Id, targetUser.Username, targetUser.DisplayName ?? targetUser.Username, _managerCode);
+            CloseModal();
+            await LoadReminders();
+        }
+        catch (Exception ex) { Logger.LogError(ex, "Error updating absence {Id}", editingAbsence.Id); modalError = "An error occurred."; }
+        finally { isBusy = false; }
+    }
+
+    private async Task DeleteCurrentAbsence()
+    {
+        if (editingAbsence?.Id is null) return;
+        isBusy = true;
+        try
+        {
+            await AbsenceService.DeleteAbsenceAsync(editingAbsence.Id, _username);
+            CloseModal();
+            await LoadReminders();
+        }
+        catch (Exception ex) { Logger.LogError(ex, "Error deleting absence {Id}", editingAbsence.Id); modalError = "An error occurred."; }
+        finally { isBusy = false; }
+    }
+
+    /// <summary>
+    /// Deletes the currently editing Shift and closes the modal.
+    /// </summary>
+    private async Task DeleteCurrentShift()
+    {
+        if (editingShift?.Id is null) return;
+
+        try
+        {
+            isBusy = true;
+            await ShiftService.DeleteShiftAsync(editingShift.Id, _username);
+            CloseModal();
+            await LoadReminders();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting Shift {Id}", editingShift.Id);
+            modalError = "An error occurred. Please try again.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Deletes all shifts in the series of the currently editing Shift and closes the modal.
+    /// </summary>
+    private async Task DeleteShiftSeries()
+    {
+        if (editingShift?.SeriesId is null) return;
+
+        try
+        {
+            isBusy = true;
+            await ShiftService.DeleteShiftsBySeriesIdAsync(editingShift.SeriesId.Value, _username);
+            CloseModal();
+            await LoadReminders();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting shift series {SeriesId}", editingShift.SeriesId);
+            modalError = "An error occurred. Please try again.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing Shift with new values.
+    /// </summary>
+    private async Task UpdateShift()
+    {
+        if (editingShift?.Id is null) return;
+
+        try
+        {
+            isBusy = true;
+            var localStart = editShiftDate.ToDateTime(editShiftStartTime, DateTimeKind.Local);
+            var localEnd = editShiftDate.ToDateTime(editShiftEndTime, DateTimeKind.Local);
+            var startUtc = localStart.ToUniversalTime();
+            var endUtc = localEnd.ToUniversalTime();
+
+            await ShiftService.UpdateShiftAsync(editingShift.Id, _username, startUtc, endUtc, editShiftTitle, editShiftNotes, editShiftWorkerType, editShiftColor, string.IsNullOrEmpty(editShiftAssignedTo) ? null : editShiftAssignedTo);
+            CloseModal();
+            await LoadReminders();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating Shift {Id}", editingShift.Id);
+            modalError = "An error occurred. Please try again.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Navigate to the previous time period (month or week depending on view) and reload reminders.
+    /// </summary>
+    private async Task Prev()
+    {
+        try
+        {
+            current = view == ViewMode.Month ? current.AddMonths(-1) : current.AddDays(-7);
+            await LoadReminders();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error navigating to previous period");
+        }
+    }
+
+    /// <summary>
+    /// Navigate to today and reload reminders.
+    /// </summary>
+    private async Task Today()
+    {
+        current = DateOnly.FromDateTime(DateTime.Today);
+        await LoadReminders();
+    }
+
+    /// <summary>
+    /// Navigate to the next time period (month or week depending on view) and reload reminders.
+    /// </summary>
+    private async Task Next()
+    {
+        try
+        {
+            current = view == ViewMode.Month ? current.AddMonths(1) : current.AddDays(7);
+            await LoadReminders();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error navigating to next period");
+        }
+    }
+
+    /// <summary>
+    /// Returns the date for the start of the week containing the provided date (based on culture).
+    /// </summary>
+    private DateOnly StartOfWeek(DateOnly date)
+    {
+        var fdow = CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek;
+        var diff = ((int)date.DayOfWeek - (int)fdow + 7) % 7;
+        return date.AddDays(-diff);
+    }
+
+    /// <summary>
+    /// Builds a matrix of weeks for the month view. Each inner list contains seven DateOnly entries.
+    /// </summary>
+    private List<List<DateOnly>> GetMonthMatrix(DateOnly forDate)
+    {
+        var result = new List<List<DateOnly>>();
+        try
+        {
+            var firstOfMonth = new DateOnly(forDate.Year, forDate.Month, 1);
+            var start = StartOfWeek(firstOfMonth);
+            // Show 6 weeks to accommodate months that span six calendar rows
+            for (int week = 0; week < 6; week++)
+            {
+                var weekRow = new List<DateOnly>();
+                for (int d = 0; d < 7; d++)
+                {
+                    weekRow.Add(start.AddDays(week * 7 + d));
+                }
+                result.Add(weekRow);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error building month matrix for {Date}", forDate);
+        }
+        return result;
+    }
+}

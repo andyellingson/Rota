@@ -1,0 +1,17 @@
+@using Rota.Models
+
+<div class="reminder-item" @onclick:stopPropagation="true" @onclick="HandleEdit" style="background:@(Reminder.Color ?? "#ffeb3b"); color: #111;">
+    <span class="reminder-title">@Reminder.Title</span>
+    <span class="reminder-time">@Reminder.ReminderDateTime.ToLocalTime().ToString("t")</span>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Reminder Reminder { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<Reminder> OnEdit { get; set; }
+
+    private Task HandleEdit()
+        => OnEdit.HasDelegate ? OnEdit.InvokeAsync(Reminder) : Task.CompletedTask;
+}

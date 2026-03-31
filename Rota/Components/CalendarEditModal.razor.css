@@ -1,0 +1,38 @@
+.color-swatch {
+    height: 36px;
+    display: inline-flex;
+    flex: 1 1 0;
+    min-width: 56px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 2px solid rgba(0,0,0,0.12);
+    cursor: pointer;
+    margin-right: 0.4rem;
+    padding: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: none;
+}
+
+.color-swatch.selected {
+    border-color: rgba(0,0,0,0.7);
+    outline: 2px solid rgba(0,0,0,0.5);
+    outline-offset: 1px;
+    transform: scale(1.1);
+}
+
+.color-swatch:focus {
+    outline: 2px solid rgba(0,0,0,0.25);
+    outline-offset: 1px;
+}
+
+.color-swatch-container {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.modal-backdrop {
+    background-color: rgba(0,0,0,0.5);
+}

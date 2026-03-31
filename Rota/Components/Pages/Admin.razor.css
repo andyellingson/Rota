@@ -1,0 +1,78 @@
+.admin-wrapper {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1rem 3rem;
+}
+
+.admin-header {
+    margin-bottom: 2rem;
+}
+
+.admin-badge {
+    display: inline-block;
+    background: rgba(220,53,69,0.1);
+    color: #dc3545;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    margin-bottom: 0.5rem;
+}
+
+.admin-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.admin-subtitle {
+    color: #6c757d;
+    margin-bottom: 0;
+}
+
+.admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.admin-card {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 10px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    position: relative;
+}
+
+.admin-card-icon {
+    font-size: 2rem;
+    margin-bottom: 0.6rem;
+}
+
+.admin-card-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.3rem;
+    color: #212529;
+}
+
+.admin-card-desc {
+    font-size: 0.8rem;
+    color: #6c757d;
+    line-height: 1.4;
+    margin-bottom: 0.6rem;
+}
+
+.admin-card-coming {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #6c757d;
+    background: rgba(0,0,0,0.05);
+    border-radius: 20px;
+    padding: 0.15rem 0.55rem;
+}

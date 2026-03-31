@@ -1,0 +1,60 @@
+.reminder-item {
+    background: #ffeb3b;
+    color: #111;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.1rem 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.25);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.reminder-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: rgba(0,0,0,0.3);
+}
+
+.reminder-time {
+    font-size: 0.68rem;
+    font-weight: 600;
+    opacity: 0.7;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: auto;
+    padding-left: 0.4rem;
+}
+
+.reminder-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.reminder-title {
+    flex: 0 0 auto;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    padding-left: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .reminder-item {
+        font-size: 0.65rem;
+        padding: 0.25rem 0.4rem;
+    }
+}

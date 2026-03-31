@@ -1,0 +1,71 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>Rota</PageTitle>
+
+<AuthorizeView>
+
+    <Authorized>
+        <div class="home-wrapper">
+            <div class="home-hero">
+                <div class="home-hero-icon">📅</div>
+                <h1 class="home-title">Welcome back, @(context.User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value ?? context.User.Identity?.Name)!</h1>
+                <p class="home-subtitle">Your schedule is ready when you are.</p>
+                <div class="home-actions">
+                    <a class="btn btn-primary btn-lg" href="/calendar">Open Calendar</a>
+                </div>
+            </div>
+
+            <div class="home-features">
+                <div class="home-feature-card">
+                    <div class="home-feature-icon">🕐</div>
+                    <div class="home-feature-title">Shifts</div>
+                    <div class="home-feature-desc">View and manage all your upcoming shifts at a glance.</div>
+                </div>
+                <div class="home-feature-card">
+                    <div class="home-feature-icon">🔔</div>
+                    <div class="home-feature-title">Reminders</div>
+                    <div class="home-feature-desc">Set reminders so you never miss an important event.</div>
+                </div>
+                <div class="home-feature-card">
+                    <div class="home-feature-icon">📆</div>
+                    <div class="home-feature-title">Calendar</div>
+                    <div class="home-feature-desc">Browse your schedule by week or month in one clear view.</div>
+                </div>
+            </div>
+        </div>
+    </Authorized>
+
+    <NotAuthorized>
+        <div class="home-wrapper">
+            <div class="home-hero">
+                <div class="home-hero-icon">🗓️</div>
+                <h1 class="home-title">Rota</h1>
+                <p class="home-subtitle">Manage your shifts and reminders in one place.</p>
+                <div class="home-actions">
+                    <a class="btn btn-primary btn-lg me-2" href="/login">Login</a>
+                    <a class="btn btn-outline-secondary btn-lg" href="/login?register=true">Create account</a>
+                </div>
+            </div>
+
+            <div class="home-features">
+                <div class="home-feature-card">
+                    <div class="home-feature-icon">🕐</div>
+                    <div class="home-feature-title">Shifts</div>
+                    <div class="home-feature-desc">Keep track of all your shifts with start and end times, worker type and notes.</div>
+                </div>
+                <div class="home-feature-card">
+                    <div class="home-feature-icon">🔔</div>
+                    <div class="home-feature-title">Reminders</div>
+                    <div class="home-feature-desc">Colour-coded reminders sit right on your calendar so nothing slips through.</div>
+                </div>
+                <div class="home-feature-card">
+                    <div class="home-feature-icon">📆</div>
+                    <div class="home-feature-title">Calendar</div>
+                    <div class="home-feature-desc">Switch between week and month views to plan ahead with ease.</div>
+                </div>
+            </div>
+        </div>
+    </NotAuthorized>
+
+</AuthorizeView>

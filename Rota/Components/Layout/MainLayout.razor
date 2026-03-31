@@ -1,0 +1,73 @@
+﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject Microsoft.Extensions.Logging.ILogger<MainLayout> Logger
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4 d-flex justify-content-between align-items-center">
+            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <AuthorizeView>
+                <Authorized>
+                    <a href="/account" class="me-2 text-decoration-none">Hello, @(context.User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value ?? context.User.Identity?.Name)</a>
+                    <button type="button" class="btn btn-link p-0" @onclick="OnLogout">Logout</button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-link p-0" @onclick="OnLogin">Login</button>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+<script src="/auth.js"></script>
+
+@code {
+    /// <summary>
+    /// Invoked when the user clicks the logout button. Calls the client-side helper
+    /// which posts to the server logout endpoint. On success the app is reloaded.
+    /// </summary>
+    private async System.Threading.Tasks.Task OnLogout()
+    {
+        try
+        {
+            var result = await JS.InvokeAsync<System.Text.Json.JsonElement>("authPost", "/api/auth/logout", new { });
+            var ok = result.GetProperty("ok").GetBoolean();
+            if (ok)
+            {
+                Navigation.NavigateTo("/", forceLoad: true);
+            }
+            else
+            {
+                // Log the failure for diagnostics; still navigate to the root to clear UI state.
+                Logger.LogWarning("Logout endpoint returned ok=false: {Response}", result.ToString());
+                Navigation.NavigateTo("/", forceLoad: true);
+            }
+        }
+        catch (System.Exception ex)
+        {
+            // Log unexpected exceptions and navigate to the root to ensure UI resets.
+            Logger.LogError(ex, "Unhandled exception during logout");
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+    }
+    private void OnLogin()
+    {
+        Navigation.NavigateTo("/login");
+    }
+}

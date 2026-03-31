@@ -1,0 +1,352 @@
+@page "/account"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Rota.Services
+@using Rota.Models
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject IUserService UserService
+@inject IJSRuntime JS
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+
+<PageTitle>Settings – Rota</PageTitle>
+
+<div class="account-wrapper">
+
+    <div class="account-header">
+        <h2 class="account-title">Settings</h2>
+        <p class="account-subtitle">View and update your profile information.</p>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-muted small">Loading…</div>
+    }
+    else if (user is not null)
+    {
+        @* ── Profile ──────────────────────────────────────── *@
+        <div class="account-section">
+            <h5 class="account-section-title">👤 Profile</h5>
+
+            <div class="account-card">
+                <div class="account-field">
+                    <span class="account-field-label">Username</span>
+                    <span class="account-field-value">@user.Username</span>
+                </div>
+                <div class="account-field">
+                    <span class="account-field-label">Role</span>
+                    <span class="account-role-badge">@(user.Roles.Length > 0 ? user.Roles[0] : "—")</span>
+                </div>
+            </div>
+
+            <div class="account-card mt-3">
+                <label class="account-field-label mb-1">Display Name</label>
+                <div class="d-flex gap-2 align-items-start">
+                    <input class="form-control" @bind="displayNameInput" placeholder="Enter a display name" maxlength="64" />
+                    <button class="btn btn-primary text-nowrap" @onclick="SaveDisplayName" disabled="@isBusy">Save</button>
+                </div>
+                @if (!string.IsNullOrEmpty(displayNameMessage))
+                {
+                    <div class="account-message @(displayNameError ? "account-message-error" : "account-message-ok")">@displayNameMessage</div>
+                }
+
+                <hr class="my-3" />
+
+                <label class="account-field-label mb-1">Occupation</label>
+                <div class="d-flex gap-2 align-items-start">
+                    <select class="form-select" @bind="occupationInput">
+                        @foreach (var wt in Enum.GetValues(typeof(WorkerType)).Cast<WorkerType>())
+                        {
+                            <option value="@wt">@wt</option>
+                        }
+                    </select>
+                    <button class="btn btn-primary text-nowrap" @onclick="SaveOccupation" disabled="@isBusy">Save</button>
+                </div>
+                @if (!string.IsNullOrEmpty(occupationMessage))
+                {
+                    <div class="account-message @(occupationError ? "account-message-error" : "account-message-ok")">@occupationMessage</div>
+                }
+            </div>
+        </div>
+
+        @* ── Manager Code (managers only) ─────────────────── *@
+        @if (user.Roles.Contains(Roles.Manager))
+        {
+            <div class="account-section">
+                <h5 class="account-section-title">🏷️ Team Code</h5>
+                <div class="account-card">
+                    <p class="account-field-hint">Share this code with employees so they can link to your schedule.</p>
+                    <div class="d-flex gap-2 align-items-center">
+                        <input class="form-control manager-code-input" value="@user.ManagerCode" readonly onclick="this.select()" />
+                        <button class="btn btn-outline-secondary text-nowrap" @onclick="CopyManagerCode" disabled="@codeCopied">@(codeCopied ? "Copied!" : "Copy")</button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* ── Manager Link (employees only) ────────────────── *@
+        @if (user.Roles.Contains(Roles.Employee))
+        {
+            <div class="account-section">
+                <h5 class="account-section-title">🔗 Manager Link</h5>
+                <div class="account-card">
+                    @if (!string.IsNullOrEmpty(user.ManagerUsername))
+                    {
+                        <div class="account-field">
+                            <span class="account-field-label">Linked Manager</span>
+                            <span class="account-field-value">@(linkedManagerDisplayName ?? user.ManagerUsername)</span>
+                        </div>
+                        @if (!showLinkForm)
+                        {
+                            <button class="btn btn-sm btn-outline-secondary mt-2" @onclick="(() => showLinkForm = true)">Change Manager</button>
+                        }
+                    }
+                    else
+                    {
+                        <p class="account-field-hint">You are not linked to a manager yet. Enter your manager's code below.</p>
+                    }
+
+                    @if (showLinkForm || string.IsNullOrEmpty(user.ManagerUsername))
+                    {
+                        <div class="mt-2 d-flex gap-2 align-items-start">
+                            <input class="form-control" @bind="managerCodeInput" placeholder="Paste manager code here" />
+                            <button class="btn btn-primary text-nowrap" @onclick="LinkToManager" disabled="@isBusy">Link</button>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(linkMessage))
+                    {
+                        <div class="account-message @(linkError ? "account-message-error" : "account-message-ok")">@linkMessage</div>
+                    }
+                </div>
+            </div>
+        }
+        <div class="account-section">
+            <h5 class="account-section-title">🔐 Security</h5>
+
+            <div class="account-card">
+                <div class="mb-3">
+                    <label class="form-label account-field-label">Current Password</label>
+                    <input class="form-control" type="password" @bind="currentPassword" autocomplete="current-password" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label account-field-label">New Password</label>
+                    <input class="form-control" type="password" @bind="newPassword" autocomplete="new-password" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label account-field-label">Confirm New Password</label>
+                    <input class="form-control" type="password" @bind="confirmPassword" autocomplete="new-password" />
+                </div>
+                @if (!string.IsNullOrEmpty(passwordMessage))
+                {
+                    <div class="account-message @(passwordError ? "account-message-error" : "account-message-ok")">@passwordMessage</div>
+                }
+                <button class="btn btn-primary" @onclick="ChangePassword" disabled="@isBusy">Change Password</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Rota.Services.User? user;
+    private bool isLoading = true;
+    private bool isBusy = false;
+
+    private string displayNameInput = string.Empty;
+    private string? displayNameMessage;
+    private bool displayNameError;
+
+    private WorkerType occupationInput = WorkerType.General;
+    private string? occupationMessage;
+    private bool occupationError;
+
+    private string currentPassword = string.Empty;
+    private string newPassword = string.Empty;
+    private string confirmPassword = string.Empty;
+    private string? passwordMessage;
+    private bool passwordError;
+
+    // Manager code
+    private bool codeCopied = false;
+
+    // Employee manager-link
+    private string? linkedManagerDisplayName;
+    private string managerCodeInput = string.Empty;
+    private string? linkMessage;
+    private bool linkError;
+    private bool showLinkForm = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var username = HttpContextAccessor.HttpContext?.User.Identity?.Name;
+        if (username is not null)
+        {
+            user = await UserService.GetByUsernameAsync(username);
+            displayNameInput = user?.DisplayName ?? string.Empty;
+            occupationInput = user?.Occupation ?? WorkerType.General;
+
+            if (user?.ManagerUsername is not null)
+            {
+                var mgr = await UserService.GetByUsernameAsync(user.ManagerUsername);
+                linkedManagerDisplayName = mgr?.DisplayName ?? user.ManagerUsername;
+            }
+        }
+        isLoading = false;
+    }
+
+    private async Task CopyManagerCode()
+    {
+        if (string.IsNullOrEmpty(user?.ManagerCode)) return;
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", user.ManagerCode);
+            codeCopied = true;
+            StateHasChanged();
+            await Task.Delay(2000);
+            codeCopied = false;
+        }
+        catch
+        {
+            // Clipboard API unavailable — the readonly input lets users copy manually
+        }
+    }
+
+    private async Task LinkToManager()
+    {
+        if (user is null) return;
+        linkMessage = null;
+        if (string.IsNullOrWhiteSpace(managerCodeInput))
+        {
+            linkMessage = "Please enter a manager code.";
+            linkError = true;
+            return;
+        }
+        isBusy = true;
+        try
+        {
+            var ok = await UserService.LinkToManagerAsync(user.Username, managerCodeInput.Trim());
+            if (ok)
+            {
+                user = await UserService.GetByUsernameAsync(user.Username) ?? user;
+                if (user.ManagerUsername is not null)
+                {
+                    var mgr = await UserService.GetByUsernameAsync(user.ManagerUsername);
+                    linkedManagerDisplayName = mgr?.DisplayName ?? user.ManagerUsername;
+                }
+                managerCodeInput = string.Empty;
+                showLinkForm = false;
+                linkMessage = "Successfully linked to manager.";
+                linkError = false;
+            }
+            else
+            {
+                linkMessage = "Manager code not found. Please check and try again.";
+                linkError = true;
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task SaveOccupation()
+    {
+        if (user is null) return;
+        occupationMessage = null;
+        isBusy = true;
+        try
+        {
+            var ok = await UserService.UpdateOccupationAsync(user.Username, occupationInput);
+            if (ok)
+            {
+                user.Occupation = occupationInput;
+                occupationMessage = "Occupation updated.";
+                occupationError = false;
+            }
+            else
+            {
+                occupationMessage = "Could not update occupation. Please try again.";
+                occupationError = true;
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task SaveDisplayName()
+    {
+        if (user is null) return;
+        displayNameMessage = null;
+        isBusy = true;
+        try
+        {
+            var trimmed = string.IsNullOrWhiteSpace(displayNameInput) ? null : displayNameInput.Trim();
+            var ok = await UserService.UpdateDisplayNameAsync(user.Username, trimmed);
+            if (ok)
+            {
+                user.DisplayName = trimmed;
+                displayNameMessage = "Display name updated.";
+                displayNameError = false;
+            }
+            else
+            {
+                displayNameMessage = "Could not update display name. Please try again.";
+                displayNameError = true;
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task ChangePassword()
+    {
+        if (user is null) return;
+        passwordMessage = null;
+
+        if (string.IsNullOrWhiteSpace(currentPassword) || string.IsNullOrWhiteSpace(newPassword))
+        {
+            passwordMessage = "All password fields are required.";
+            passwordError = true;
+            return;
+        }
+        if (newPassword != confirmPassword)
+        {
+            passwordMessage = "New passwords do not match.";
+            passwordError = true;
+            return;
+        }
+        if (newPassword.Length < 6)
+        {
+            passwordMessage = "New password must be at least 6 characters.";
+            passwordError = true;
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            var ok = await UserService.UpdatePasswordAsync(user.Username, currentPassword, newPassword);
+            if (ok)
+            {
+                currentPassword = string.Empty;
+                newPassword = string.Empty;
+                confirmPassword = string.Empty;
+                passwordMessage = "Password changed successfully.";
+                passwordError = false;
+            }
+            else
+            {
+                passwordMessage = "Current password is incorrect.";
+                passwordError = true;
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+}

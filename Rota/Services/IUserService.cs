@@ -1,0 +1,63 @@
+namespace Rota.Services
+{
+    public interface IUserService
+    {
+        /// <summary>
+        /// Finds a user by username.
+        /// Returns null when the user is not found.
+        /// </summary>
+        System.Threading.Tasks.Task<User?> GetByUsernameAsync(string username);
+
+        /// <summary>
+        /// Validates provided credentials for the specified username.
+        /// Returns true when credentials are valid; otherwise false.
+        /// </summary>
+        System.Threading.Tasks.Task<bool> ValidateCredentialsAsync(string username, string password);
+
+        /// <summary>
+        /// Creates a new user record and stores a hashed password.
+        /// </summary>
+        System.Threading.Tasks.Task CreateUserAsync(User user, string password);
+
+        /// <summary>
+        /// Returns all users that have the specified role string in their Roles array.
+        /// </summary>
+        System.Threading.Tasks.Task<List<User>> GetUsersByRoleAsync(string role);
+
+        /// <summary>
+        /// Updates the display name for the specified user.
+        /// Returns true when the document was modified.
+        /// </summary>
+        System.Threading.Tasks.Task<bool> UpdateDisplayNameAsync(string username, string? displayName);
+
+        /// <summary>
+        /// Updates the occupation for the specified user.
+        /// Returns true when the document was modified.
+        /// </summary>
+        System.Threading.Tasks.Task<bool> UpdateOccupationAsync(string username, Rota.Models.WorkerType occupation);
+
+        /// <summary>
+        /// Verifies <paramref name="currentPassword"/> then replaces the stored hash with a
+        /// hash of <paramref name="newPassword"/>.
+        /// Returns true on success, false when the current password is wrong.
+        /// </summary>
+        System.Threading.Tasks.Task<bool> UpdatePasswordAsync(string username, string currentPassword, string newPassword);
+
+        /// <summary>
+        /// Finds a manager by their unique ManagerCode.
+        /// Returns null when no manager with that code exists.
+        /// </summary>
+        System.Threading.Tasks.Task<User?> GetByManagerCodeAsync(string code);
+
+        /// <summary>
+        /// Links an employee to the manager identified by <paramref name="managerCode"/>.
+        /// Returns true on success, false when the code does not match any manager.
+        /// </summary>
+        System.Threading.Tasks.Task<bool> LinkToManagerAsync(string employeeUsername, string managerCode);
+
+        /// <summary>
+        /// Returns the manager and all linked users for the specified manager username.
+        /// </summary>
+        System.Threading.Tasks.Task<List<User>> GetLinkedUsersForManagerAsync(string managerUsername);
+    }
+}

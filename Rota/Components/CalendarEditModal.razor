@@ -1,0 +1,427 @@
+@using System.Globalization
+@using Rota.Models
+@using Rota.Services
+
+@if (State.ShowModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@GetModalTitle()</h5>
+                    <button type="button" class="btn-close" @onclick="OnClose" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(State.ModalError))
+                    {
+                        <div class="alert alert-danger">@State.ModalError</div>
+                    }
+
+                    <div class="mb-2">
+                        <div class="btn-group" role="group" aria-label="Mode">
+                            <button type="button" class="btn btn-sm @(State.ModalMode == ModalMode.Reminder ? "btn-primary" : "btn-outline-secondary")" @onclick="(() => State.ModalMode = ModalMode.Reminder)">Reminder</button>
+                            @if (CanManageShifts)
+                            {
+                                <button type="button" class="btn btn-sm @(State.ModalMode == ModalMode.Shift ? "btn-primary" : "btn-outline-secondary")" @onclick="(() => State.ModalMode = ModalMode.Shift)">Shift</button>
+                            }
+                            <button type="button" class="btn btn-sm @(State.ModalMode == ModalMode.Absence ? "btn-primary" : "btn-outline-secondary")" @onclick="(() => State.ModalMode = ModalMode.Absence)">Absence</button>
+                        </div>
+                    </div>
+
+                    @if (State.ModalMode == ModalMode.Reminder)
+                    {
+                        @if (State.EditingReminder is null)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Title</label>
+                                <input class="form-control" @bind="State.NewReminderTitle" placeholder="Enter reminder title" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Time</label>
+                                <input type="time" class="form-control" @bind="State.NewReminderTime" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">For</label>
+                                <select class="form-select" @bind="State.NewReminderForUsername">
+                                    @foreach (var user in LinkedUsers)
+                                    {
+                                        <option value="@user.Username">@GetLinkedUserLabel(user)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Color</label>
+                                <div class="color-swatch-container">
+                                    @foreach (var color in ColorChoices)
+                                    {
+                                        <button type="button" class="color-swatch @(color == State.NewReminderColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.NewReminderColor = color)" aria-label=$"Select color {color}"></button>
+                                    }
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Notes (optional)</label>
+                                <textarea class="form-control" rows="3" @bind="State.NewReminderNotes" placeholder="Add additional notes"></textarea>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Title</label>
+                                <input class="form-control" @bind="State.EditReminderTitle" placeholder="Enter reminder title" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Time</label>
+                                <input type="time" class="form-control" @bind="State.EditReminderTime" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">For</label>
+                                <select class="form-select" @bind="State.EditReminderForUsername">
+                                    @foreach (var user in LinkedUsers)
+                                    {
+                                        <option value="@user.Username">@GetLinkedUserLabel(user)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Color</label>
+                                <div class="color-swatch-container">
+                                    @foreach (var color in ColorChoices)
+                                    {
+                                        <button type="button" class="color-swatch @(color == State.EditReminderColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.EditReminderColor = color)" aria-label=$"Select color {color}"></button>
+                                    }
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Notes (optional)</label>
+                                <textarea class="form-control" rows="3" @bind="State.EditReminderNotes" placeholder="Add additional notes"></textarea>
+                            </div>
+                        }
+                    }
+                    else if (State.ModalMode == ModalMode.Shift)
+                    {
+                        @if (State.EditingShift is null)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Shift title</label>
+                                <input class="form-control" @bind="State.NewShiftTitle" placeholder="Enter shift title" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Repeat</label>
+                                <div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" id="rec-none" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.None)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.None)" />
+                                        <label class="form-check-label" for="rec-none">None</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" id="rec-daily" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.Daily)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.Daily)" />
+                                        <label class="form-check-label" for="rec-daily">Daily</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" id="rec-workdays" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.Workdays)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.Workdays)" />
+                                        <label class="form-check-label" for="rec-workdays">Work week (Mon–Fri)</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" id="rec-weekends" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.Weekends)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.Weekends)" />
+                                        <label class="form-check-label" for="rec-weekends">Weekends only</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Start time</label>
+                                <input type="time" class="form-control" @bind="State.NewShiftStartTime" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">End time</label>
+                                <input type="time" class="form-control" @bind="State.NewShiftEndTime" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Worker type</label>
+                                <select class="form-select" @bind="State.NewShiftWorkerType">
+                                    @foreach (var workerType in WorkerTypes)
+                                    {
+                                        <option value="@workerType">@workerType</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">For</label>
+                                <select class="form-select" @bind="State.NewAbsenceForUsername">
+                                    @foreach (var user in LinkedUsers)
+                                    {
+                                        <option value="@user.Username">@GetLinkedUserLabel(user)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Color</label>
+                                <div class="color-swatch-container">
+                                    @foreach (var color in ColorChoices)
+                                    {
+                                        <button type="button" class="color-swatch @(color == State.NewShiftColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.NewShiftColor = color)" aria-label=$"Select color {color}"></button>
+                                    }
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Assign to Employee</label>
+                                <select class="form-select" @bind="State.NewShiftAssignedTo">
+                                    <option value="">— Unassigned —</option>
+                                    @foreach (var employee in Employees)
+                                    {
+                                        <option value="@employee.Username">@(employee.DisplayName ?? employee.Username) (@employee.Occupation)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Notes (optional)</label>
+                                <textarea class="form-control" rows="3" @bind="State.NewShiftNotes" placeholder="Add additional notes"></textarea>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Start time</label>
+                                <input type="time" class="form-control" @bind="State.EditShiftStartTime" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">End time</label>
+                                <input type="time" class="form-control" @bind="State.EditShiftEndTime" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Worker type</label>
+                                <select class="form-select" @bind="State.EditShiftWorkerType">
+                                    @foreach (var workerType in WorkerTypes)
+                                    {
+                                        <option value="@workerType">@workerType</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">For</label>
+                                <select class="form-select" @bind="State.EditAbsenceForUsername">
+                                    @foreach (var user in LinkedUsers)
+                                    {
+                                        <option value="@user.Username">@GetLinkedUserLabel(user)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Color</label>
+                                <div class="color-swatch-container">
+                                    @foreach (var color in ColorChoices)
+                                    {
+                                        <button type="button" class="color-swatch @(color == State.EditShiftColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.EditShiftColor = color)" aria-label=$"Select color {color}"></button>
+                                    }
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Shift title (optional)</label>
+                                <input class="form-control" @bind="State.EditShiftTitle" placeholder="Enter shift title" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Assign to Employee</label>
+                                <select class="form-select" @bind="State.EditShiftAssignedTo">
+                                    <option value="">— Unassigned —</option>
+                                    @foreach (var employee in Employees)
+                                    {
+                                        <option value="@employee.Username">@(employee.DisplayName ?? employee.Username) (@employee.Occupation)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Notes (optional)</label>
+                                <textarea class="form-control" rows="3" @bind="State.EditShiftNotes" placeholder="Add additional notes"></textarea>
+                            </div>
+                        }
+                    }
+                    else if (State.ModalMode == ModalMode.Absence)
+                    {
+                        @if (State.EditingAbsence is null)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Title</label>
+                                <input class="form-control" @bind="State.NewAbsenceTitle" placeholder="e.g. Sick Leave, Holiday" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Number of Days</label>
+                                <select class="form-select" @bind="State.NewAbsenceDayCount">
+                                    @for (int day = 1; day <= 30; day++)
+                                    {
+                                        <option value="@day">@day @(day == 1 ? "day" : "days")</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Color</label>
+                                <div class="color-swatch-container">
+                                    @foreach (var color in ColorChoices)
+                                    {
+                                        <button type="button" class="color-swatch @(color == State.NewAbsenceColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.NewAbsenceColor = color)" aria-label=$"Select color {color}"></button>
+                                    }
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Notes (optional)</label>
+                                <textarea class="form-control" rows="3" @bind="State.NewAbsenceNotes" placeholder="Add any additional details"></textarea>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Title</label>
+                                <input class="form-control" @bind="State.EditAbsenceTitle" placeholder="e.g. Sick Leave, Holiday" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Number of Days</label>
+                                <select class="form-select" @bind="State.EditAbsenceDayCount">
+                                    @for (int day = 1; day <= 30; day++)
+                                    {
+                                        <option value="@day">@day @(day == 1 ? "day" : "days")</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Color</label>
+                                <div class="color-swatch-container">
+                                    @foreach (var color in ColorChoices)
+                                    {
+                                        <button type="button" class="color-swatch @(color == State.EditAbsenceColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.EditAbsenceColor = color)" aria-label=$"Select color {color}"></button>
+                                    }
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Notes (optional)</label>
+                                <textarea class="form-control" rows="3" @bind="State.EditAbsenceNotes" placeholder="Add any additional details"></textarea>
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="modal-footer">
+                    @if (State.ModalMode == ModalMode.Reminder)
+                    {
+                        @if (State.EditingReminder is null)
+                        {
+                            <button type="button" class="btn btn-secondary" @onclick="OnClose" disabled="@State.IsBusy">Cancel</button>
+                            <button type="button" class="btn btn-primary" @onclick="OnSaveReminder" disabled="@State.IsBusy">Save</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-danger me-auto" @onclick="OnDeleteReminder" disabled="@State.IsBusy">Delete</button>
+                            <button type="button" class="btn btn-secondary" @onclick="OnClose" disabled="@State.IsBusy">Cancel</button>
+                            <button type="button" class="btn btn-primary" @onclick="OnUpdateReminder" disabled="@State.IsBusy">Save Changes</button>
+                        }
+                    }
+                    else if (State.ModalMode == ModalMode.Shift)
+                    {
+                        @if (State.EditingShift is null)
+                        {
+                            <button type="button" class="btn btn-secondary" @onclick="OnClose" disabled="@State.IsBusy">Cancel</button>
+                            <button type="button" class="btn btn-primary" @onclick="OnSaveShift" disabled="@State.IsBusy">Create Shift</button>
+                        }
+                        else if (State.EditingShift.SeriesId is not null)
+                        {
+                            <button type="button" class="btn btn-danger me-2" @onclick="OnDeleteShiftSeries" disabled="@State.IsBusy">Delete Series</button>
+                            <button type="button" class="btn btn-danger me-auto" @onclick="OnDeleteShift" disabled="@State.IsBusy">Delete</button>
+                            <button type="button" class="btn btn-secondary" @onclick="OnClose" disabled="@State.IsBusy">Cancel</button>
+                            <button type="button" class="btn btn-primary" @onclick="OnUpdateShift" disabled="@State.IsBusy">Save Changes</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-danger me-auto" @onclick="OnDeleteShift" disabled="@State.IsBusy">Delete</button>
+                            <button type="button" class="btn btn-secondary" @onclick="OnClose" disabled="@State.IsBusy">Cancel</button>
+                            <button type="button" class="btn btn-primary" @onclick="OnUpdateShift" disabled="@State.IsBusy">Save Changes</button>
+                        }
+                    }
+                    else if (State.ModalMode == ModalMode.Absence)
+                    {
+                        @if (State.EditingAbsence is null)
+                        {
+                            <button type="button" class="btn btn-secondary" @onclick="OnClose" disabled="@State.IsBusy">Cancel</button>
+                            <button type="button" class="btn btn-warning" @onclick="OnSaveAbsence" disabled="@State.IsBusy">Log Absence</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-danger me-auto" @onclick="OnDeleteAbsence" disabled="@State.IsBusy">Delete</button>
+                            <button type="button" class="btn btn-secondary" @onclick="OnClose" disabled="@State.IsBusy">Cancel</button>
+                            <button type="button" class="btn btn-warning" @onclick="OnUpdateAbsence" disabled="@State.IsBusy">Save Changes</button>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private static readonly WorkerType[] WorkerTypes = Enum.GetValues<WorkerType>();
+
+    [Parameter, EditorRequired]
+    public CalendarEditModalState State { get; set; } = default!;
+
+    [Parameter]
+    public bool CanManageShifts { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<User> Employees { get; set; } = Array.Empty<User>();
+
+    [Parameter]
+    public IReadOnlyList<User> LinkedUsers { get; set; } = Array.Empty<User>();
+
+    [Parameter]
+    public IReadOnlyList<string> ColorChoices { get; set; } = Array.Empty<string>();
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback OnSaveReminder { get; set; }
+
+    [Parameter]
+    public EventCallback OnUpdateReminder { get; set; }
+
+    [Parameter]
+    public EventCallback OnDeleteReminder { get; set; }
+
+    [Parameter]
+    public EventCallback OnSaveShift { get; set; }
+
+    [Parameter]
+    public EventCallback OnUpdateShift { get; set; }
+
+    [Parameter]
+    public EventCallback OnDeleteShift { get; set; }
+
+    [Parameter]
+    public EventCallback OnDeleteShiftSeries { get; set; }
+
+    [Parameter]
+    public EventCallback OnSaveAbsence { get; set; }
+
+    [Parameter]
+    public EventCallback OnUpdateAbsence { get; set; }
+
+    [Parameter]
+    public EventCallback OnDeleteAbsence { get; set; }
+
+    private static string GetLinkedUserLabel(User user)
+    {
+        return user.DisplayName ?? user.Username;
+    }
+
+    private string GetModalTitle()
+    {
+        return State.ModalMode switch
+        {
+            ModalMode.Reminder => State.EditingReminder is null
+                ? $"Add Reminder for {State.SelectedDate?.ToString("d", CultureInfo.CurrentCulture)}"
+                : "Edit Reminder",
+            ModalMode.Shift => State.EditingShift is null
+                ? $"Add Shift for {State.SelectedDate?.ToString("d", CultureInfo.CurrentCulture)}"
+                : "Edit Shift",
+            ModalMode.Absence => State.EditingAbsence is null
+                ? $"Add Absence for {State.SelectedDate?.ToString("d", CultureInfo.CurrentCulture)}"
+                : "Edit Absence",
+            _ => "Edit"
+        };
+    }
+}

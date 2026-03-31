@@ -1,0 +1,38 @@
+@page "/admin"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Rota.Models
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = Roles.Admin)]
+
+<PageTitle>Admin – Rota</PageTitle>
+
+<div class="admin-wrapper">
+    <div class="admin-header">
+        <div class="admin-badge">Admin</div>
+        <h2 class="admin-title">Admin Panel</h2>
+        <p class="admin-subtitle">System administration and oversight tools.</p>
+    </div>
+
+    <div class="admin-grid">
+        <div class="admin-card">
+            <div class="admin-card-icon">👥</div>
+            <div class="admin-card-title">Users</div>
+            <div class="admin-card-desc">View and manage registered user accounts.</div>
+            <div class="admin-card-coming">Coming soon</div>
+        </div>
+
+        <div class="admin-card">
+            <div class="admin-card-icon">🗂️</div>
+            <div class="admin-card-title">All Shifts</div>
+            <div class="admin-card-desc">Browse shifts across all users.</div>
+            <div class="admin-card-coming">Coming soon</div>
+        </div>
+
+        <div class="admin-card">
+            <div class="admin-card-icon">📊</div>
+            <div class="admin-card-title">Reports</div>
+            <div class="admin-card-desc">Generate usage and scheduling reports.</div>
+            <div class="admin-card-coming">Coming soon</div>
+        </div>
+    </div>
+</div>

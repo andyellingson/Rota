@@ -1,0 +1,269 @@
+@page "/login"
+@rendermode InteractiveServer
+@using System.Text.Json
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject Microsoft.Extensions.Logging.ILogger<Login> Logger
+@code {
+    [SupplyParameterFromQuery(Name = "register")]
+    public bool Register { get; set; }
+
+    private LoginModel model = new LoginModel();
+    private RegisterModel register = new RegisterModel();
+    private bool isRegistering = false;
+    private string? error;
+    private bool isBusy = false;
+
+    protected override void OnParametersSet()
+    {
+        if (Register)
+            isRegistering = true;
+    }
+
+    /// <summary>
+    /// Attempts to sign the user in by calling the server-side auth endpoint.
+    /// On success the user is navigated to the root page. Errors are displayed to the user
+    /// and unexpected exceptions are logged for diagnostics.
+    /// </summary>
+    private async System.Threading.Tasks.Task Submit()
+    {
+        error = null;
+        isBusy = true;
+        try
+        {
+            // Call the shared JavaScript helper which performs a POST and returns a structured result.
+            var result = await JS.InvokeAsync<JsonElement>("authPost", "/api/auth/login", new { Username = model.Username, Password = model.Password, RememberMe = model.RememberMe });
+
+            // Safely read the 'ok' flag from the response. If missing or malformed, treat as failure.
+            var ok = result.TryGetProperty("ok", out var okProp) && okProp.ValueKind == JsonValueKind.True;
+            if (ok)
+            {
+                Navigation.NavigateTo("/", forceLoad: true);
+                return;
+            }
+
+            // Extract an error message from the response body or text when available.
+            string? text = null;
+            if (result.TryGetProperty("body", out var body) && body.ValueKind == JsonValueKind.Object && body.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String)
+            {
+                text = m.GetString();
+            }
+            else if (result.TryGetProperty("text", out var t) && t.ValueKind == JsonValueKind.String)
+            {
+                text = t.GetString();
+            }
+
+            error = ExtractMessage(text) ?? "Login failed";
+        }
+        catch (System.Exception ex)
+        {
+            // Log unexpected exceptions for server-side diagnostics while showing a generic message to the user.
+            Logger.LogError(ex, "Unhandled exception during login for user {User}", model.Username);
+            error = "An unexpected error occurred. Please try again.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Registers a new user by calling the server registration endpoint. Basic client-side
+    /// validation is performed before making the network call. Errors are logged and shown
+    /// as friendly messages to the user.
+    /// </summary>
+    private async System.Threading.Tasks.Task RegisterSubmit()
+    {
+        error = null;
+
+        // Basic client-side validation to provide immediate feedback.
+        if (string.IsNullOrWhiteSpace(register.Username) || string.IsNullOrWhiteSpace(register.Password))
+        {
+            error = "Username and password are required";
+            return;
+        }
+        if (register.Password != register.ConfirmPassword)
+        {
+            error = "Passwords do not match";
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            var result = await JS.InvokeAsync<JsonElement>("authPost", "/api/auth/register", new { Username = register.Username, Password = register.Password, RememberMe = register.RememberMe, DisplayName = register.DisplayName, Role = register.Role, LinkManagerCode = string.IsNullOrWhiteSpace(register.LinkManagerCode) ? null : register.LinkManagerCode });
+            var ok = result.TryGetProperty("ok", out var okProp) && okProp.ValueKind == JsonValueKind.True;
+            if (ok)
+            {
+                Navigation.NavigateTo("/", forceLoad: true);
+                return;
+            }
+
+            string? text = null;
+            if (result.TryGetProperty("body", out var body) && body.ValueKind == JsonValueKind.Object && body.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String)
+            {
+                text = m.GetString();
+            }
+            else if (result.TryGetProperty("text", out var t) && t.ValueKind == JsonValueKind.String)
+            {
+                text = t.GetString();
+            }
+            error = ExtractMessage(text) ?? "Registration failed";
+        }
+        catch (System.Exception ex)
+        {
+            Logger.LogError(ex, "Unhandled exception during registration for user {User}", register.Username);
+            error = "An unexpected error occurred. Please try again.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private class LoginModel
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public bool RememberMe { get; set; }
+    }
+
+    private class RegisterModel
+    {
+        public string Username { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
+        public string Role { get; set; } = "employee";
+        public string LinkManagerCode { get; set; } = string.Empty;
+        public bool RememberMe { get; set; }
+    }
+
+    private static string? ExtractMessage(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(text);
+            var root = doc.RootElement;
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                if (root.TryGetProperty("message", out var p) || root.TryGetProperty("error", out p) || root.TryGetProperty("title", out p) || root.TryGetProperty("Message", out p))
+                {
+                    if (p.ValueKind == JsonValueKind.String) return p.GetString();
+                }
+                // fallback: return serialized object as string
+                return root.ToString();
+            }
+            if (root.ValueKind == JsonValueKind.String) return root.GetString();
+        }
+        catch (JsonException)
+        {
+            // not JSON, fall through
+        }
+        return text;
+    }
+}
+
+@if (!isRegistering)
+{
+    <div class="auth-card card p-4">
+        <h3 class="card-title mb-3">Sign in to Rota</h3>
+        <p class="text-muted small">Enter your credentials to access the application.</p>
+
+        <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input class="form-control" @bind="model.Username" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input class="form-control" type="password" @bind="model.Password" />
+        </div>
+
+        <div class="mb-3 form-check">
+            <input class="form-check-input" type="checkbox" id="rememberMe" @bind="model.RememberMe" />
+            <label class="form-check-label" for="rememberMe">Remember me</label>
+        </div>
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <div class="alert alert-danger" role="alert">@error</div>
+        }
+
+        <div class="d-flex justify-content-between">
+            <button class="btn btn-primary" type="button" @onclick="Submit" disabled="@isBusy">Sign in</button>
+            <button class="btn btn-outline-secondary" type="button" @onclick="(() => { isRegistering = true; error = null; })" disabled="@isBusy">Create account</button>
+        </div>
+
+        <div class="mt-3 text-center text-muted small">By signing in you agree to Rota's terms.</div>
+    </div>
+}
+
+@if (isRegistering)
+{
+    <div class="auth-card card p-4">
+        <h3 class="card-title mb-3">Create an account</h3>
+        <p class="text-muted small">Register a new account to get started.</p>
+
+        <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input class="form-control" @bind="register.Username" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Display Name</label>
+            <input class="form-control" @bind="register.DisplayName" placeholder="How your name appears in the app" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Role</label>
+            <select class="form-select" @bind="register.Role">
+                <option value="employee">Employee</option>
+                <option value="manager">Manager</option>
+            </select>
+        </div>
+
+        @if (register.Role == "employee")
+        {
+            <div class="mb-3">
+                <label class="form-label">Manager Code <span class="text-muted small">(optional)</span></label>
+                <input class="form-control" @bind="register.LinkManagerCode" placeholder="Enter your manager's code to link now" />
+                <div class="form-text">You can also link to a manager later from My Account.</div>
+            </div>
+        }
+
+        <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input class="form-control" type="password" @bind="register.Password" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Confirm Password</label>
+            <input class="form-control" type="password" @bind="register.ConfirmPassword" />
+        </div>
+
+        <div class="mb-3 form-check">
+            <input class="form-check-input" type="checkbox" id="rememberMeReg" @bind="register.RememberMe" />
+            <label class="form-check-label" for="rememberMeReg">Remember me</label>
+        </div>
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <div class="alert alert-danger" role="alert">@error</div>
+        }
+
+        <div class="d-flex justify-content-between">
+            <button class="btn btn-success" type="button" @onclick="RegisterSubmit" disabled="@isBusy">Create account</button>
+            <button class="btn btn-outline-secondary" type="button" @onclick="(() => { isRegistering = false; error = null; })" disabled="@isBusy">Back to login</button>
+        </div>
+    </div>
+}
+
+@* Overlay spinner *@
+@if (isBusy)
+{
+    <div class="overlay-spinner">
+        <div class="spinner large" aria-hidden="true"></div>
+    </div>
+}
