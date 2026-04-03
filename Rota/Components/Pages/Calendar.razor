@@ -10,6 +10,7 @@
 @inject IShiftsService ShiftService
 @inject IAbsencesService AbsenceService
 @inject IUserService UserService
+@inject ISchedulesService SchedulesService
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
 
 
@@ -19,6 +20,29 @@
             <div class="me-auto">
                 <h4 class="mb-0">Calendar</h4>
                 <small class="text-muted">View and browse your schedule</small>
+            </div>
+
+            @if (canManageShifts && availableSchedules.Count > 0)
+            {
+                <div class="me-2">
+                    <select class="form-select form-select-sm" @bind="selectedScheduleId" @bind:after="OnScheduleChanged">
+                        @foreach (var schedule in availableSchedules)
+                        {
+                            <option value="@schedule.Id">@schedule.Name</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            <div class="btn-group me-2" role="group" aria-label="Event filters">
+                <input type="checkbox" class="btn-check" id="filter-shifts" @bind="showShifts" @bind:after="FilterChanged" autocomplete="off" >
+                <label class="btn btn-outline-primary btn-sm" for="filter-shifts">Shifts</label>
+
+                <input type="checkbox" class="btn-check" id="filter-absences" @bind="showAbsences" @bind:after="FilterChanged" autocomplete="off" >
+                <label class="btn btn-outline-warning btn-sm" for="filter-absences">Absences</label>
+
+                <input type="checkbox" class="btn-check" id="filter-reminders" @bind="showReminders" @bind:after="FilterChanged" autocomplete="off" >
+                <label class="btn btn-outline-info btn-sm" for="filter-reminders">Reminders</label>
             </div>
 
             <div class="btn-group me-2" role="group" aria-label="View mode">
@@ -347,6 +371,17 @@
     private List<User> linkedUsers = new();
     private bool canManageShifts = false;
 
+    // Schedule selection state
+    private List<Schedule> availableSchedules = new();
+    private string? selectedScheduleId;
+    [SupplyParameterFromQuery(Name = "scheduleId")]
+    private string? QueryScheduleId { get; set; }
+
+    // Event type filters
+    private bool showShifts = true;
+    private bool showAbsences = true;
+    private bool showReminders = true;
+
     // Modal state
     private readonly CalendarEditModalState modalState = new();
     private bool showModal { get => modalState.ShowModal; set => modalState.ShowModal = value; }
@@ -475,9 +510,70 @@
 
             newReminderForUsername = _username;
             newAbsenceForUsername = _userId;
+
+            // Load schedules for managers
+            if (canManageShifts && !string.IsNullOrEmpty(_userId))
+            {
+                await LoadSchedules();
+            }
         }
 
         await LoadReminders();
+    }
+
+    /// <summary>
+    /// Load available schedules for the manager
+    /// </summary>
+    private async Task LoadSchedules()
+    {
+        if (string.IsNullOrEmpty(_userId))
+        {
+            return;
+        }
+
+        try
+        {
+            availableSchedules = await SchedulesService.GetSchedulesForManagerAsync(_userId);
+
+            // Ensure at least one schedule exists
+            if (availableSchedules.Count == 0 && !string.IsNullOrEmpty(_username))
+            {
+                var defaultSchedule = await SchedulesService.GetOrCreateDefaultScheduleAsync(_userId, _username, _managerCode);
+                availableSchedules.Add(defaultSchedule);
+            }
+
+            // Set initial schedule selection
+            if (!string.IsNullOrEmpty(QueryScheduleId))
+            {
+                selectedScheduleId = QueryScheduleId;
+            }
+            else
+            {
+                var defaultSchedule = availableSchedules.FirstOrDefault(s => s.IsDefault) ?? availableSchedules.FirstOrDefault();
+                selectedScheduleId = defaultSchedule?.Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading schedules");
+        }
+    }
+
+    /// <summary>
+    /// Called when the selected schedule changes
+    /// </summary>
+    private async Task OnScheduleChanged()
+    {
+        await LoadReminders();
+    }
+
+    /// <summary>
+    /// Called when event filters change
+    /// </summary>
+    private void FilterChanged()
+    {
+        // Just trigger a re-render, the filtering happens in the Get*ForDay methods
+        StateHasChanged();
     }
 
     /// <summary>
@@ -532,6 +628,11 @@
     /// </summary>
     private List<Reminder> GetRemindersForDay(DateOnly day)
     {
+        if (!showReminders)
+        {
+            return new List<Reminder>();
+        }
+
         var startLocal = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local);
         var endLocal = day.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Local);
 
@@ -540,6 +641,7 @@
 
         var result = reminders
             .Where(r => r.ReminderDateTime >= startUtc && r.ReminderDateTime < endUtc)
+            .Where(r => string.IsNullOrEmpty(selectedScheduleId) || r.ScheduleId == selectedScheduleId)
             .ToList();
 
         if (result.Any())
@@ -635,16 +737,32 @@
     /// </summary>
     private List<Shift> GetShiftsForDay(DateOnly day)
     {
+        if (!showShifts)
+        {
+            return new List<Shift>();
+        }
+
         var startUtc = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
         var endUtc = day.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
-        return shifts.Where(s => s.Start < endUtc && s.End > startUtc).ToList();
+        return shifts
+            .Where(s => s.Start < endUtc && s.End > startUtc)
+            .Where(s => string.IsNullOrEmpty(selectedScheduleId) || s.ScheduleId == selectedScheduleId)
+            .ToList();
     }
 
     private List<Absence> GetAbsencesForDay(DateOnly day)
     {
+        if (!showAbsences)
+        {
+            return new List<Absence>();
+        }
+
         var startUtc = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
         var endUtc = day.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
-        return absences.Where(a => a.StartDate < endUtc && a.EndDate > startUtc).ToList();
+        return absences
+            .Where(a => a.StartDate < endUtc && a.EndDate > startUtc)
+            .Where(a => string.IsNullOrEmpty(selectedScheduleId) || a.ScheduleId == selectedScheduleId)
+            .ToList();
     }
 
     private async Task LoadAbsences(DateOnly queryStart, DateOnly queryEnd)
@@ -833,6 +951,7 @@
                 Username = _username,
                 OwnerId = targetUser.Id,
                 ManagerCode = _managerCode,
+                ScheduleId = selectedScheduleId,
                 Date = utc,
                 Title = newReminderTitle,
                 Notes = newReminderNotes,
@@ -900,6 +1019,7 @@
                     Color = newShiftColor,
                     AssignedToUserId = string.IsNullOrEmpty(newShiftAssignedTo) ? null : newShiftAssignedTo,
                     ManagerCode = _managerCode,
+                    ScheduleId = selectedScheduleId,
                     SeriesId = seriesId
                 };
                 await ShiftService.CreateShiftAsync(shift);
@@ -1093,6 +1213,7 @@
                 Username = _username,
                 UserId = targetUser.Id,
                 ManagerCode = _managerCode,
+                ScheduleId = selectedScheduleId,
                 StartDate = startUtc,
                 EndDate = endUtc,
                 StartTime = (newAbsenceIsPartDay && dayCount == 1) ? newAbsenceStartTime.ToString("HH:mm") : null,

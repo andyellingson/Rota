@@ -20,6 +20,7 @@ builder.Services.AddScoped<IUserService, MongoUserService>();
 builder.Services.AddScoped<IRemindersService, MongoRemindersService>();
 builder.Services.AddScoped<IShiftsService, MongoShiftsService>();
 builder.Services.AddScoped<IAbsencesService, MongoAbsencesService>();
+builder.Services.AddScoped<ISchedulesService, MongoSchedulesService>();
 builder.Services.AddScoped<AuthenticationStateProvider, HttpContextAuthenticationStateProvider>();
 
 // Enable detailed circuit errors for debugging (remove or set false in production)

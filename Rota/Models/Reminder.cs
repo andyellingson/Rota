@@ -61,6 +61,13 @@ namespace Rota.Models
         public string? ManagerCode { get; set; }
 
         /// <summary>
+        /// The schedule ID this reminder belongs to (MongoDB ObjectId string).
+        /// </summary>
+        [BsonElement("scheduleId")]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string? ScheduleId { get; set; }
+
+        /// <summary>
         /// MongoDB ObjectId of the user who created this reminder.
         /// Used to fetch personal reminders for employees independently of username.
         /// </summary>

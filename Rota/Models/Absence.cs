@@ -24,6 +24,11 @@ namespace Rota.Models
         [BsonElement("managerCode")]
         public string? ManagerCode { get; set; }
 
+        /// <summary>The schedule ID this absence belongs to (MongoDB ObjectId string).</summary>
+        [BsonElement("scheduleId")]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string? ScheduleId { get; set; }
+
         /// <summary>First day of the absence (UTC midnight).</summary>
         [BsonElement("startDate")]
         [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]

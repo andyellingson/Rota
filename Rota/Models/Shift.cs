@@ -69,6 +69,13 @@ namespace Rota.Models
         public string? ManagerCode { get; set; }
 
         /// <summary>
+        /// The schedule ID this shift belongs to (MongoDB ObjectId string).
+        /// </summary>
+        [BsonElement("scheduleId")]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string? ScheduleId { get; set; }
+
+        /// <summary>
         /// The type of worker required for the shift.
         /// </summary>
         [BsonElement("workerType")]
