@@ -93,7 +93,7 @@ namespace Rota.Services
             }
         }
 
-        public async System.Threading.Tasks.Task<Absence?> UpdateAbsenceAsync(string id, string username, string title, string? notes, DateTime startDateUtc, DateTime endDateUtc, int dayCount, string? color, string? userId, string? forUsername, string? forDisplayName, string? managerCode)
+        public async System.Threading.Tasks.Task<Absence?> UpdateAbsenceAsync(string id, string username, string title, string? notes, DateTime startDateUtc, DateTime endDateUtc, int dayCount, string? color, string? userId, string? assignedToUserId, string? managerCode, string? startTime = null, string? endTime = null)
         {
             try
             {
@@ -109,9 +109,12 @@ namespace Rota.Services
                     .Set(a => a.DayCount, dayCount)
                     .Set(a => a.Color, color ?? "#fa8c16")
                     .Set(a => a.UserId, userId)
-                    .Set(a => a.ForUsername, forUsername)
-                    .Set(a => a.ForDisplayName, forDisplayName)
+                    .Set(a => a.AssignedToUserId, assignedToUserId)
                     .Set(a => a.ManagerCode, managerCode);
+                // Persist explicit part-day time strings (nullable)
+                update = update
+                    .Set(a => a.StartTime, startTime)
+                    .Set(a => a.EndTime, endTime);
 
                 var opts = new FindOneAndUpdateOptions<Absence> { ReturnDocument = ReturnDocument.After };
                 return await _absences.FindOneAndUpdateAsync(filter, update, opts);

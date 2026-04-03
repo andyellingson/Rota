@@ -41,15 +41,25 @@
                                 <label class="form-label">Time</label>
                                 <input type="time" class="form-control" @bind="State.NewReminderTime" />
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">For</label>
-                                <select class="form-select" @bind="State.NewReminderForUsername">
-                                    @foreach (var user in LinkedUsers)
-                                    {
-                                        <option value="@user.Username">@GetLinkedUserLabel(user)</option>
-                                    }
-                                </select>
-                            </div>
+                            @if (CanManageShifts)
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">For</label>
+                                    <select class="form-select" @bind="State.NewReminderForUsername">
+                                        @foreach (var user in LinkedUsers)
+                                        {
+                                            <option value="@user.Username">@GetLinkedUserLabel(user)</option>
+                                        }
+                                    </select>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">For</label>
+                                    <p class="form-control-plaintext">@(LinkedUsers.FirstOrDefault(u => u.Username == State.NewReminderForUsername)?.DisplayName ?? State.NewReminderForUsername)</p>
+                                </div>
+                            }
                             <div class="mb-3">
                                 <label class="form-label">Color</label>
                                 <div class="color-swatch-container">
@@ -74,15 +84,25 @@
                                 <label class="form-label">Time</label>
                                 <input type="time" class="form-control" @bind="State.EditReminderTime" />
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">For</label>
-                                <select class="form-select" @bind="State.EditReminderForUsername">
-                                    @foreach (var user in LinkedUsers)
-                                    {
-                                        <option value="@user.Username">@GetLinkedUserLabel(user)</option>
-                                    }
-                                </select>
-                            </div>
+                            @if (CanManageShifts)
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">For</label>
+                                    <select class="form-select" @bind="State.EditReminderForUsername">
+                                        @foreach (var user in LinkedUsers)
+                                        {
+                                            <option value="@user.Username">@GetLinkedUserLabel(user)</option>
+                                        }
+                                    </select>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">For</label>
+                                    <p class="form-control-plaintext">@(LinkedUsers.FirstOrDefault(u => u.Username == State.EditReminderForUsername)?.DisplayName ?? State.EditReminderForUsername)</p>
+                                </div>
+                            }
                             <div class="mb-3">
                                 <label class="form-label">Color</label>
                                 <div class="color-swatch-container">
@@ -145,15 +165,6 @@
                                 </select>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">For</label>
-                                <select class="form-select" @bind="State.NewAbsenceForUsername">
-                                    @foreach (var user in LinkedUsers)
-                                    {
-                                        <option value="@user.Username">@GetLinkedUserLabel(user)</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="mb-3">
                                 <label class="form-label">Color</label>
                                 <div class="color-swatch-container">
                                     @foreach (var color in ColorChoices)
@@ -168,7 +179,7 @@
                                     <option value="">— Unassigned —</option>
                                     @foreach (var employee in Employees)
                                     {
-                                        <option value="@employee.Username">@(employee.DisplayName ?? employee.Username) (@employee.Occupation)</option>
+                                        <option value="@employee.Id">@(employee.DisplayName ?? employee.Username) (@employee.Occupation)</option>
                                     }
                                 </select>
                             </div>
@@ -197,15 +208,6 @@
                                 </select>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">For</label>
-                                <select class="form-select" @bind="State.EditAbsenceForUsername">
-                                    @foreach (var user in LinkedUsers)
-                                    {
-                                        <option value="@user.Username">@GetLinkedUserLabel(user)</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="mb-3">
                                 <label class="form-label">Color</label>
                                 <div class="color-swatch-container">
                                     @foreach (var color in ColorChoices)
@@ -224,7 +226,7 @@
                                     <option value="">— Unassigned —</option>
                                     @foreach (var employee in Employees)
                                     {
-                                        <option value="@employee.Username">@(employee.DisplayName ?? employee.Username) (@employee.Occupation)</option>
+                                        <option value="@employee.Id">@(employee.DisplayName ?? employee.Username) (@employee.Occupation)</option>
                                     }
                                 </select>
                             </div>
@@ -251,6 +253,40 @@
                                     }
                                 </select>
                             </div>
+                            <div class="mb-3 form-check">
+                                <input class="form-check-input" type="checkbox" id="new-absence-part-day" @bind="State.NewAbsenceIsPartDay" />
+                                <label class="form-check-label" for="new-absence-part-day">Part of day</label>
+                            </div>
+                            @if (State.NewAbsenceIsPartDay)
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">Start time</label>
+                                    <input type="time" class="form-control" @bind="State.NewAbsenceStartTime" />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">End time</label>
+                                    <input type="time" class="form-control" @bind="State.NewAbsenceEndTime" />
+                                </div>
+                            }
+                            @if (CanManageShifts)
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">For</label>
+                                <select class="form-select" @bind="State.NewAbsenceForUsername">
+                                        @foreach (var user in LinkedUsers)
+                                        {
+                                            <option value="@user.Id">@GetLinkedUserLabel(user)</option>
+                                        }
+                                    </select>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">For</label>
+                                    <p class="form-control-plaintext">@(LinkedUsers.FirstOrDefault(u => u.Username == State.NewAbsenceForUsername)?.DisplayName ?? State.NewAbsenceForUsername)</p>
+                                </div>
+                            }
                             <div class="mb-3">
                                 <label class="form-label">Color</label>
                                 <div class="color-swatch-container">
@@ -280,6 +316,40 @@
                                     }
                                 </select>
                             </div>
+                            <div class="mb-3 form-check">
+                                <input class="form-check-input" type="checkbox" id="edit-absence-part-day" @bind="State.EditAbsenceIsPartDay" />
+                                <label class="form-check-label" for="edit-absence-part-day">Part of day</label>
+                            </div>
+                            @if (State.EditAbsenceIsPartDay)
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">Start time</label>
+                                    <input type="time" class="form-control" @bind="State.EditAbsenceStartTime" />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">End time</label>
+                                    <input type="time" class="form-control" @bind="State.EditAbsenceEndTime" />
+                                </div>
+                            }
+                            @if (CanManageShifts)
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">For</label>
+                                    <select class="form-select" @bind="State.EditAbsenceForUsername">
+                                        @foreach (var user in LinkedUsers)
+                                        {
+                                            <option value="@user.Id">@GetLinkedUserLabel(user)</option>
+                                        }
+                                    </select>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">For</label>
+                                    <p class="form-control-plaintext">@(LinkedUsers.FirstOrDefault(u => u.Username == State.EditAbsenceForUsername)?.DisplayName ?? State.EditAbsenceForUsername)</p>
+                                </div>
+                            }
                             <div class="mb-3">
                                 <label class="form-label">Color</label>
                                 <div class="color-swatch-container">

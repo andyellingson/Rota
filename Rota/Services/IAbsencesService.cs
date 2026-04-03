@@ -13,6 +13,6 @@ namespace Rota.Services
 
         System.Threading.Tasks.Task<bool> DeleteAbsenceAsync(string id, string username);
 
-        System.Threading.Tasks.Task<Absence?> UpdateAbsenceAsync(string id, string username, string title, string? notes, DateTime startDateUtc, DateTime endDateUtc, int dayCount, string? color, string? userId, string? forUsername, string? forDisplayName, string? managerCode);
+        System.Threading.Tasks.Task<Absence?> UpdateAbsenceAsync(string id, string username, string title, string? notes, DateTime startDateUtc, DateTime endDateUtc, int dayCount, string? color, string? userId, string? assignedToUserId, string? managerCode, string? startTime = null, string? endTime = null);
     }
 }

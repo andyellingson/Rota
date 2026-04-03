@@ -6,9 +6,8 @@
     font-size: 0.75rem;
     font-weight: 500;
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 0.1rem 0;
+    flex-direction: column;
+    gap: 0.15rem 0;
     cursor: pointer;
     transition: all 0.2s;
     box-shadow: 0 2px 4px rgba(0,0,0,0.15);
@@ -29,15 +28,11 @@
     background: rgba(0,0,0,0.3);
 }
 
-.reminder-time {
-    font-size: 0.68rem;
-    font-weight: 600;
-    opacity: 0.7;
-    white-space: nowrap;
-    flex-shrink: 0;
-    margin-left: auto;
-    padding-left: 0.4rem;
-}
+.reminder-top { display: flex; gap: 0.5rem; align-items: center; }
+.reminder-for { font-weight: 700; font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reminder-title { font-weight: 600; font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
+.reminder-bottom { display: block; }
+.reminder-time { font-size: 0.72rem; color: rgba(0,0,0,0.7); font-weight: 600; }
 
 .reminder-item:hover {
     transform: translateY(-2px);

@@ -65,22 +65,28 @@
                                         <div class="shift-item mb-1" style="border-left-color: @(s.Color ?? "#1890ff");" @onclick:stopPropagation="true" @onclick="(() => { if (canManageShifts) OpenEditShiftModal(s); })">
                                             <div class="shift-worker-type" style="color: @(s.Color ?? "#1890ff");">@GetShiftDisplayTitle(s)</div>
                                             <div class="shift-time">@s.Start.ToLocalTime().ToString("t") – @s.End.ToLocalTime().ToString("t")</div>
-                                            @if (!string.IsNullOrEmpty(s.AssignedToUsername))
+                                            @if (!string.IsNullOrEmpty(s.AssignedToUserId))
                                             {
-                                                <div class="shift-assigned">@GetEmployeeDisplayName(s.AssignedToUsername)</div>
+                                                <div class="shift-assigned">@GetEmployeeDisplayNameById(s.AssignedToUserId)</div>
                                             }
                                         </div>
                                     }
                                     @foreach (var absence in GetAbsencesForDay(day))
                                     {
                                         var ab = absence;
-                                        <div class="absence-item mb-1" style="background-color: @(ab.Color ?? "#fa8c16");" @onclick:stopPropagation="true" @onclick="(() => OpenEditAbsenceModal(ab))">
-                                            <div class="absence-title">@ab.Title</div>
-                                            @if (ab.DayCount > 1)
-                                            {
-                                                <div class="absence-days">@ab.DayCount days</div>
-                                            }
-                                        </div>
+                <div class="absence-item mb-1" style="background-color: @(ab.Color ?? "#fa8c16");" @onclick:stopPropagation="true" @onclick="(() => OpenEditAbsenceModal(ab))">
+                    <div class="d-flex w-100">
+                        <div class="absence-left text-start text-truncate">@GetEmployeeDisplayNameById(ab.AssignedToUserId)</div>
+                        <div class="absence-right text-end text-truncate">@ab.Title</div>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(ab.StartTime) && !string.IsNullOrWhiteSpace(ab.EndTime) && ab.DayCount == 1)
+                    {
+                        if (TimeOnly.TryParse(ab.StartTime, CultureInfo.CurrentCulture, out var sst) && TimeOnly.TryParse(ab.EndTime, CultureInfo.CurrentCulture, out var eet))
+                        {
+                            <div class="absence-time small mt-1">@sst.ToString("t", CultureInfo.CurrentCulture) – @eet.ToString("t", CultureInfo.CurrentCulture)</div>
+                        }
+                    }
+                </div>
                                     }
                                     @for (var i = 0; i < dayReminders.Count; i++)
                                     {
@@ -129,22 +135,28 @@
                                         <div class="shift-item mb-1" style="border-left-color: @(s.Color ?? "#1890ff");" @onclick:stopPropagation="true" @onclick="(() => { if (canManageShifts) OpenEditShiftModal(s); })">
                                             <div class="shift-worker-type" style="color: @(s.Color ?? "#1890ff");">@GetShiftDisplayTitle(s)</div>
                                             <div class="shift-time">@s.Start.ToLocalTime().ToString("t") – @s.End.ToLocalTime().ToString("t")</div>
-                                            @if (!string.IsNullOrEmpty(s.AssignedToUsername))
+                                            @if (!string.IsNullOrEmpty(s.AssignedToUserId))
                                             {
-                                                <div class="shift-assigned">@GetEmployeeDisplayName(s.AssignedToUsername)</div>
+                                                <div class="shift-assigned">@GetEmployeeDisplayNameById(s.AssignedToUserId)</div>
                                             }
                                         </div>
                                     }
                                     @foreach (var absence in GetAbsencesForDay(d))
                                     {
                                         var ab = absence;
-                                        <div class="absence-item mb-1" style="background-color: @(ab.Color ?? "#fa8c16");" @onclick:stopPropagation="true" @onclick="(() => OpenEditAbsenceModal(ab))">
-                                            <div class="absence-title">@ab.Title</div>
-                                            @if (ab.DayCount > 1)
-                                            {
-                                                <div class="absence-days">@ab.DayCount days</div>
-                                            }
-                                        </div>
+                <div class="absence-item mb-1" style="background-color: @(ab.Color ?? "#fa8c16");" @onclick:stopPropagation="true" @onclick="(() => OpenEditAbsenceModal(ab))">
+                    <div class="d-flex w-100">
+                        <div class="absence-left text-start text-truncate">@GetEmployeeDisplayNameById(ab.AssignedToUserId)</div>
+                        <div class="absence-right text-end text-truncate">@ab.Title</div>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(ab.StartTime) && !string.IsNullOrWhiteSpace(ab.EndTime) && ab.DayCount == 1)
+                    {
+                        if (TimeOnly.TryParse(ab.StartTime, CultureInfo.CurrentCulture, out var sst) && TimeOnly.TryParse(ab.EndTime, CultureInfo.CurrentCulture, out var eet))
+                        {
+                            <div class="absence-time small mt-1">@sst.ToString("t", CultureInfo.CurrentCulture) – @eet.ToString("t", CultureInfo.CurrentCulture)</div>
+                        }
+                    }
+                </div>
                                     }
                                     @for (var i = 0; i < dayReminders.Count; i++)
                                     {
@@ -203,9 +215,9 @@
                                     <span class="day-detail-worker-badge" style="color: @(ds.Color ?? "#1890ff"); background-color: @(ds.Color ?? "#1890ff")1a;">@GetShiftDisplayTitle(ds)</span>
                                     <span class="day-detail-time-badge">@ds.Start.ToLocalTime().ToString("t") – @ds.End.ToLocalTime().ToString("t")</span>
                                 </div>
-                                @if (!string.IsNullOrEmpty(ds.AssignedToUsername))
+                                @if (!string.IsNullOrEmpty(ds.AssignedToUserId))
                                 {
-                                    <div class="day-detail-assigned">👤 @GetEmployeeDisplayName(ds.AssignedToUsername)</div>
+                                    <div class="day-detail-assigned">👤 @GetEmployeeDisplayNameById(ds.AssignedToUserId)</div>
                                 }
                                 @if (!string.IsNullOrEmpty(ds.Notes))
                                 {
@@ -223,9 +235,24 @@
                         {
                             var da = a;
                             <div class="day-detail-absence-card" style="border-left-color: @(da.Color ?? "#fa8c16"); background-color: @(da.Color ?? "#fa8c16")1a;" @onclick="(() => OpenEditAbsenceModal(da))">
-                                <div class="day-detail-card-header">
-                                    <span class="day-detail-absence-title-text">@da.Title</span>
-                                    <span class="day-detail-time-badge">@(da.DayCount == 1 ? "1 day" : $"{da.DayCount} days")</span>
+                                <div class="day-detail-card-header d-flex flex-column">
+                                    <div class="d-flex w-100 align-items-center">
+                                        <span class="day-detail-absence-name text-start flex-grow-1">@GetEmployeeDisplayNameById(da.AssignedToUserId)</span>
+                                        <span class="day-detail-absence-title-text text-end ms-3">@da.Title</span>
+                                    </div>
+                                    <div class="d-flex w-100 mt-1">
+                                        @{
+                                            var hasTimes = !string.IsNullOrWhiteSpace(da.StartTime) && !string.IsNullOrWhiteSpace(da.EndTime) && da.DayCount == 1;
+                                            if (hasTimes && TimeOnly.TryParse(da.StartTime, CultureInfo.CurrentCulture, out var ts) && TimeOnly.TryParse(da.EndTime, CultureInfo.CurrentCulture, out var te))
+                                            {
+                                                <span class="day-detail-time-badge">@ts.ToString("t", CultureInfo.CurrentCulture) – @te.ToString("t", CultureInfo.CurrentCulture)</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="day-detail-time-badge">@(da.DayCount == 1 ? "1 day" : $"{da.DayCount} days")</span>
+                                            }
+                                        }
+                                    </div>
                                 </div>
                                 @if (!string.IsNullOrEmpty(da.Notes))
                                 {
@@ -375,6 +402,9 @@
     private string? newAbsenceNotes { get => modalState.NewAbsenceNotes; set => modalState.NewAbsenceNotes = value; }
     private string newAbsenceColor { get => modalState.NewAbsenceColor; set => modalState.NewAbsenceColor = value; }
     private string newAbsenceForUsername { get => modalState.NewAbsenceForUsername; set => modalState.NewAbsenceForUsername = value; }
+    private bool newAbsenceIsPartDay { get => modalState.NewAbsenceIsPartDay; set => modalState.NewAbsenceIsPartDay = value; }
+    private TimeOnly newAbsenceStartTime { get => modalState.NewAbsenceStartTime; set => modalState.NewAbsenceStartTime = value; }
+    private TimeOnly newAbsenceEndTime { get => modalState.NewAbsenceEndTime; set => modalState.NewAbsenceEndTime = value; }
     private Absence? editingAbsence { get => modalState.EditingAbsence; set => modalState.EditingAbsence = value; }
     private string editAbsenceStartDateUtc { get => modalState.EditAbsenceStartDateUtc; set => modalState.EditAbsenceStartDateUtc = value; }
     private int editAbsenceDayCount { get => modalState.EditAbsenceDayCount; set => modalState.EditAbsenceDayCount = value; }
@@ -382,6 +412,9 @@
     private string? editAbsenceNotes { get => modalState.EditAbsenceNotes; set => modalState.EditAbsenceNotes = value; }
     private string editAbsenceColor { get => modalState.EditAbsenceColor; set => modalState.EditAbsenceColor = value; }
     private string editAbsenceForUsername { get => modalState.EditAbsenceForUsername; set => modalState.EditAbsenceForUsername = value; }
+    private bool editAbsenceIsPartDay { get => modalState.EditAbsenceIsPartDay; set => modalState.EditAbsenceIsPartDay = value; }
+    private TimeOnly editAbsenceStartTime { get => modalState.EditAbsenceStartTime; set => modalState.EditAbsenceStartTime = value; }
+    private TimeOnly editAbsenceEndTime { get => modalState.EditAbsenceEndTime; set => modalState.EditAbsenceEndTime = value; }
 
     // Preset palette: red, green, blue, orange, gray
     private readonly string[] ColorChoices = new[] { "#ff4d4f", "#52c41a", "#1890ff", "#fa8c16", "#d3d3d3" };
@@ -423,7 +456,7 @@
             }
 
             var managerUsernameForLinkedUsers = canManageShifts
-                ? _username
+                ? caller?.Username
                 : caller?.ManagerUsername;
 
             if (!string.IsNullOrEmpty(managerUsernameForLinkedUsers))
@@ -441,7 +474,7 @@
             }
 
             newReminderForUsername = _username;
-            newAbsenceForUsername = _username;
+            newAbsenceForUsername = _userId;
         }
 
         await LoadReminders();
@@ -549,6 +582,9 @@
         newAbsenceDayCount = 1;
         newAbsenceColor = "#fa8c16";
         newAbsenceForUsername = _username;
+        newAbsenceIsPartDay = false;
+        newAbsenceStartTime = new(9, 0);
+        newAbsenceEndTime = new(17, 0);
         editingAbsence = null;
 
         modalMode = ModalMode.Reminder;
@@ -624,17 +660,25 @@
         }
     }
 
-    private string GetEmployeeDisplayName(string? username)
+    private string GetEmployeeDisplayNameById(string? userId)
     {
-        if (string.IsNullOrEmpty(username)) return string.Empty;
-        var emp = employees.FirstOrDefault(e => e.Username == username);
-        return emp?.DisplayName ?? username;
+        if (string.IsNullOrEmpty(userId)) return string.Empty;
+        // Prefer explicit employee list (managers have this populated), but fall back to linked users
+        var emp = employees.FirstOrDefault(e => e.Id == userId)
+                  ?? linkedUsers.FirstOrDefault(u => u.Id == userId);
+        return emp?.DisplayName ?? emp?.Username ?? userId;
     }
 
     private User? GetLinkedUser(string? username)
     {
         if (string.IsNullOrWhiteSpace(username)) return null;
         return linkedUsers.FirstOrDefault(u => u.Username == username);
+    }
+
+    private User? GetLinkedUserById(string? id)
+    {
+        if (string.IsNullOrWhiteSpace(id)) return null;
+        return linkedUsers.FirstOrDefault(u => u.Id == id);
     }
 
     private User? GetDefaultLinkedUser()
@@ -649,7 +693,7 @@
             : $"{shift.Title} - {shift.WorkerType}";
     }
 
-    private void OpenEditAbsenceModal(Absence absence)
+        private void OpenEditAbsenceModal(Absence absence)
     {
         showDayModal = false;
         editingAbsence = absence;
@@ -658,7 +702,23 @@
         editAbsenceTitle = absence.Title;
         editAbsenceNotes = absence.Notes;
         editAbsenceColor = absence.Color ?? "#fa8c16";
-        editAbsenceForUsername = absence.ForUsername ?? GetLinkedUser(_username)?.Username ?? _username;
+        // AssignedToUserId stores the user _id for the absent person
+        editAbsenceForUsername = absence.AssignedToUserId ?? GetLinkedUser(_userId)?.Id ?? _userId;
+        // Populate part-day fields from explicit StartTime/EndTime when available
+        if (!string.IsNullOrWhiteSpace(absence.StartTime) && !string.IsNullOrWhiteSpace(absence.EndTime) && absence.DayCount == 1)
+        {
+            editAbsenceIsPartDay = true;
+            if (TimeOnly.TryParse(absence.StartTime, CultureInfo.CurrentCulture, out var st))
+                editAbsenceStartTime = st;
+            if (TimeOnly.TryParse(absence.EndTime, CultureInfo.CurrentCulture, out var et))
+                editAbsenceEndTime = et;
+        }
+        else
+        {
+            editAbsenceIsPartDay = false;
+            editAbsenceStartTime = new(9, 0);
+            editAbsenceEndTime = new(17, 0);
+        }
         modalError = null;
         modalMode = ModalMode.Absence;
         showModal = true;
@@ -688,7 +748,7 @@
         editShiftNotes = shift.Notes;
         editShiftWorkerType = shift.WorkerType;
         editShiftColor = shift.Color ?? "#1890ff";
-        editShiftAssignedTo = shift.AssignedToUsername ?? string.Empty;
+        editShiftAssignedTo = shift.AssignedToUserId ?? string.Empty;
         modalError = null;
         modalMode = ModalMode.Shift;
         showModal = true;
@@ -701,7 +761,7 @@
     {
         try
         {
-            shifts = await ShiftService.GetShiftsAsync(_username, _managerCode, queryStart, queryEnd);
+            shifts = await ShiftService.GetShiftsAsync(_username, _userId, _managerCode, queryStart, queryEnd);
             Logger.LogInformation("Loaded {Count} Shifts", shifts.Count);
         }
         catch (Exception ex)
@@ -838,7 +898,7 @@
                     Notes = newShiftNotes,
                     WorkerType = newShiftWorkerType,
                     Color = newShiftColor,
-                    AssignedToUsername = string.IsNullOrEmpty(newShiftAssignedTo) ? null : newShiftAssignedTo,
+                    AssignedToUserId = string.IsNullOrEmpty(newShiftAssignedTo) ? null : newShiftAssignedTo,
                     ManagerCode = _managerCode,
                     SeriesId = seriesId
                 };
@@ -999,10 +1059,28 @@
         isBusy = true;
         try
         {
-            var startUtc = DateTime.SpecifyKind(selectedDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime(), DateTimeKind.Utc);
             var dayCount = Math.Max(1, Math.Min(newAbsenceDayCount, 365));
-            var endUtc = startUtc.AddDays(dayCount);
-            var targetUser = GetLinkedUser(newAbsenceForUsername) ?? GetDefaultLinkedUser();
+            DateTime startUtc;
+            DateTime endUtc;
+            if (newAbsenceIsPartDay && dayCount == 1)
+            {
+                // Only apply explicit times for single-day absences
+                var localStart = selectedDate.Value.ToDateTime(newAbsenceStartTime, DateTimeKind.Local);
+                var localEnd = selectedDate.Value.ToDateTime(newAbsenceEndTime, DateTimeKind.Local);
+                startUtc = DateTime.SpecifyKind(localStart.ToUniversalTime(), DateTimeKind.Utc);
+                endUtc = DateTime.SpecifyKind(localEnd.ToUniversalTime(), DateTimeKind.Utc);
+                if (endUtc <= startUtc)
+                {
+                    modalError = "End time must be after start time";
+                    return;
+                }
+            }
+            else
+            {
+                startUtc = DateTime.SpecifyKind(selectedDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime(), DateTimeKind.Utc);
+                endUtc = startUtc.AddDays(dayCount);
+            }
+            var targetUser = GetLinkedUserById(newAbsenceForUsername) ?? GetDefaultLinkedUser();
 
             if (targetUser is null)
             {
@@ -1017,12 +1095,13 @@
                 ManagerCode = _managerCode,
                 StartDate = startUtc,
                 EndDate = endUtc,
+                StartTime = (newAbsenceIsPartDay && dayCount == 1) ? newAbsenceStartTime.ToString("HH:mm") : null,
+                EndTime = (newAbsenceIsPartDay && dayCount == 1) ? newAbsenceEndTime.ToString("HH:mm") : null,
                 DayCount = dayCount,
                 Title = newAbsenceTitle,
                 Notes = newAbsenceNotes,
                 Color = newAbsenceColor,
-                ForUsername = targetUser.Username,
-                ForDisplayName = targetUser.DisplayName ?? targetUser.Username
+                AssignedToUserId = targetUser.Id
             };
             await AbsenceService.CreateAbsenceAsync(absence);
             CloseModal();
@@ -1038,10 +1117,30 @@
         isBusy = true;
         try
         {
-            var startUtc = DateTime.SpecifyKind(DateTime.Parse(editAbsenceStartDateUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind), DateTimeKind.Utc);
+            var parsed = DateTime.Parse(editAbsenceStartDateUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+            var startUtcParsed = DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
             var dayCount = Math.Max(1, Math.Min(editAbsenceDayCount, 365));
-            var endUtc = startUtc.AddDays(dayCount);
-            var targetUser = GetLinkedUser(editAbsenceForUsername) ?? GetDefaultLinkedUser();
+            DateTime startUtc, endUtc;
+            if (editAbsenceIsPartDay && dayCount == 1)
+            {
+                // Only apply explicit times for single-day absences
+                var localStartDate = DateOnly.FromDateTime(startUtcParsed.ToLocalTime());
+                var localStart = localStartDate.ToDateTime(editAbsenceStartTime, DateTimeKind.Local);
+                var localEnd = localStartDate.ToDateTime(editAbsenceEndTime, DateTimeKind.Local);
+                startUtc = DateTime.SpecifyKind(localStart.ToUniversalTime(), DateTimeKind.Utc);
+                endUtc = DateTime.SpecifyKind(localEnd.ToUniversalTime(), DateTimeKind.Utc);
+                if (endUtc <= startUtc)
+                {
+                    modalError = "End time must be after start time";
+                    return;
+                }
+            }
+            else
+            {
+                startUtc = startUtcParsed;
+                endUtc = startUtc.AddDays(dayCount);
+            }
+            var targetUser = GetLinkedUserById(editAbsenceForUsername) ?? GetDefaultLinkedUser();
 
             if (targetUser is null)
             {
@@ -1049,7 +1148,9 @@
                 return;
             }
 
-            await AbsenceService.UpdateAbsenceAsync(editingAbsence.Id, _username, editAbsenceTitle, editAbsenceNotes, startUtc, endUtc, dayCount, editAbsenceColor, targetUser.Id, targetUser.Username, targetUser.DisplayName ?? targetUser.Username, _managerCode);
+            var startTimeStr = (editAbsenceIsPartDay && dayCount == 1) ? editAbsenceStartTime.ToString("HH:mm") : null;
+            var endTimeStr = (editAbsenceIsPartDay && dayCount == 1) ? editAbsenceEndTime.ToString("HH:mm") : null;
+            await AbsenceService.UpdateAbsenceAsync(editingAbsence.Id, _username, editAbsenceTitle, editAbsenceNotes, startUtc, endUtc, dayCount, editAbsenceColor, targetUser.Id, targetUser.Id, _managerCode, startTimeStr, endTimeStr);
             CloseModal();
             await LoadReminders();
         }

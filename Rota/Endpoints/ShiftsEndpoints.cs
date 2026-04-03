@@ -50,7 +50,7 @@ namespace Rota.Endpoints
                     var startDate = string.IsNullOrEmpty(start) ? DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)) : DateOnly.Parse(start);
                     var endDate = string.IsNullOrEmpty(end) ? DateOnly.FromDateTime(DateTime.Today.AddMonths(1)) : DateOnly.Parse(end);
 
-                    var items = await shifts.GetShiftsAsync(username, queryManagerCode, startDate, endDate);
+                    var items = await shifts.GetShiftsAsync(username, caller?.Id, queryManagerCode, startDate, endDate);
                     return Results.Json(new { ok = true, shifts = items, code = 200 }, statusCode: 200);
                 }
                 catch (Exception ex)
@@ -88,7 +88,7 @@ namespace Rota.Endpoints
                         Notes = dto.Notes,
                         WorkerType = wt,
                         Color = dto.Color,
-                        AssignedToUsername = string.IsNullOrWhiteSpace(dto.AssignedToUsername) ? null : dto.AssignedToUsername,
+                        AssignedToUserId = string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? null : dto.AssignedToUserId,
                         ManagerCode = creator?.ManagerCode,
                         SeriesId = dto.SeriesId
                     };
@@ -141,7 +141,7 @@ namespace Rota.Endpoints
                     if (!Enum.TryParse<WorkerType>(dto.WorkerType ?? string.Empty, true, out var wt))
                         wt = WorkerType.General;
 
-                    var updated = await shifts.UpdateShiftAsync(id, username, startUtc, endUtc, dto.Title, dto.Notes, wt, dto.Color, string.IsNullOrWhiteSpace(dto.AssignedToUsername) ? null : dto.AssignedToUsername);
+                    var updated = await shifts.UpdateShiftAsync(id, username, startUtc, endUtc, dto.Title, dto.Notes, wt, dto.Color, string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? null : dto.AssignedToUserId);
                     if (updated is null)
                         return Results.Json(new { ok = false, message = "Shift not found or access denied", code = 404 }, statusCode: 404);
 

@@ -1,8 +1,13 @@
 @using Rota.Models
 
 <div class="reminder-item" @onclick:stopPropagation="true" @onclick="HandleEdit" style="background:@(Reminder.Color ?? "#ffeb3b"); color: #111;">
-    <span class="reminder-title">@Reminder.Title</span>
-    <span class="reminder-time">@Reminder.ReminderDateTime.ToLocalTime().ToString("t")</span>
+    <div class="reminder-top d-flex w-100">
+        <div class="reminder-for flex-grow-1 text-start text-truncate">@(Reminder.ForDisplayName ?? Reminder.ForUsername)</div>
+        <div class="reminder-title text-end text-truncate">@Reminder.Title</div>
+    </div>
+    <div class="reminder-bottom w-100">
+        <div class="reminder-time">@Reminder.ReminderDateTime.ToLocalTime().ToString("t")</div>
+    </div>
 </div>
 
 @code {

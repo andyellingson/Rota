@@ -34,6 +34,14 @@ namespace Rota.Models
         [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime EndDate { get; set; }
 
+        /// <summary>Optional local start time for part-day absences (format "HH:mm"). Only used when DayCount == 1.</summary>
+        [BsonElement("startTime")]
+        public string? StartTime { get; set; }
+
+        /// <summary>Optional local end time for part-day absences (format "HH:mm"). Only used when DayCount == 1.</summary>
+        [BsonElement("endTime")]
+        public string? EndTime { get; set; }
+
         /// <summary>Number of consecutive absent days.</summary>
         [BsonElement("dayCount")]
         public int DayCount { get; set; } = 1;
@@ -50,13 +58,10 @@ namespace Rota.Models
         [BsonElement("color")]
         public string? Color { get; set; } = "#fa8c16";
 
-        /// <summary>Username of the worker or manager this absence is for.</summary>
-        [BsonElement("forUsername")]
-        public string? ForUsername { get; set; }
-
-        /// <summary>Display name of the worker or manager this absence is for.</summary>
-        [BsonElement("forDisplayName")]
-        public string? ForDisplayName { get; set; }
+        /// <summary>MongoDB ObjectId (string) of the worker or manager this absence is for.</summary>
+        [BsonElement("assignedTo")]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string? AssignedToUserId { get; set; }
 
         [BsonElement("createdAt")]
         [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]

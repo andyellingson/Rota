@@ -25,26 +25,28 @@ namespace Rota.Services
             _logger = logger;
         }
 
-        public async System.Threading.Tasks.Task<List<Shift>> GetShiftsAsync(string? username, string? managerCode, DateOnly startDate, DateOnly endDate)
+        public async System.Threading.Tasks.Task<List<Shift>> GetShiftsAsync(string? username, string? userId, string? managerCode, DateOnly startDate, DateOnly endDate)
         {
             try
             {
                 var start = startDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
                 var end = endDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
-
                 FilterDefinition<Shift> userFilter;
                 if (!string.IsNullOrEmpty(managerCode))
                 {
                     // Primary: query by ManagerCode to return the full manager roster
                     userFilter = Builders<Shift>.Filter.Eq(s => s.ManagerCode, managerCode);
                 }
-                else if (!string.IsNullOrEmpty(username))
+                else if (!string.IsNullOrEmpty(userId) || !string.IsNullOrEmpty(username))
                 {
-                    // Fallback: legacy query by username / assigned-to (backward compat)
-                    userFilter = Builders<Shift>.Filter.Or(
-                        Builders<Shift>.Filter.Eq(s => s.Username, username),
-                        Builders<Shift>.Filter.Eq(s => s.AssignedToUsername, username)
-                    );
+                    // Fallback: return shifts either created by the username or assigned to the userId
+                    var filters = new List<FilterDefinition<Shift>>();
+                    if (!string.IsNullOrEmpty(username))
+                        filters.Add(Builders<Shift>.Filter.Eq(s => s.Username, username));
+                    if (!string.IsNullOrEmpty(userId))
+                        filters.Add(Builders<Shift>.Filter.Eq(s => s.AssignedToUserId, userId));
+
+                    userFilter = filters.Count == 1 ? filters[0] : Builders<Shift>.Filter.Or(filters);
                 }
                 else
                 {
@@ -119,7 +121,7 @@ namespace Rota.Services
             }
         }
 
-        public async System.Threading.Tasks.Task<Shift?> UpdateShiftAsync(string id, string username, DateTime startUtc, DateTime endUtc, string? title, string? notes, WorkerType workerType, string? color, string? assignedToUsername)
+        public async System.Threading.Tasks.Task<Shift?> UpdateShiftAsync(string id, string username, DateTime startUtc, DateTime endUtc, string? title, string? notes, WorkerType workerType, string? color, string? assignedToUserId)
         {
             try
             {
@@ -135,7 +137,7 @@ namespace Rota.Services
                     .Set(s => s.Notes, notes)
                     .Set(s => s.WorkerType, workerType)
                     .Set(s => s.Color, color)
-                    .Set(s => s.AssignedToUsername, assignedToUsername);
+                    .Set(s => s.AssignedToUserId, assignedToUserId);
 
                 var options = new FindOneAndUpdateOptions<Shift> { ReturnDocument = ReturnDocument.After };
                 var updated = await _shifts.FindOneAndUpdateAsync(filter, update, options);

@@ -54,10 +54,12 @@ namespace Rota.Models
         public string? Color { get; set; }
 
         /// <summary>
-        /// Username of the employee this shift is assigned to.
+        /// MongoDB ObjectId (string) of the employee this shift is assigned to.
+        /// Stored as the user's `_id` to avoid ambiguity when multiple users share the same username.
         /// </summary>
-        [BsonElement("assignedToUsername")]
-        public string? AssignedToUsername { get; set; }
+        [BsonElement("assignedTo")]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string? AssignedToUserId { get; set; }
 
         /// <summary>
         /// The manager's unique code (ManagerCode GUID). Used to group all shifts for

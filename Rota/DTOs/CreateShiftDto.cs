@@ -9,6 +9,6 @@ namespace Rota.DTOs
     /// <param name="Notes">Optional notes</param>
     /// <param name="WorkerType">Worker type required (string)</param>
     /// <param name="Color">Optional CSS color string</param>
-    /// <param name="AssignedToUsername">Username of the employee the shift is assigned to</param>
-    public record CreateShiftDto(string Start, string End, string? Title, string? Notes, string? WorkerType, string? Color, string? AssignedToUsername, Guid? SeriesId = null);
+    /// <param name="AssignedToUserId">MongoDB ObjectId string of the employee the shift is assigned to</param>
+    public record CreateShiftDto(string Start, string End, string? Title, string? Notes, string? WorkerType, string? Color, string? AssignedToUserId, Guid? SeriesId = null);
 }

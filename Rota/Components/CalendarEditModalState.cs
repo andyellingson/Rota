@@ -64,11 +64,18 @@ namespace Rota.Components
         public string? NewAbsenceNotes { get; set; }
         public string NewAbsenceColor { get; set; } = "#fa8c16";
         public string NewAbsenceForUsername { get; set; } = string.Empty;
+        // Part-day absence support
+        public bool NewAbsenceIsPartDay { get; set; }
+        public TimeOnly NewAbsenceStartTime { get; set; } = new(9, 0);
+        public TimeOnly NewAbsenceEndTime { get; set; } = new(17, 0);
         public string EditAbsenceStartDateUtc { get; set; } = string.Empty;
         public int EditAbsenceDayCount { get; set; } = 1;
         public string EditAbsenceTitle { get; set; } = string.Empty;
         public string? EditAbsenceNotes { get; set; }
         public string EditAbsenceColor { get; set; } = "#fa8c16";
         public string EditAbsenceForUsername { get; set; } = string.Empty;
+        public bool EditAbsenceIsPartDay { get; set; }
+        public TimeOnly EditAbsenceStartTime { get; set; } = new(9, 0);
+        public TimeOnly EditAbsenceEndTime { get; set; } = new(17, 0);
     }
 }

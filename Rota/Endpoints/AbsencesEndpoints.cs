@@ -75,7 +75,32 @@ namespace Rota.Endpoints
                         return Results.Json(new { ok = false, message = "Invalid start date", code = 400 }, statusCode: 400);
 
                     var dayCount = Math.Max(1, Math.Min(dto.DayCount, 365));
-                    var endUtc = startUtc.AddDays(dayCount); // exclusive end (midnight after last day)
+
+                    // Only apply explicit times for single-day absences. If both StartTime and EndTime
+                    // are supplied and parse correctly, use them (interpreted as local times). Otherwise
+                    // fall back to all-day semantics (start at midnight of the date, end = start + DayCount days).
+                    DateTime startUtcFinal;
+                    DateTime endUtcFinal;
+                    if (dayCount == 1 && !string.IsNullOrWhiteSpace(dto.StartTime) && !string.IsNullOrWhiteSpace(dto.EndTime)
+                        && TimeOnly.TryParse(dto.StartTime, CultureInfo.InvariantCulture, out var parsedStartTime)
+                        && TimeOnly.TryParse(dto.EndTime, CultureInfo.InvariantCulture, out var parsedEndTime))
+                    {
+                        var localDate = DateOnly.FromDateTime(startUtc.ToLocalTime());
+                        var localStart = localDate.ToDateTime(parsedStartTime, DateTimeKind.Local);
+                        var localEnd = localDate.ToDateTime(parsedEndTime, DateTimeKind.Local);
+                        startUtcFinal = localStart.ToUniversalTime();
+                        endUtcFinal = localEnd.ToUniversalTime();
+                        // Ensure end is after start; otherwise reject
+                        if (endUtcFinal <= startUtcFinal)
+                        {
+                            return Results.Json(new { ok = false, message = "End time must be after start time", code = 400 }, statusCode: 400);
+                        }
+                    }
+                    else
+                    {
+                        startUtcFinal = DateTime.SpecifyKind(startUtc, DateTimeKind.Utc);
+                        endUtcFinal = startUtcFinal.AddDays(dayCount); // exclusive end (midnight after last day)
+                    }
 
                     var creator = await users.GetByUsernameAsync(username);
                     var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
@@ -91,16 +116,16 @@ namespace Rota.Endpoints
                         managerCode = mgr?.ManagerCode;
                     }
 
-                    var targetUsername = string.IsNullOrWhiteSpace(dto.ForUsername) ? username : dto.ForUsername;
+                    var targetUserId = string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? creator?.Id : dto.AssignedToUserId;
                     User? targetUser = null;
 
                     if (!string.IsNullOrEmpty(managerCode))
                     {
                         var linkedUsers = await users.GetLinkedUsersForManagerAsync(isManager ? username : creator!.ManagerUsername!);
-                        targetUser = linkedUsers.FirstOrDefault(u => u.Username == targetUsername);
+                        targetUser = linkedUsers.FirstOrDefault(u => u.Id == targetUserId);
                     }
 
-                    targetUser ??= targetUsername == username ? creator : await users.GetByUsernameAsync(targetUsername);
+                    targetUser ??= targetUserId == creator?.Id ? creator : null;
                     if (targetUser is null)
                         return Results.Json(new { ok = false, message = "Target user not found", code = 400 }, statusCode: 400);
 
@@ -109,14 +134,15 @@ namespace Rota.Endpoints
                         Username = username,
                         UserId = targetUser.Id,
                         ManagerCode = managerCode,
-                        StartDate = DateTime.SpecifyKind(startUtc, DateTimeKind.Utc),
-                        EndDate = DateTime.SpecifyKind(endUtc, DateTimeKind.Utc),
+                        StartDate = DateTime.SpecifyKind(startUtcFinal, DateTimeKind.Utc),
+                        EndDate = DateTime.SpecifyKind(endUtcFinal, DateTimeKind.Utc),
+                        StartTime = dayCount == 1 && !string.IsNullOrWhiteSpace(dto.StartTime) ? dto.StartTime : null,
+                        EndTime = dayCount == 1 && !string.IsNullOrWhiteSpace(dto.EndTime) ? dto.EndTime : null,
                         DayCount = dayCount,
                         Title = dto.Title,
                         Notes = dto.Notes,
                         Color = dto.Color ?? "#fa8c16",
-                        ForUsername = targetUser.Username,
-                        ForDisplayName = targetUser.DisplayName ?? targetUser.Username
+                        AssignedToUserId = targetUser.Id
                     };
 
                     var created = await absences.CreateAbsenceAsync(absence);
@@ -164,7 +190,29 @@ namespace Rota.Endpoints
                         return Results.Json(new { ok = false, message = "Invalid start date", code = 400 }, statusCode: 400);
 
                     var dayCount = Math.Max(1, Math.Min(dto.DayCount, 365));
-                    var endUtc = startUtc.AddDays(dayCount);
+
+                    // Apply explicit times only for single-day absences when both times parse correctly.
+                    DateTime startUtcFinal;
+                    DateTime endUtcFinal;
+                    if (dayCount == 1 && !string.IsNullOrWhiteSpace(dto.StartTime) && !string.IsNullOrWhiteSpace(dto.EndTime)
+                        && TimeOnly.TryParse(dto.StartTime, CultureInfo.InvariantCulture, out var parsedStartTime)
+                        && TimeOnly.TryParse(dto.EndTime, CultureInfo.InvariantCulture, out var parsedEndTime))
+                    {
+                        var localDate = DateOnly.FromDateTime(startUtc.ToLocalTime());
+                        var localStart = localDate.ToDateTime(parsedStartTime, DateTimeKind.Local);
+                        var localEnd = localDate.ToDateTime(parsedEndTime, DateTimeKind.Local);
+                        startUtcFinal = localStart.ToUniversalTime();
+                        endUtcFinal = localEnd.ToUniversalTime();
+                        if (endUtcFinal <= startUtcFinal)
+                        {
+                            return Results.Json(new { ok = false, message = "End time must be after start time", code = 400 }, statusCode: 400);
+                        }
+                    }
+                    else
+                    {
+                        startUtcFinal = DateTime.SpecifyKind(startUtc, DateTimeKind.Utc);
+                        endUtcFinal = startUtcFinal.AddDays(dayCount);
+                    }
 
                     var creator = await users.GetByUsernameAsync(username);
                     var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
@@ -180,23 +228,25 @@ namespace Rota.Endpoints
                         managerCode = mgr?.ManagerCode;
                     }
 
-                    var targetUsername = string.IsNullOrWhiteSpace(dto.ForUsername) ? username : dto.ForUsername;
+                    var targetUserId = string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? creator?.Id : dto.AssignedToUserId;
                     User? targetUser = null;
 
                     if (!string.IsNullOrEmpty(managerCode))
                     {
                         var linkedUsers = await users.GetLinkedUsersForManagerAsync(isManager ? username : creator!.ManagerUsername!);
-                        targetUser = linkedUsers.FirstOrDefault(u => u.Username == targetUsername);
+                        targetUser = linkedUsers.FirstOrDefault(u => u.Id == targetUserId);
                     }
 
-                    targetUser ??= targetUsername == username ? creator : await users.GetByUsernameAsync(targetUsername);
+                    targetUser ??= targetUserId == creator?.Id ? creator : null;
                     if (targetUser is null)
                         return Results.Json(new { ok = false, message = "Target user not found", code = 400 }, statusCode: 400);
 
                     var updated = await absences.UpdateAbsenceAsync(id, username, dto.Title, dto.Notes,
-                        DateTime.SpecifyKind(startUtc, DateTimeKind.Utc),
-                        DateTime.SpecifyKind(endUtc, DateTimeKind.Utc),
-                        dayCount, dto.Color, targetUser.Id, targetUser.Username, targetUser.DisplayName ?? targetUser.Username, managerCode);
+                        DateTime.SpecifyKind(startUtcFinal, DateTimeKind.Utc),
+                        DateTime.SpecifyKind(endUtcFinal, DateTimeKind.Utc),
+                        dayCount, dto.Color, targetUser.Id, targetUser.Id, managerCode,
+                        dayCount == 1 && !string.IsNullOrWhiteSpace(dto.StartTime) ? dto.StartTime : null,
+                        dayCount == 1 && !string.IsNullOrWhiteSpace(dto.EndTime) ? dto.EndTime : null);
 
                     if (updated is null)
                         return Results.Json(new { ok = false, message = "Not found or access denied", code = 404 }, statusCode: 404);
