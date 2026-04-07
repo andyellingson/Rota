@@ -52,7 +52,6 @@
 
             <div class="btn-group" role="group" aria-label="Navigation">
                 <button class="btn btn-light" @onclick="Prev">‹</button>
-                <button class="btn btn-light" @onclick="Today">Today</button>
                 <button class="btn btn-light" @onclick="Next">›</button>
             </div>
         </div>
@@ -140,7 +139,7 @@
                         var dayReminders = GetRemindersForDay(d)
                         .OrderBy(r => r.ReminderDateTime)
                         .ToList();
-                        <div class="week-day-card card me-2">
+                        <div class="week-day-card card me-2" @onclick="(() => OpenDayModal(d))">
                             <div class="card-body p-2">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
@@ -189,7 +188,7 @@
                                                       OnEdit="OpenEditReminderModal" />
                                     }
                                 </div>
-                                <button class="btn btn-sm btn-outline-secondary w-100 mt-1" @onclick="(() => OpenAddReminderModal(d))">+ Add</button>
+                                <button class="btn btn-sm btn-outline-secondary w-100 mt-1" @onclick:stopPropagation="true" @onclick="(() => OpenAddReminderModal(d))">+ Add</button>
                             </div>
                         </div>
                     }
@@ -1451,4 +1450,5 @@
         }
         return result;
     }
-}
+
+    }

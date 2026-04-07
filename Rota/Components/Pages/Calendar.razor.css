@@ -136,7 +136,12 @@
     gap: 0.75rem;
 }
 
-.week-day-card { flex: 1; min-width: 0; }
+.week-day-card { flex: 1; min-width: 0; cursor: pointer; transition: box-shadow 0.2s, border-color 0.2s; }
+
+.week-day-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-color: rgba(13,110,253,0.3) !important;
+}
 
 .week-day-card .events { 
     min-height: 8rem;
