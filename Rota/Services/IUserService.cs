@@ -59,5 +59,11 @@ namespace Rota.Services
         /// Returns the manager and all linked users for the specified manager username.
         /// </summary>
         System.Threading.Tasks.Task<List<User>> GetLinkedUsersForManagerAsync(string managerUsername);
+
+        /// <summary>
+        /// Replaces the user's embedded availability array with the supplied list.
+        /// Returns true when the document was modified.
+        /// </summary>
+        System.Threading.Tasks.Task<bool> UpdateAvailabilityAsync(string username, List<Rota.Models.UserAvailability> availability);
     }
 }

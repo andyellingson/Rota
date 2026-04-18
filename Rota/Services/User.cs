@@ -1,6 +1,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Rota.Models;
+using System.Collections.Generic;
 
 namespace Rota.Services
 {
@@ -60,5 +61,12 @@ namespace Rota.Services
         /// </summary>
         [BsonElement("managerCode")]
         public string? ManagerCode { get; set; }
+
+        /// <summary>
+        /// The user's personal weekly availability windows, embedded directly in the user document.
+        /// Each entry describes a day of the week and the start/end times the user is available.
+        /// </summary>
+        [BsonElement("availability")]
+        public List<UserAvailability> Availability { get; set; } = new();
     }
 }

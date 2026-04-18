@@ -237,5 +237,25 @@ namespace Rota.Services
                 return new List<User>();
             }
         }
+
+        /// <summary>
+        /// Replaces the user's embedded availability array with the supplied list.
+        /// Returns true when the document was modified.
+        /// </summary>
+        public async System.Threading.Tasks.Task<bool> UpdateAvailabilityAsync(string username, List<Rota.Models.UserAvailability> availability)
+        {
+            try
+            {
+                var filter = Builders<User>.Filter.Eq(u => u.Username, username);
+                var update = Builders<User>.Update.Set(u => u.Availability, availability);
+                var result = await _users.UpdateOneAsync(filter, update);
+                return result.ModifiedCount > 0;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error updating availability for user {User}", username);
+                return false;
+            }
+        }
     }
 }

@@ -1,5 +1,7 @@
 .account-wrapper {
-    max-width: 620px;
+    /* Fill the available content area so the 7-day availability grid fits without scrolling */
+    width: 100%;
+    max-width: 1100px;
     margin: 0 auto;
     padding: 2rem 1rem 3rem;
 }
@@ -26,14 +28,12 @@
 }
 
 .account-section-title {
-    font-size: 0.72rem;
+    font-size: 1.05rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #6c757d;
+    color: #212529;
     margin-bottom: 0.75rem;
     padding-bottom: 0.4rem;
-    border-bottom: 1px solid rgba(0,0,0,0.08);
+    border-bottom: 2px solid rgba(0,0,0,0.08);
 }
 
 /* ── Cards ──────────────────────────────────────────────── */
@@ -118,4 +118,95 @@
     font-size: 0.8rem;
     color: #6c757d;
     margin-bottom: 0.65rem;
+}
+
+/* ── Weekly Availability grid ────────────────────────────── */
+
+/* Scrollable 7-column grid, matching the WorkWeek editor style */
+.avail-week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(110px, 1fr));
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+}
+
+/* Individual day column card */
+.avail-day-card {
+    background: #f8f9fa;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 8px;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 110px;
+}
+
+/* Day name header */
+.avail-day-header {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #495057;
+    text-align: center;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+}
+
+/* A single availability window chip */
+.avail-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(24,144,255,0.08);
+    border-left: 3px solid #1890ff;
+    border-radius: 4px;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.75rem;
+    gap: 0.25rem;
+}
+
+.avail-time {
+    flex: 1;
+    color: #1890ff;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Action buttons (edit / remove) on each availability chip */
+.avail-remove,
+.avail-edit {
+    background: none;
+    border: none;
+    padding: 0;
+    line-height: 1;
+    font-size: 0.65rem;
+    color: #adb5bd;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.avail-edit:hover {
+    color: #0d6efd;
+}
+
+.avail-remove:hover {
+    color: #dc3545;
+}
+
+/* Inline add form shown per day */
+.avail-add-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+/* + Add button at the bottom of each day column */
+.avail-add-btn {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.4rem;
+    width: 100%;
+    margin-top: auto;
 }
