@@ -41,5 +41,21 @@ namespace Rota.Services
         /// Sets a schedule as the default for a manager.
         /// </summary>
         Task<bool> SetDefaultScheduleAsync(string scheduleId, string managerId);
+
+        /// <summary>
+        /// Returns the schedules whose IDs are in the supplied list (used to look up
+        /// schedules an employee is assigned to across multiple managers).
+        /// </summary>
+        Task<List<Schedule>> GetSchedulesByIdsAsync(IEnumerable<string> scheduleIds);
+
+        /// <summary>
+        /// Adds a new WorkWeek template to the specified schedule.
+        /// </summary>
+        Task<WorkWeek> AddWorkWeekAsync(string scheduleId, string managerId, WorkWeek workWeek);
+
+        /// <summary>
+        /// Deletes a WorkWeek template from the specified schedule.
+        /// </summary>
+        Task<bool> DeleteWorkWeekAsync(string scheduleId, string managerId, string workWeekId);
     }
 }

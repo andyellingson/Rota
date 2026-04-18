@@ -61,3 +61,110 @@
     color: #6c757d;
     line-height: 1.4;
 }
+
+/* Week grid used in WorkWeek modal - mirror calendar styles so the week displays horizontally */
+
+/* Override Bootstrap's default lateral modal margins so the dialog uses almost the full
+   viewport width.  Bootstrap applies up to 1.75 rem per side at large breakpoints which
+   would eat ~56 px and cause Saturday to be clipped.  Setting margin to 0.5rem auto and
+   width to 98 vw ensures the dialog is as wide as the screen allows, up to 1400 px.
+   7 columns × 130 px min-width + 6 × 12 px gaps = 982 px — comfortably fits inside the
+   resulting dialog width on a 1024 px viewport.                                         */
+.ww-modal-dialog {
+    max-width: 1400px;
+    width: 98vw;
+    margin: 0.5rem auto;
+}
+
+.week-grid {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: nowrap;
+    /* Horizontal scroll is a last-resort fallback on very narrow viewports only */
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+}
+
+.week-day-card {
+    flex: 1;
+    /* 130 px lets all 7 columns fit in a 1024 px viewport without scrolling */
+    min-width: 130px;
+    cursor: pointer;
+    transition: box-shadow 0.2s, border-color 0.2s;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 6px;
+    background: #fff;
+}
+
+.week-day-card:hover {
+    box-shadow: 0 4px 16px rgba(13,110,253,0.18);
+    border-color: rgba(13,110,253,0.6) !important;
+    background-color: rgba(13,110,253,0.03);
+}
+
+/* Hover style for selectable list items in WorkWeek selection modal to match day hover in calendar */
+.list-group-item.list-group-item-action:hover {
+    box-shadow: 0 4px 16px rgba(13,110,253,0.18);
+    border-color: rgba(13,110,253,0.6);
+    background-color: rgba(13,110,253,0.03);
+    transition: box-shadow 0.15s, border-color 0.15s, background-color 0.15s;
+}
+
+.week-day-card .events {
+    min-height: 6rem;
+    margin-top: 0.5rem;
+}
+
+/* ── Shift cards inside the WorkWeek week-grid ──────────────
+   Mirror the styles from Calendar.razor.css so the cards look
+   identical to those rendered on the main calendar.
+   These rules must live here because Blazor CSS isolation scopes
+   Calendar.razor.css exclusively to the Calendar component.     */
+
+.shift-item {
+    background: rgba(24,144,255,0.08);
+    border-left: 4px solid rgba(24,144,255,0.6);
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    cursor: pointer;
+    /* Fill the full width of the day column so cards match the calendar */
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+    transition: box-shadow 0.15s;
+}
+
+.shift-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+.shift-worker-type {
+    font-weight: 700;
+    font-size: 0.78rem;
+    color: #1890ff;
+    /* Allow the title to wrap so it is fully visible at narrow column widths */
+    word-break: break-word;
+    max-width: 100%;
+}
+
+.shift-time {
+    font-size: 0.7rem;
+    color: #6c757d;
+}
+
+.shift-assigned {
+    font-size: 0.68rem;
+    color: #6c757d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+@media (max-width: 768px) {
+    .week-grid { flex-wrap: nowrap; }
+    .week-day-card { min-width: 132px; }
+}

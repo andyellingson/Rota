@@ -81,18 +81,36 @@ namespace Rota.Models
         [BsonElement("workerType")]
         public WorkerType WorkerType { get; set; } = WorkerType.General;
 
-        /// <summary>
-        /// Optional identifier linking shifts that belong to the same recurring series.
-        /// </summary>
-        [BsonElement("seriesId")]
-        [BsonRepresentation(BsonType.String)]
-        public Guid? SeriesId { get; set; }
+            /// <summary>
+            /// Optional identifier linking shifts that belong to the same recurring series.
+            /// </summary>
+            [BsonElement("seriesId")]
+            [BsonRepresentation(BsonType.String)]
+            public Guid? SeriesId { get; set; }
 
-        /// <summary>
-        /// Creation timestamp.
-        /// </summary>
-        [BsonElement("createdAt")]
-        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    }
+            /// <summary>
+            /// Optional WorkWeek ID (MongoDB ObjectId string) that this shift belongs to.
+            /// When set, this shift acts as a template and is not tied to a specific calendar date.
+            /// ScheduleId should NOT be set for workweek template shifts.
+            /// </summary>
+            [BsonElement("workWeekId")]
+            [BsonRepresentation(BsonType.ObjectId)]
+            public string? WorkWeekId { get; set; }
+
+            /// <summary>
+            /// Day of the week this shift template should be generated for.
+            /// Only applicable when WorkWeekId is set (template shifts).
+            /// When generating actual shifts from templates, the shift is placed on the day
+            /// of the week matching this property, using the time from Start/End.
+            /// </summary>
+            [BsonElement("workDay")]
+            public DayOfWeek? WorkDay { get; set; }
+
+            /// <summary>
+            /// Creation timestamp.
+            /// </summary>
+            [BsonElement("createdAt")]
+            [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+            public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        }
 }

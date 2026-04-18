@@ -121,6 +121,24 @@ namespace Rota.Services
             }
         }
 
+        public async System.Threading.Tasks.Task<List<string>> GetDistinctScheduleIdsForUserAsync(string userId)
+        {
+            try
+            {
+                var filter = Builders<Shift>.Filter.And(
+                    Builders<Shift>.Filter.Eq(s => s.AssignedToUserId, userId),
+                    Builders<Shift>.Filter.Ne(s => s.ScheduleId, null)
+                );
+                var ids = await _shifts.Distinct(s => s.ScheduleId, filter).ToListAsync();
+                return ids.Where(id => !string.IsNullOrEmpty(id)).Select(id => id!).ToList();
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error getting distinct schedule IDs for user {UserId}", userId);
+                return new List<string>();
+            }
+        }
+
         public async System.Threading.Tasks.Task<Shift?> UpdateShiftAsync(string id, string username, DateTime startUtc, DateTime endUtc, string? title, string? notes, WorkerType workerType, string? color, string? assignedToUserId)
         {
             try
@@ -147,6 +165,44 @@ namespace Rota.Services
             {
                 _logger.LogError(ex, "Error updating shift {Id} for user {User}", id, username);
                 return null;
+            }
+        }
+
+        public async System.Threading.Tasks.Task<List<Shift>> GetWorkWeekTemplateShiftsAsync(string workWeekId, string managerCode)
+        {
+            try
+            {
+                var filter = Builders<Shift>.Filter.And(
+                    Builders<Shift>.Filter.Eq(s => s.WorkWeekId, workWeekId),
+                    Builders<Shift>.Filter.Eq(s => s.ManagerCode, managerCode)
+                );
+
+                var templateShifts = await _shifts.Find(filter).ToListAsync();
+                return templateShifts;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error getting template shifts for WorkWeek {WorkWeekId}", workWeekId);
+                return new List<Shift>();
+            }
+        }
+
+        public async System.Threading.Tasks.Task<int> DeleteWorkWeekTemplateShiftsAsync(string workWeekId, string managerCode)
+        {
+            try
+            {
+                var filter = Builders<Shift>.Filter.And(
+                    Builders<Shift>.Filter.Eq(s => s.WorkWeekId, workWeekId),
+                    Builders<Shift>.Filter.Eq(s => s.ManagerCode, managerCode)
+                );
+
+                var result = await _shifts.DeleteManyAsync(filter);
+                return (int)result.DeletedCount;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting template shifts for WorkWeek {WorkWeekId}", workWeekId);
+                return 0;
             }
         }
     }

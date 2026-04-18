@@ -57,5 +57,12 @@ namespace Rota.Models
         /// </summary>
         [BsonElement("isDefault")]
         public bool IsDefault { get; set; }
+
+        /// <summary>
+        /// Optional list of named work week templates that can be applied to a calendar.
+        /// Each WorkWeek contains zero or more shift definitions assigned to days of the week.
+        /// </summary>
+        [BsonElement("workWeeks")]
+        public List<WorkWeek> WorkWeeks { get; set; } = new();
     }
 }

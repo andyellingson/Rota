@@ -9,5 +9,20 @@ namespace Rota.Services
         System.Threading.Tasks.Task<bool> DeleteShiftAsync(string id, string username);
         System.Threading.Tasks.Task<int> DeleteShiftsBySeriesIdAsync(Guid seriesId, string username);
         System.Threading.Tasks.Task<Shift?> UpdateShiftAsync(string id, string username, DateTime startUtc, DateTime endUtc, string? title, string? notes, WorkerType workerType, string? color, string? assignedToUserId);
+        /// <summary>
+        /// Returns the distinct ScheduleIds of every shift the given user is assigned to.
+        /// </summary>
+        System.Threading.Tasks.Task<List<string>> GetDistinctScheduleIdsForUserAsync(string userId);
+
+        /// <summary>
+        /// Gets all template shifts for a specific WorkWeek ID.
+        /// These are shifts with WorkWeekId set and are not tied to specific calendar dates.
+        /// </summary>
+        System.Threading.Tasks.Task<List<Shift>> GetWorkWeekTemplateShiftsAsync(string workWeekId, string managerCode);
+
+        /// <summary>
+        /// Deletes all template shifts associated with a specific WorkWeek ID.
+        /// </summary>
+        System.Threading.Tasks.Task<int> DeleteWorkWeekTemplateShiftsAsync(string workWeekId, string managerCode);
     }
 }

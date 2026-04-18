@@ -19,6 +19,55 @@ namespace Rota.Services
             _schedules = db.GetCollection<Schedule>("schedules");
         }
 
+        public async Task<WorkWeek> AddWorkWeekAsync(string scheduleId, string managerId, WorkWeek workWeek)
+        {
+            try
+            {
+                // Ensure schedule belongs to manager
+                var filter = Builders<Schedule>.Filter.And(
+                    Builders<Schedule>.Filter.Eq(s => s.Id, scheduleId),
+                    Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId)
+                );
+
+                // Assign id if missing
+                if (string.IsNullOrEmpty(workWeek.Id)) workWeek.Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
+
+                var update = Builders<Schedule>.Update.Push(s => s.WorkWeeks, workWeek);
+                var result = await _schedules.UpdateOneAsync(filter, update);
+                if (result.ModifiedCount > 0)
+                {
+                    return workWeek;
+                }
+
+                throw new InvalidOperationException("Unable to add work week (schedule not found or not authorized).");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding work week to schedule {ScheduleId}", scheduleId);
+                throw;
+            }
+        }
+
+        public async Task<bool> DeleteWorkWeekAsync(string scheduleId, string managerId, string workWeekId)
+        {
+            try
+            {
+                var filter = Builders<Schedule>.Filter.And(
+                    Builders<Schedule>.Filter.Eq(s => s.Id, scheduleId),
+                    Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId)
+                );
+
+                var update = Builders<Schedule>.Update.PullFilter(s => s.WorkWeeks, Builders<WorkWeek>.Filter.Eq(w => w.Id, workWeekId));
+                var result = await _schedules.UpdateOneAsync(filter, update);
+                return result.ModifiedCount > 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting work week {WorkWeekId} from schedule {ScheduleId}", workWeekId, scheduleId);
+                throw;
+            }
+        }
+
         public async Task<List<Schedule>> GetSchedulesForManagerAsync(string managerId)
         {
             try
@@ -232,6 +281,22 @@ namespace Rota.Services
             {
                 _logger.LogError(ex, "Error getting or creating default schedule for manager {ManagerId}", managerId);
                 throw;
+            }
+        }
+
+        public async Task<List<Schedule>> GetSchedulesByIdsAsync(IEnumerable<string> scheduleIds)
+        {
+            try
+            {
+                var ids = scheduleIds.ToList();
+                if (ids.Count == 0) return new List<Schedule>();
+                var filter = Builders<Schedule>.Filter.In(s => s.Id, ids);
+                return await _schedules.Find(filter).SortBy(s => s.Name).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving schedules by IDs");
+                return new List<Schedule>();
             }
         }
 

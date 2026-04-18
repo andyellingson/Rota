@@ -32,8 +32,9 @@
 }
 
 .day-cell:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    border-color: rgba(13,110,253,0.3);
+    box-shadow: 0 4px 16px rgba(13,110,253,0.18);
+    border-color: rgba(13,110,253,0.6);
+    background-color: rgba(13,110,253,0.03);
 }
 
 .day-number {
@@ -64,6 +65,9 @@
     flex-direction: column;
     align-items: flex-start;
     cursor: pointer;
+    /* Fill the full width of the day cell so cards always span edge-to-edge */
+    width: 100%;
+    box-sizing: border-box;
     min-width: 0;
 }
 .shift-worker-type { font-weight: 700; font-size: 0.78rem; color: #1890ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
@@ -139,8 +143,9 @@
 .week-day-card { flex: 1; min-width: 0; cursor: pointer; transition: box-shadow 0.2s, border-color 0.2s; }
 
 .week-day-card:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    border-color: rgba(13,110,253,0.3) !important;
+    box-shadow: 0 4px 16px rgba(13,110,253,0.18);
+    border-color: rgba(13,110,253,0.6) !important;
+    background-color: rgba(13,110,253,0.03);
 }
 
 .week-day-card .events { 
@@ -207,59 +212,249 @@
     .absence-right { text-align: left; max-width: 100%; }
 }
 
-/* ── Day detail modal ─────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   Day detail modal
+   ══════════════════════════════════════════════════════════ */
 
-.day-detail-body {
-    padding: 1.25rem;
+/* Outer modal shell – slightly lifted shadow */
+.day-modal-content {
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    overflow: hidden;
 }
 
-.day-detail-section-title {
+/* ── Header ─────────────────────────────────────────────── */
+.day-modal-header {
+    background: #fff;
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    padding: 1rem 1.25rem;
+}
+
+/* Circular date badge on the left of the header */
+.day-modal-date-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    background: #f0f4ff;
+    border: 1px solid #d0dbff;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.day-modal-date-badge--today {
+    background: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.day-modal-date-badge--today .day-modal-date-badge-num,
+.day-modal-date-badge--today .day-modal-date-badge-month {
+    color: #fff;
+}
+
+.day-modal-date-badge-num {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #0d6efd;
+    line-height: 1.1;
+}
+
+.day-modal-date-badge-month {
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6c757d;
+}
+
+/* Action buttons in header */
+.day-modal-action-btn {
+    border-radius: 20px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.day-modal-btn-icon {
+    font-size: 0.85rem;
+    margin-right: 0.15rem;
+}
+
+/* ── Apply Template bar ─────────────────────────────────── */
+.day-modal-template-bar {
+    background: #f8f9ff;
+    border-bottom: 1px solid rgba(13,110,253,0.12);
+    padding: 0.75rem 1.25rem;
+}
+
+.day-modal-template-bar-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.1rem;
+}
+
+.day-modal-template-bar-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #5c6bc0;
+}
+
+.day-modal-template-select {
+    min-width: 11rem;
+    max-width: 14rem;
+}
+
+.day-modal-date-input {
+    width: 9rem;
+}
+
+/* ── Section icons ──────────────────────────────────────── */
+.day-modal-section-icon {
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.day-modal-section-icon--shift    { filter: hue-rotate(0deg);   }
+.day-modal-section-icon--absence  { filter: hue-rotate(30deg);  }
+.day-modal-section-icon--reminder { filter: hue-rotate(180deg); }
+.day-modal-section-icon--template { filter: hue-rotate(220deg); }
+
+/* ── Modal body ─────────────────────────────────────────── */
+.day-detail-body {
+    padding: 1.25rem;
+    background: #fafbfd;
+}
+
+/* Summary pill row at the top of the body */
+.day-modal-summary-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+
+.day-modal-summary-pill {
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 20px;
+    padding: 0.2rem 0.65rem;
+    letter-spacing: 0.03em;
+}
+
+.day-modal-summary-pill--shift    { background: #e8f0fe; color: #1a56db; }
+.day-modal-summary-pill--absence  { background: #fff3e0; color: #e65100; }
+.day-modal-summary-pill--reminder { background: #fffde7; color: #f57f17; }
+
+/* ── Section header row ─────────────────────────────────── */
+.day-detail-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.day-detail-section-title-text {
     font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #6c757d;
-    margin-bottom: 0.75rem;
-    display: flex;
+    color: #495057;
+    flex: 1;
+}
+
+/* Small count badge next to the section title */
+.day-detail-section-count {
+    display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    justify-content: center;
+    width: 1.3rem;
+    height: 1.3rem;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.07);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #495057;
+    flex-shrink: 0;
 }
 
-.day-detail-section-icon {
-    font-size: 0.9rem;
-}
-
+/* ── Shift cards ────────────────────────────────────────── */
 .day-detail-shift-card {
     background: #fff;
-    border: 1px solid rgba(0,0,0,0.08);
-    border-left: 4px solid rgba(24,144,255,0.7);
-    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.07);
+    border-left: 4px solid #1890ff;
+    border-radius: 10px;
     padding: 0.75rem 1rem;
-    margin-bottom: 0.65rem;
+    margin-bottom: 0.6rem;
     cursor: pointer;
-    transition: box-shadow 0.15s, border-left-color 0.15s;
+    transition: box-shadow 0.15s, transform 0.1s;
 }
 
 .day-detail-shift-card:hover {
-    box-shadow: 0 2px 12px rgba(24,144,255,0.15);
-    border-left-color: #1890ff;
+    box-shadow: 0 4px 18px rgba(24,144,255,0.15);
+    transform: translateY(-1px);
 }
 
+/* ── Absence cards ──────────────────────────────────────── */
+.day-detail-absence-card {
+    border-left: 4px solid #fa8c16;
+    border-radius: 10px;
+    border: 1px solid rgba(0,0,0,0.07);
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.6rem;
+    cursor: pointer;
+    transition: box-shadow 0.15s, transform 0.1s;
+}
+
+.day-detail-absence-card:hover {
+    box-shadow: 0 4px 18px rgba(250,140,22,0.15);
+    transform: translateY(-1px);
+}
+
+.day-detail-absence-title-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.1rem 0.5rem;
+    border-radius: 20px;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+
+.day-detail-absence-name {
+    font-size: 0.9rem;
+    color: #212529;
+    max-width: 55%;
+}
+
+/* ── Reminder cards ─────────────────────────────────────── */
 .day-detail-reminder-card {
     background: #fff;
-    border: 1px solid rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.07);
     border-left: 4px solid #ffeb3b;
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 0.75rem 1rem;
-    margin-bottom: 0.65rem;
+    margin-bottom: 0.6rem;
     cursor: pointer;
-    transition: box-shadow 0.15s;
+    transition: box-shadow 0.15s, transform 0.1s;
 }
 
 .day-detail-reminder-card:hover {
-    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
 }
 
+/* ── Shared card elements ───────────────────────────────── */
 .day-detail-card-header {
     display: flex;
     justify-content: space-between;
@@ -270,8 +465,6 @@
 
 .day-detail-worker-badge {
     display: inline-block;
-    background: rgba(24,144,255,0.1);
-    color: #0d6efd;
     font-size: 0.7rem;
     font-weight: 700;
     padding: 0.15rem 0.55rem;
@@ -292,41 +485,84 @@
     color: #6c757d;
     font-weight: 500;
     white-space: nowrap;
-    margin-left: auto;
 }
 
-.day-detail-item-title {
+/* Small "Xh Ym" duration shown alongside the time */
+.day-detail-duration-badge {
+    font-size: 0.7rem;
     font-weight: 600;
-    font-size: 0.9rem;
-    color: #212529;
-    margin-bottom: 0.2rem;
+    color: #fff;
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+    padding: 0.1rem 0.45rem;
+    white-space: nowrap;
+}
+
+/* Subtle "Edit ›" affordance that appears on hover */
+.day-detail-edit-hint {
+    font-size: 0.7rem;
+    color: #adb5bd;
+    white-space: nowrap;
+    transition: color 0.15s;
+}
+
+.day-detail-shift-card:hover   .day-detail-edit-hint,
+.day-detail-absence-card:hover .day-detail-edit-hint,
+.day-detail-reminder-card:hover .day-detail-edit-hint {
+    color: #0d6efd;
 }
 
 .day-detail-item-notes {
     font-size: 0.82rem;
     color: #6c757d;
     line-height: 1.45;
-    margin-top: 0.2rem;
+    margin-top: 0.3rem;
+    padding-top: 0.3rem;
+    border-top: 1px dashed rgba(0,0,0,0.07);
 }
 
 .day-detail-assigned {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
     font-size: 0.8rem;
     color: #6c757d;
-    margin-top: 0.25rem;
+    margin-top: 0.3rem;
 }
 
+.day-detail-assigned-icon {
+    font-size: 0.75rem;
+}
+
+/* ── Empty state ────────────────────────────────────────── */
 .day-detail-empty {
     text-align: center;
-    padding: 3rem 1rem;
+    padding: 3rem 1.5rem 2rem;
     color: #adb5bd;
 }
 
 .day-detail-empty-icon {
-    font-size: 2.5rem;
+    font-size: 3rem;
     margin-bottom: 0.75rem;
+    display: block;
+}
+
+.day-detail-empty-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #6c757d;
+    margin-bottom: 0.35rem;
 }
 
 .day-detail-empty-text {
-    font-size: 0.95rem;
-    margin-bottom: 0;
+    font-size: 0.88rem;
+    color: #adb5bd;
+    max-width: 22rem;
+    margin: 0 auto;
 }
+
+/* ── Removed legacy aliases kept for back-compat ─────────── */
+.day-detail-section-title       { display: none; } /* replaced by .day-detail-section-header */
+.day-detail-section-icon        { display: none; } /* replaced by .day-modal-section-icon    */
+.day-detail-item-title          { font-weight: 600; font-size: 0.9rem; color: #212529; }
+.day-detail-absence-title-text  { font-weight: 600; font-size: 0.88rem; color: #212529; }

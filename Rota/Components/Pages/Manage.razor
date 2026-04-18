@@ -1,22 +1,1023 @@
 @page "/manage"
-@rendermode InteractiveServer
-@using Microsoft.AspNetCore.Components.Authorization
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 @using Rota.Models
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = Roles.ManagerOrAdmin)]
+@using System.Globalization
+@using Rota.Services
+@using Rota.Components
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Manager,Admin")]
+@inject ISchedulesService SchedulesService
+@inject IShiftsService ShiftsService
+@inject IUserService UserService
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject Microsoft.Extensions.Logging.ILogger<Manage> Logger
 
-<PageTitle>Manage – Rota</PageTitle>
+<div class="container my-4">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="d-flex align-items-center mb-4">
+                <div class="me-auto">
+                    <h4 class="mb-0">Manage Schedules</h4>
+                    <small class="text-muted">Create and manage your work schedules</small>
+                </div>
+                <button class="btn btn-primary" @onclick="OpenCreateModal">
+                    <span class="me-1">+</span> New Schedule
+                </button>
+            </div>
 
-<div class="manage-wrapper">
-    <div class="manage-header">
-        <h2 class="manage-title">Manage</h2>
-        <p class="manage-subtitle">Manage your schedule data.</p>
-    </div>
-
-    <div class="manage-grid">
-        <a href="/calendar" class="manage-card">
-            <div class="manage-card-icon">📅</div>
-            <div class="manage-card-title">Calendar</div>
-            <div class="manage-card-desc">View, add, and edit your shifts and reminders.</div>
-        </a>
+            @if (isLoading)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else if (schedules.Count == 0)
+            {
+                <div class="alert alert-info">
+                    <strong>No schedules yet.</strong> Create your first schedule to get started.
+                </div>
+            }
+            else
+            {
+                <div class="list-group">
+                    @foreach (var schedule in schedules)
+                    {
+                        <div class="list-group-item @(schedule.IsDefault ? "list-group-item-primary" : "")">
+                            <div class="d-flex w-100 justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h5 class="mb-1">
+                                        @schedule.Name
+                                        @if (schedule.IsDefault)
+                                        {
+                                            <span class="badge bg-primary ms-2">Default</span>
+                                        }
+                                    </h5>
+                                    @if (!string.IsNullOrEmpty(schedule.Description))
+                                    {
+                                        <p class="mb-1 text-muted">@schedule.Description</p>
+                                    }
+                                    <small class="text-muted">Created @schedule.CreatedAt.ToLocalTime().ToString("g")</small>
+                                </div>
+                                <div class="btn-group ms-3">
+                                    @if (!schedule.IsDefault)
+                                    {
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="(() => SetAsDefault(schedule))">
+                                            Set as Default
+                                        </button>
+                                    }
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="(() => ViewInCalendar(schedule))">
+                                        View Calendar
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning" @onclick="(() => OpenEditModal(schedule))">
+                                        Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="(() => OpenWorkWeeksModal(schedule))">
+                                        Work Weeks
+                                    </button>
+                                    @if (schedules.Count > 1)
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="(() => OpenDeleteConfirm(schedule))">
+                                            Delete
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
     </div>
 </div>
+
+@* WorkWeek selection modal *@
+@if (showWorkWeekSelectionModal && workWeekSchedule != null)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Work Weeks - @workWeekSchedule.Name</h5>
+                    <button type="button" class="btn-close" @onclick="CloseWorkWeekSelectionModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <button class="btn btn-primary w-100" @onclick="OpenCreateWorkWeek">
+                            <span class="me-2">+</span> Create New WorkWeek
+                        </button>
+                    </div>
+
+                    @if (workWeekSchedule.WorkWeeks == null || workWeekSchedule.WorkWeeks.Count == 0)
+                    {
+                        <div class="alert alert-info">No work week templates exist yet. Create one to get started.</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var ww in workWeekSchedule.WorkWeeks)
+                            {
+                                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" style="cursor: pointer;" @onclick="(() => OpenEditWorkWeek(ww))">
+                                    <div>
+                                        <div class="fw-bold">@ww.Name</div>
+                                        <div class="text-muted small">@(workWeekShiftCounts.GetValueOrDefault(ww.Id ?? "", 0)) shift(s)</div>
+                                    </div>
+                                    @* Removed inline Edit badge — clicking the list item opens the edit modal *@
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseWorkWeekSelectionModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* WorkWeek edit modal *@
+@if (showWorkWeeksModal && workWeekSchedule != null)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered ww-modal-dialog modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(editingWorkWeek == null ? "Create New WorkWeek" : "Edit WorkWeek") — @workWeekSchedule.Name</h5>
+                    <button type="button" class="btn-close" @onclick="CloseWorkWeeksModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (showCreateWorkWeek)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">WorkWeek Name</label>
+                            <input class="form-control" @bind="newWorkWeekName" @bind:after="OnWorkWeekChanged" />
+                        </div>
+
+                        <div class="mb-2">
+                            <strong>Shifts</strong>
+                            <div class="text-muted small">Click a day to add shifts. Click an existing shift to edit it.</div>
+                        </div>
+
+                        @* Week view for adding shifts to weekdays *@
+                        <div class="week-grid mb-3">
+                            @{
+                                var today = DateOnly.FromDateTime(DateTime.Today);
+                                var firstDay = CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek;
+                                var diff = ((int)today.DayOfWeek - (int)firstDay + 7) % 7;
+                                var start = today.AddDays(-diff);
+                            }
+                            @foreach (var d in Enumerable.Range(0, 7).Select(i => start.AddDays(i)))
+                            {
+                                var dow = d.DayOfWeek;
+                                <div class="week-day-card card p-2" @onclick="(() => BeginCreateShiftForDay(dow))">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="fw-bold">@d.ToString("dddd")</div>
+                                    </div>
+                                    <div class="events">
+                                        @foreach (var s in newWorkWeekShifts.Where(s => s.WorkDay == dow).OrderBy(s => s.Start))
+                                        {
+                                            <div class="shift-item mb-1"
+                                                 style="border-left-color:@(s.Color ?? "#1890ff"); background:@(s.Color ?? "#1890ff")18;"
+                                                 @onclick:stopPropagation="true" @onclick="(() => EditWorkWeekShift(s))">
+                                                <div class="shift-worker-type" style="color:@(s.Color ?? "#1890ff");">
+                                                    @* Match the calendar display format: "Title - WorkerType", or just WorkerType when no title is set *@
+                                                    @(string.IsNullOrWhiteSpace(s.Title) ? s.WorkerType.ToString() : $"{s.Title} - {s.WorkerType}")
+                                                </div>
+                                                <div class="shift-time">@(TimeOnly.FromDateTime(s.Start).ToString("HH:mm")) – @(TimeOnly.FromDateTime(s.End).ToString("HH:mm"))</div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                @* Footer: Delete on the left, Cancel + Save on the right *@
+                <div class="modal-footer">
+                    <div class="me-auto">
+                        @if (editingWorkWeek != null)
+                        {
+                            <button class="btn btn-outline-danger" @onclick="DeleteCurrentWorkWeek" disabled="@isBusy">
+                                Delete WorkWeek
+                            </button>
+                        }
+                    </div>
+                    <button class="btn btn-secondary" @onclick="CancelCreateWorkWeek" disabled="@isBusy">Cancel</button>
+                    <button class="btn btn-primary" @onclick="SaveNewWorkWeek" disabled="@(!hasWorkWeekChanges || isBusy)">
+                        @(isBusy ? "Saving…" : "Save WorkWeek")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Create/Edit Schedule Modal *@
+@if (showModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(editingSchedule == null ? "Create New Schedule" : "Edit Schedule")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(modalError))
+                    {
+                        <div class="alert alert-danger">@modalError</div>
+                    }
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Schedule Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" @bind="scheduleName" placeholder="e.g. April 2026 Schedule" />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description (optional)</label>
+                        <textarea class="form-control" rows="3" @bind="scheduleDescription" placeholder="Add a description for this schedule"></textarea>
+                    </div>
+
+                    @if (editingSchedule == null || !editingSchedule.IsDefault)
+                    {
+                        <div class="mb-3 form-check">
+                            <input class="form-check-input" type="checkbox" id="setAsDefault" @bind="setAsDefault" />
+                            <label class="form-check-label" for="setAsDefault">
+                                Set as default schedule
+                            </label>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal" disabled="@isBusy">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveSchedule" disabled="@isBusy">
+                        @(isBusy ? "Saving..." : "Save")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Delete Confirmation Modal *@
+@if (showDeleteConfirm && scheduleToDelete != null)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Delete Schedule</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseDeleteConfirm" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(modalError))
+                    {
+                        <div class="alert alert-danger">@modalError</div>
+                    }
+                    <p>Are you sure you want to delete the schedule <strong>@scheduleToDelete.Name</strong>?</p>
+                    <p class="text-danger mb-0">
+                        <strong>Warning:</strong> All shifts, absences, and reminders associated with this schedule will remain but will no longer be grouped under this schedule.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteConfirm" disabled="@isBusy">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="DeleteSchedule" disabled="@isBusy">
+                        @(isBusy ? "Deleting..." : "Delete Schedule")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* CalendarEditModal for adding shifts to WorkWeek templates *@
+<CalendarEditModal State="workWeekModalState"
+                   CanManageShifts="true"
+                   Employees="employees"
+                   LinkedUsers="new List<User>()"
+                   ColorChoices="ColorChoices"
+                   OnClose="CloseWorkWeekShiftModal"
+                   OnSaveReminder="@(() => Task.CompletedTask)"
+                   OnUpdateReminder="@(() => Task.CompletedTask)"
+                   OnDeleteReminder="@(() => Task.CompletedTask)"
+                   OnSaveShift="SaveWorkWeekShift"
+                   OnUpdateShift="@(() => Task.CompletedTask)"
+                   OnDeleteShift="DeleteWorkWeekShift"
+                   OnDeleteShiftSeries="@(() => Task.CompletedTask)"
+                   OnSaveAbsence="@(() => Task.CompletedTask)"
+                   OnUpdateAbsence="@(() => Task.CompletedTask)"
+                   OnDeleteAbsence="@(() => Task.CompletedTask)" />
+
+@code {
+    private List<Schedule> schedules = new();
+    private bool isLoading = false;
+    private string? _userId;
+    private string? _username;
+    private string? _managerCode;
+
+    // Modal state
+    private bool showModal = false;
+    private bool showDeleteConfirm = false;
+    private Schedule? editingSchedule;
+    private Schedule? scheduleToDelete;
+    private string scheduleName = string.Empty;
+    private string? scheduleDescription;
+    private bool setAsDefault = false;
+    private string? modalError;
+    private bool isBusy = false;
+
+    // WorkWeek management state
+    private bool showWorkWeekSelectionModal = false;
+    private bool showWorkWeeksModal = false;
+    private Schedule? workWeekSchedule;
+    private bool showCreateWorkWeek = false;
+    private WorkWeek? editingWorkWeek = null;
+    private string newWorkWeekName = string.Empty;
+    private List<Shift> newWorkWeekShifts = new();
+    private DayOfWeek newShiftDay = DayOfWeek.Monday;
+    private DayOfWeek? createShiftForDay = null;
+    private Shift? editingWorkWeekShift = null;
+    private CalendarEditModalState workWeekModalState = new();
+    private List<User> employees = new();
+    private readonly string[] ColorChoices = new[] { "#ff4d4f", "#52c41a", "#1890ff", "#fa8c16", "#d3d3d3" };
+
+    // Stores the real template-shift count per WorkWeek ID, loaded from the shifts collection
+    private Dictionary<string, int> workWeekShiftCounts = new();
+
+    // Change tracking for WorkWeek
+    private string originalWorkWeekName = string.Empty;
+    private List<Shift> originalWorkWeekShifts = new();
+    private bool hasWorkWeekChanges => CheckWorkWeekChanges();
+
+    private void BeginCreateShiftForDay(DayOfWeek day)
+    {
+        createShiftForDay = day;
+        newShiftDay = day;
+        editingWorkWeekShift = null;
+
+        // Initialize modal state for a new shift.
+        // EditingShift MUST be cleared here — if the user previously opened an existing
+        // shift's edit form, the stale reference would cause the modal to open in edit
+        // mode even when clicking an empty area of a day column.
+        workWeekModalState.EditingShift = null;
+        workWeekModalState.ShowModal = true;
+        workWeekModalState.ModalMode = ModalMode.Shift;
+        workWeekModalState.SelectedDate = DateOnly.FromDateTime(DateTime.Today); // Not used for templates but required
+        workWeekModalState.NewShiftStartTime = new TimeOnly(9, 0);
+        workWeekModalState.NewShiftEndTime = new TimeOnly(17, 0);
+        workWeekModalState.NewShiftTitle = string.Empty;
+        workWeekModalState.NewShiftColor = "#1890ff";
+        workWeekModalState.NewShiftNotes = null;
+        workWeekModalState.NewShiftWorkerType = WorkerType.General;
+        workWeekModalState.NewShiftAssignedTo = string.Empty;
+        workWeekModalState.NewShiftRecurrence = ShiftRecurrence.None;
+        workWeekModalState.ModalError = null;
+    }
+
+    private void EditWorkWeekShift(Shift shift)
+    {
+        editingWorkWeekShift = shift;
+        createShiftForDay = shift.WorkDay;
+        newShiftDay = shift.WorkDay ?? DayOfWeek.Monday;
+
+        // Extract time from the Start and End DateTimes
+        var startTime = TimeOnly.FromDateTime(shift.Start);
+        var endTime = TimeOnly.FromDateTime(shift.End);
+
+        // Initialize modal state with existing shift data
+        workWeekModalState.ShowModal = true;
+        workWeekModalState.ModalMode = ModalMode.Shift;
+        workWeekModalState.EditingShift = shift; // Set editing shift so delete button appears
+        workWeekModalState.SelectedDate = DateOnly.FromDateTime(DateTime.Today); // Not used for templates but required
+        workWeekModalState.EditShiftDate = DateOnly.FromDateTime(DateTime.Today);
+        workWeekModalState.EditShiftStartTime = startTime;
+        workWeekModalState.EditShiftEndTime = endTime;
+        workWeekModalState.EditShiftTitle = shift.Title ?? string.Empty;
+        workWeekModalState.EditShiftColor = shift.Color ?? "#1890ff";
+        workWeekModalState.EditShiftNotes = shift.Notes;
+        workWeekModalState.EditShiftWorkerType = shift.WorkerType;
+        workWeekModalState.EditShiftAssignedTo = shift.AssignedToUserId ?? string.Empty;
+        workWeekModalState.ModalError = null;
+    }
+
+    private void CloseWorkWeekShiftModal()
+    {
+        workWeekModalState.ShowModal = false;
+        createShiftForDay = null;
+        editingWorkWeekShift = null;
+    }
+
+    private async Task SaveWorkWeekShift()
+    {
+        if (!createShiftForDay.HasValue) return;
+
+        if (editingWorkWeekShift != null)
+        {
+            // Update existing template shift
+            editingWorkWeekShift.WorkDay = createShiftForDay.Value;
+            // Create a reference date to store times (will be replaced when applying to calendar)
+            var refDate = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            editingWorkWeekShift.Start = refDate.Add(workWeekModalState.NewShiftStartTime.ToTimeSpan());
+            editingWorkWeekShift.End = refDate.Add(workWeekModalState.NewShiftEndTime.ToTimeSpan());
+            editingWorkWeekShift.Title = string.IsNullOrWhiteSpace(workWeekModalState.NewShiftTitle) ? "" : workWeekModalState.NewShiftTitle.Trim();
+            editingWorkWeekShift.Color = workWeekModalState.NewShiftColor;
+            editingWorkWeekShift.Notes = workWeekModalState.NewShiftNotes;
+            editingWorkWeekShift.WorkerType = workWeekModalState.NewShiftWorkerType;
+            editingWorkWeekShift.AssignedToUserId = string.IsNullOrWhiteSpace(workWeekModalState.NewShiftAssignedTo) ? null : workWeekModalState.NewShiftAssignedTo;
+        }
+        else
+        {
+            // Determine which days to create shifts for based on recurrence
+            var daysToCreate = new List<DayOfWeek>();
+
+            switch (workWeekModalState.NewShiftRecurrence)
+            {
+                case ShiftRecurrence.None:
+                    daysToCreate.Add(createShiftForDay.Value);
+                    break;
+
+                case ShiftRecurrence.Daily:
+                    // All 7 days
+                    daysToCreate.AddRange(new[] 
+                    { 
+                        DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, 
+                        DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, 
+                        DayOfWeek.Saturday 
+                    });
+                    break;
+
+                case ShiftRecurrence.Workdays:
+                    // Monday through Friday
+                    daysToCreate.AddRange(new[] 
+                    { 
+                        DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, 
+                        DayOfWeek.Thursday, DayOfWeek.Friday 
+                    });
+                    break;
+
+                case ShiftRecurrence.Weekends:
+                    // Saturday and Sunday
+                    daysToCreate.AddRange(new[] { DayOfWeek.Saturday, DayOfWeek.Sunday });
+                    break;
+            }
+
+            // Create a template shift for each day
+            // Note: WorkWeekId will be set when SaveNewWorkWeek is called
+            foreach (var day in daysToCreate)
+            {
+                // Use a reference date to store the time (2000-01-01)
+                var refDate = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                var start = refDate.Add(workWeekModalState.NewShiftStartTime.ToTimeSpan());
+                var end = refDate.Add(workWeekModalState.NewShiftEndTime.ToTimeSpan());
+
+                newWorkWeekShifts.Add(new Shift
+                {
+                    Id = null,
+                    WorkDay = day,
+                    Start = start,
+                    End = end,
+                    Title = string.IsNullOrWhiteSpace(workWeekModalState.NewShiftTitle) ? "" : workWeekModalState.NewShiftTitle.Trim(),
+                    Color = workWeekModalState.NewShiftColor,
+                    Notes = workWeekModalState.NewShiftNotes,
+                    WorkerType = workWeekModalState.NewShiftWorkerType,
+                    AssignedToUserId = string.IsNullOrWhiteSpace(workWeekModalState.NewShiftAssignedTo) ? null : workWeekModalState.NewShiftAssignedTo,
+                    Username = _username ?? string.Empty,
+                    ManagerCode = _managerCode,
+                    ScheduleId = null, // Template shifts don't have ScheduleId
+                    WorkWeekId = null  // Will be set when SaveNewWorkWeek creates the WorkWeek
+                });
+            }
+        }
+
+        CloseWorkWeekShiftModal();
+        StateHasChanged(); // Trigger change detection
+        await Task.CompletedTask;
+    }
+
+    private async Task DeleteWorkWeekShift()
+    {
+        if (editingWorkWeekShift != null)
+        {
+            // Remove the shift from the template
+            newWorkWeekShifts.Remove(editingWorkWeekShift);
+            CloseWorkWeekShiftModal();
+            StateHasChanged(); // Trigger change detection
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private DateOnly StartOfWeek(DateOnly date)
+    {
+        var firstDay = CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek;
+        var diff = ((int)date.DayOfWeek - (int)firstDay + 7) % 7;
+        return date.AddDays(-diff);
+    }
+
+    private async Task OpenWorkWeeksModal(Schedule schedule)
+    {
+        workWeekSchedule = schedule;
+        showWorkWeekSelectionModal = true;
+        showWorkWeeksModal = false;
+        showCreateWorkWeek = false;
+        editingWorkWeek = null;
+        newWorkWeekName = string.Empty;
+        newWorkWeekShifts.Clear();
+        originalWorkWeekName = string.Empty;
+        originalWorkWeekShifts.Clear();
+
+        // Load the real template-shift counts from the shifts collection.
+        // The embedded WorkWeek.Shifts list is always empty; actual template shifts
+        // are stored as Shift documents with WorkWeekId set.
+        await RefreshWorkWeekShiftCountsAsync(schedule);
+    }
+
+    /// <summary>
+    /// Queries the shifts collection for each WorkWeek in the given schedule and
+    /// populates workWeekShiftCounts so the selection list shows accurate counts.
+    /// </summary>
+    private async Task RefreshWorkWeekShiftCountsAsync(Schedule? schedule)
+    {
+        workWeekShiftCounts.Clear();
+
+        if (schedule?.WorkWeeks == null || string.IsNullOrEmpty(_managerCode)) return;
+
+        foreach (var ww in schedule.WorkWeeks)
+        {
+            if (string.IsNullOrEmpty(ww.Id)) continue;
+
+            try
+            {
+                var shifts = await ShiftsService.GetWorkWeekTemplateShiftsAsync(ww.Id, _managerCode);
+                workWeekShiftCounts[ww.Id] = shifts.Count;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading shift count for WorkWeek {WorkWeekId}", ww.Id);
+                workWeekShiftCounts[ww.Id] = 0;
+            }
+        }
+    }
+
+    private void CloseWorkWeekSelectionModal()
+    {
+        showWorkWeekSelectionModal = false;
+        workWeekSchedule = null;
+    }
+
+    private void CloseWorkWeeksModal()
+    {
+        showWorkWeeksModal = false;
+        showWorkWeekSelectionModal = true; // Go back to selection modal
+    }
+
+    private void OpenCreateWorkWeek()
+    {
+        editingWorkWeek = null;
+        showCreateWorkWeek = true;
+        showWorkWeeksModal = true;
+        showWorkWeekSelectionModal = false;
+        newWorkWeekName = string.Empty;
+        newWorkWeekShifts.Clear();
+        originalWorkWeekName = string.Empty;
+        originalWorkWeekShifts.Clear();
+    }
+
+    private async Task OpenEditWorkWeek(WorkWeek ww)
+    {
+        if (ww == null || string.IsNullOrEmpty(ww.Id) || string.IsNullOrEmpty(_managerCode)) return;
+
+        editingWorkWeek = ww;
+        newWorkWeekName = ww.Name;
+        showCreateWorkWeek = true;
+        showWorkWeeksModal = true;
+        showWorkWeekSelectionModal = false;
+
+        // Load existing template shifts for this workweek
+        try
+        {
+            newWorkWeekShifts = await ShiftsService.GetWorkWeekTemplateShiftsAsync(ww.Id, _managerCode);
+            // Store original values for change detection
+            originalWorkWeekName = ww.Name;
+            originalWorkWeekShifts = newWorkWeekShifts.Select(s => new Shift
+            {
+                Id = s.Id,
+                WorkDay = s.WorkDay,
+                Start = s.Start,
+                End = s.End,
+                Title = s.Title,
+                Color = s.Color,
+                Notes = s.Notes,
+                WorkerType = s.WorkerType,
+                AssignedToUserId = s.AssignedToUserId
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading workweek shifts");
+            newWorkWeekShifts = new List<Shift>();
+            originalWorkWeekShifts = new List<Shift>();
+        }
+    }
+
+    private void CancelCreateWorkWeek()
+    {
+        showCreateWorkWeek = false;
+        showWorkWeeksModal = false;
+        showWorkWeekSelectionModal = true;
+        editingWorkWeek = null;
+        newWorkWeekName = string.Empty;
+        newWorkWeekShifts.Clear();
+        originalWorkWeekName = string.Empty;
+        originalWorkWeekShifts.Clear();
+    }
+
+    private async Task SaveNewWorkWeek()
+    {
+        if (workWeekSchedule == null || string.IsNullOrEmpty(_userId) || string.IsNullOrEmpty(_managerCode)) return;
+        if (string.IsNullOrWhiteSpace(newWorkWeekName)) return;
+
+        try
+        {
+            isBusy = true;
+
+            if (editingWorkWeek != null)
+            {
+                // Update existing WorkWeek
+                // First, delete old template shifts
+                await ShiftsService.DeleteWorkWeekTemplateShiftsAsync(editingWorkWeek.Id!, _managerCode);
+
+                // Update the name (we can't directly update WorkWeek in the embedded array, so we delete and re-add)
+                await SchedulesService.DeleteWorkWeekAsync(workWeekSchedule.Id!, _userId, editingWorkWeek.Id!);
+
+                var updatedWw = new WorkWeek
+                {
+                    Id = editingWorkWeek.Id,
+                    Name = newWorkWeekName.Trim(),
+                    Shifts = new List<WorkWeekShift>()
+                };
+
+                var added = await SchedulesService.AddWorkWeekAsync(workWeekSchedule.Id!, _userId, updatedWw);
+
+                // Now create all the template shifts with the WorkWeekId
+                foreach (var templateShift in newWorkWeekShifts)
+                {
+                    templateShift.WorkWeekId = added.Id;
+                    templateShift.ManagerCode = _managerCode;
+                    templateShift.Username = _username ?? string.Empty;
+                    templateShift.ScheduleId = null;
+                    await ShiftsService.CreateShiftAsync(templateShift);
+                }
+            }
+            else
+            {
+                // Create new WorkWeek
+                var ww = new WorkWeek
+                {
+                    Name = newWorkWeekName.Trim(),
+                    Shifts = new List<WorkWeekShift>()
+                };
+
+                // Add the WorkWeek metadata to the schedule
+                var added = await SchedulesService.AddWorkWeekAsync(workWeekSchedule.Id!, _userId, ww);
+
+                // Now create all the template shifts with the WorkWeekId
+                foreach (var templateShift in newWorkWeekShifts)
+                {
+                    templateShift.WorkWeekId = added.Id;
+                    templateShift.ManagerCode = _managerCode;
+                    templateShift.Username = _username ?? string.Empty;
+                    templateShift.ScheduleId = null;
+                    await ShiftsService.CreateShiftAsync(templateShift);
+                }
+            }
+
+            await LoadSchedules();
+            // Refresh reference to updated schedule
+            workWeekSchedule = schedules.FirstOrDefault(s => s.Id == workWeekSchedule.Id);
+            // Refresh counts so the selection list reflects the newly saved shifts
+            await RefreshWorkWeekShiftCountsAsync(workWeekSchedule);
+            showCreateWorkWeek = false;
+            showWorkWeeksModal = false;
+            showWorkWeekSelectionModal = true;
+            editingWorkWeek = null;
+            newWorkWeekName = string.Empty;
+            newWorkWeekShifts.Clear();
+            originalWorkWeekName = string.Empty;
+            originalWorkWeekShifts.Clear();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving work week");
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task DeleteWorkWeek(WorkWeek ww)
+    {
+        if (workWeekSchedule == null || string.IsNullOrEmpty(_userId) || string.IsNullOrEmpty(_managerCode) || ww == null) return;
+
+        try
+        {
+            isBusy = true;
+            // Delete all template shifts associated with this WorkWeek
+            await ShiftsService.DeleteWorkWeekTemplateShiftsAsync(ww.Id!, _managerCode);
+
+            // Delete the WorkWeek metadata from the schedule
+            await SchedulesService.DeleteWorkWeekAsync(workWeekSchedule.Id!, _userId, ww.Id!);
+
+            await LoadSchedules();
+            workWeekSchedule = schedules.FirstOrDefault(s => s.Id == workWeekSchedule.Id);
+            // Refresh counts so the selection list no longer shows the deleted WorkWeek's shifts
+            await RefreshWorkWeekShiftCountsAsync(workWeekSchedule);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting work week");
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task DeleteCurrentWorkWeek()
+    {
+        if (editingWorkWeek == null) return;
+
+        await DeleteWorkWeek(editingWorkWeek);
+        showCreateWorkWeek = false;
+        showWorkWeeksModal = false;
+        showWorkWeekSelectionModal = true;
+        editingWorkWeek = null;
+        newWorkWeekName = string.Empty;
+        newWorkWeekShifts.Clear();
+        originalWorkWeekName = string.Empty;
+        originalWorkWeekShifts.Clear();
+    }
+
+    private bool CheckWorkWeekChanges()
+    {
+        // For new workweeks, enable save if name is not empty and has shifts
+        if (editingWorkWeek == null)
+        {
+            return !string.IsNullOrWhiteSpace(newWorkWeekName);
+        }
+
+        // For existing workweeks, check if name or shifts changed
+        if (newWorkWeekName != originalWorkWeekName)
+        {
+            return true;
+        }
+
+        // Check if shifts changed (count, content, or order)
+        if (newWorkWeekShifts.Count != originalWorkWeekShifts.Count)
+        {
+            return true;
+        }
+
+        // Deep comparison of shifts
+        for (int i = 0; i < newWorkWeekShifts.Count; i++)
+        {
+            var current = newWorkWeekShifts[i];
+            var original = originalWorkWeekShifts.FirstOrDefault(s => s.Id == current.Id);
+
+            if (original == null ||
+                current.WorkDay != original.WorkDay ||
+                current.Start != original.Start ||
+                current.End != original.End ||
+                current.Title != original.Title ||
+                current.Color != original.Color ||
+                current.Notes != original.Notes ||
+                current.WorkerType != original.WorkerType ||
+                current.AssignedToUserId != original.AssignedToUserId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void OnWorkWeekChanged()
+    {
+        // Trigger re-render to update button state
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        _username = user.Identity?.Name ?? string.Empty;
+
+        if (!string.IsNullOrEmpty(_username))
+        {
+            var caller = await UserService.GetByUsernameAsync(_username);
+            _userId = caller?.Id;
+            _managerCode = caller?.ManagerCode;
+
+            // Load employees for shift assignment in WorkWeek templates
+            employees = await UserService.GetUsersByRoleAsync(Roles.Employee);
+        }
+
+        await LoadSchedules();
+    }
+
+    private async Task LoadSchedules()
+    {
+        if (string.IsNullOrEmpty(_userId))
+        {
+            return;
+        }
+
+        isLoading = true;
+        try
+        {
+            schedules = await SchedulesService.GetSchedulesForManagerAsync(_userId);
+            
+            // Ensure at least one schedule exists
+            if (schedules.Count == 0 && !string.IsNullOrEmpty(_username))
+            {
+                var defaultSchedule = await SchedulesService.GetOrCreateDefaultScheduleAsync(_userId, _username, _managerCode);
+                schedules.Add(defaultSchedule);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading schedules");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OpenCreateModal()
+    {
+        editingSchedule = null;
+        scheduleName = string.Empty;
+        scheduleDescription = null;
+        setAsDefault = false;
+        modalError = null;
+        showModal = true;
+    }
+
+    private void OpenEditModal(Schedule schedule)
+    {
+        editingSchedule = schedule;
+        scheduleName = schedule.Name;
+        scheduleDescription = schedule.Description;
+        setAsDefault = schedule.IsDefault;
+        modalError = null;
+        showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        editingSchedule = null;
+        modalError = null;
+    }
+
+    private async Task SaveSchedule()
+    {
+        modalError = null;
+
+        if (string.IsNullOrWhiteSpace(scheduleName))
+        {
+            modalError = "Schedule name is required.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(_userId) || string.IsNullOrEmpty(_username))
+        {
+            modalError = "User information is missing.";
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            if (editingSchedule == null)
+            {
+                // Create new schedule
+                var newSchedule = new Schedule
+                {
+                    Name = scheduleName.Trim(),
+                    Description = scheduleDescription?.Trim(),
+                    ManagerId = _userId,
+                    ManagerUsername = _username,
+                    ManagerCode = _managerCode,
+                    IsDefault = setAsDefault
+                };
+
+                await SchedulesService.CreateScheduleAsync(newSchedule);
+            }
+            else
+            {
+                // Update existing schedule
+                await SchedulesService.UpdateScheduleAsync(
+                    editingSchedule.Id!,
+                    _userId,
+                    scheduleName.Trim(),
+                    scheduleDescription?.Trim(),
+                    setAsDefault
+                );
+            }
+
+            CloseModal();
+            await LoadSchedules();
+        }
+        catch (InvalidOperationException ex)
+        {
+            modalError = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving schedule");
+            modalError = "An error occurred while saving the schedule. Please try again.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void OpenDeleteConfirm(Schedule schedule)
+    {
+        scheduleToDelete = schedule;
+        modalError = null;
+        showDeleteConfirm = true;
+    }
+
+    private void CloseDeleteConfirm()
+    {
+        showDeleteConfirm = false;
+        scheduleToDelete = null;
+        modalError = null;
+    }
+
+    private async Task DeleteSchedule()
+    {
+        if (scheduleToDelete == null || string.IsNullOrEmpty(_userId))
+        {
+            return;
+        }
+
+        isBusy = true;
+        modalError = null;
+        try
+        {
+            await SchedulesService.DeleteScheduleAsync(scheduleToDelete.Id!, _userId);
+            CloseDeleteConfirm();
+            await LoadSchedules();
+        }
+        catch (InvalidOperationException ex)
+        {
+            modalError = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting schedule");
+            modalError = "An error occurred while deleting the schedule. Please try again.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task SetAsDefault(Schedule schedule)
+    {
+        if (string.IsNullOrEmpty(_userId))
+        {
+            return;
+        }
+
+        try
+        {
+            await SchedulesService.SetDefaultScheduleAsync(schedule.Id!, _userId);
+            await LoadSchedules();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error setting default schedule");
+        }
+    }
+
+    private void ViewInCalendar(Schedule schedule)
+    {
+        Navigation.NavigateTo($"/calendar?scheduleId={schedule.Id}");
+    }
+}
