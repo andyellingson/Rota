@@ -8,6 +8,163 @@
     margin-bottom: 2rem;
 }
 
+/* ── Team Members section ─────────────────────────────────── */
+
+/* Master / detail container */
+.team-master-detail {
+    display: flex;
+    gap: 0;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 10px;
+    overflow: hidden;
+    min-height: 220px;
+}
+
+/* Left column — selectable member list */
+.team-member-list {
+    width: 220px;
+    flex-shrink: 0;
+    border-right: 1px solid rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    background: #f8f9fa;
+}
+
+.team-member-list-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    padding: 0.65rem 1rem;
+    border: none;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s;
+}
+
+.team-member-list-item:last-child {
+    border-bottom: none;
+}
+
+.team-member-list-item:hover {
+    background: #e9ecef;
+}
+
+.team-member-list-item.active {
+    background: #e7f1ff;
+    border-left: 3px solid #0d6efd;
+}
+
+.team-list-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: #212529;
+}
+
+.team-list-occupation {
+    font-size: 0.73rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Right column — detail panel */
+.team-detail-panel {
+    flex: 1;
+    padding: 1.25rem 1.5rem;
+    min-width: 0;
+}
+
+.team-detail-empty {
+    color: #adb5bd;
+    font-style: italic;
+    font-size: 0.88rem;
+    margin-top: 0.5rem;
+}
+
+.team-detail-header {
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.team-detail-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.team-detail-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #495057;
+    margin-bottom: 0;
+}
+
+.team-detail-field {
+    max-width: 380px;
+}
+
+.team-detail-message {
+    font-size: 0.8rem;
+    margin-top: 0.4rem;
+}
+
+.team-detail-message-ok {
+    color: #198754;
+}
+
+.team-detail-message-error {
+    color: #dc3545;
+}
+
+/* Availability rows inside detail panel */
+.team-member-no-avail {
+    font-size: 0.78rem;
+    color: #adb5bd;
+    font-style: italic;
+}
+
+.team-member-avail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.team-avail-row {
+    display: flex;
+    gap: 0.4rem;
+    font-size: 0.88rem;
+    align-items: baseline;
+}
+
+.team-avail-day {
+    font-weight: 700;
+    min-width: 2.4rem;
+    color: #495057;
+}
+
+.team-avail-times {
+    font-size: 0.88rem;
+    color: #495057;
+}
+
+/* Responsive: stack on small screens */
+@media (max-width: 540px) {
+    .team-master-detail {
+        flex-direction: column;
+    }
+
+    .team-member-list {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+}
+
 .manage-title {
     font-size: 1.75rem;
     font-weight: 700;

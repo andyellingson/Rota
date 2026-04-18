@@ -297,6 +297,109 @@
     </div>
 }
 
+@* ── Team Members (managers only) ────────────────────────── *@
+<div class="container my-4">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="mb-1">👥 Team Members</h5>
+            <p class="text-muted small mb-3">Employees currently linked to your team.</p>
+
+            @if (linkedUsers.Count == 0)
+            {
+                <div class="alert alert-info mb-0">No employees are linked to your team yet. Share your team code from the Settings page.</div>
+            }
+            else
+            {
+                <div class="team-master-detail">
+
+                    @* ── Member list (left column) ── *@
+                    <div class="team-member-list">
+                        @foreach (var member in linkedUsers)
+                        {
+                            <button class="team-member-list-item @(selectedMember?.Username == member.Username ? "active" : "")"
+                                    @onclick="() => SelectMember(member)">
+                                <span class="team-list-name">@(member.DisplayName ?? member.Username)</span>
+                                <span class="team-list-occupation">@member.Occupation</span>
+                            </button>
+                        }
+                    </div>
+
+                    @* ── Detail panel (right column) ── *@
+                    <div class="team-detail-panel">
+                        @if (selectedMember is null)
+                        {
+                            <div class="team-detail-empty">Select a team member to view their details.</div>
+                        }
+                        else
+                        {
+                            <div class="team-detail-header">
+                                <div class="team-detail-name">@(selectedMember.DisplayName ?? selectedMember.Username)</div>
+                                <div class="team-detail-username text-muted small">@selectedMember.Username</div>
+                            </div>
+
+                            @* Occupation editor *@
+                            <div class="team-detail-field mt-3">
+                                <label class="team-detail-label">Occupation</label>
+                                <div class="d-flex gap-2 align-items-start mt-1">
+                                    <select class="form-select form-select-sm" @bind="selectedMemberOccupation">
+                                        @foreach (var wt in Enum.GetValues<WorkerType>())
+                                        {
+                                            <option value="@wt">@wt</option>
+                                        }
+                                    </select>
+                                    <button class="btn btn-sm btn-primary text-nowrap"
+                                            @onclick="SaveMemberOccupation"
+                                            disabled="@(!HasMemberOccupationChanged || isBusy)">
+                                        Save
+                                    </button>
+                                </div>
+                                @if (!string.IsNullOrEmpty(memberOccupationMessage))
+                                {
+                                    <div class="team-detail-message @(memberOccupationError ? "team-detail-message-error" : "team-detail-message-ok")">
+                                        @memberOccupationMessage
+                                    </div>
+                                }
+                            </div>
+
+                            @* Availability *@
+                            <div class="team-detail-field mt-3">
+                                <label class="team-detail-label">Weekly Availability</label>
+                                @if (selectedMember.Availability.Count == 0)
+                                {
+                                    <div class="team-member-no-avail mt-1">No availability set.</div>
+                                }
+                                else
+                                {
+                                    <div class="team-member-avail mt-1">
+                                        @foreach (var day in Enum.GetValues<DayOfWeek>())
+                                        {
+                                            var windows = selectedMember.Availability
+                                                .Where(a => a.DayOfWeek == day)
+                                                .OrderBy(a => a.StartTime)
+                                                .ToList();
+
+                                            @if (windows.Count > 0)
+                                            {
+                                                <div class="team-avail-row">
+                                                    <span class="team-avail-day">@day.ToString()[..3]</span>
+                                                    <span class="team-avail-times">
+                                                        @string.Join(", ", windows.Select(w => $"{FormatTime(w.StartTime)}–{FormatTime(w.EndTime)}"))
+                                                    </span>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
 @* CalendarEditModal for adding shifts to WorkWeek templates *@
 <CalendarEditModal State="workWeekModalState"
                    CanManageShifts="true"
@@ -350,6 +453,19 @@
 
     // Stores the real template-shift count per WorkWeek ID, loaded from the shifts collection
     private Dictionary<string, int> workWeekShiftCounts = new();
+
+    // Employees linked to the logged-in manager
+    private List<User> linkedUsers = new();
+
+    // Currently selected team member in the master/detail panel
+    private User? selectedMember = null;
+    private WorkerType selectedMemberOccupation = WorkerType.General;
+    private string? memberOccupationMessage;
+    private bool memberOccupationError;
+
+    /// <summary>True when the occupation dropdown differs from the selected member's saved value.</summary>
+    private bool HasMemberOccupationChanged =>
+        selectedMember is not null && selectedMemberOccupation != selectedMember.Occupation;
 
     // Change tracking for WorkWeek
     private string originalWorkWeekName = string.Empty;
@@ -815,6 +931,56 @@
         StateHasChanged();
     }
 
+    /// <summary>
+    /// Converts a stored "HH:mm" 24-hour string to a 12-hour AM/PM display string (e.g. "9:00 AM").
+    /// Returns the original string unchanged if it cannot be parsed.
+    /// </summary>
+    private static string FormatTime(string time) =>
+        TimeOnly.TryParse(time, out var t) ? t.ToString("h:mm tt") : time;
+
+    /// <summary>
+    /// Sets the selected team member and pre-populates the occupation dropdown.
+    /// Clears any previous occupation save message.
+    /// </summary>
+    private void SelectMember(User member)
+    {
+        selectedMember = member;
+        selectedMemberOccupation = member.Occupation;
+        memberOccupationMessage = null;
+        memberOccupationError = false;
+    }
+
+    /// <summary>
+    /// Persists the occupation change for the selected team member.
+    /// Updates the local copy on success so the list badge stays in sync.
+    /// </summary>
+    private async Task SaveMemberOccupation()
+    {
+        if (selectedMember is null) return;
+        memberOccupationMessage = null;
+        isBusy = true;
+        try
+        {
+            var ok = await UserService.UpdateOccupationAsync(selectedMember.Username, selectedMemberOccupation);
+            if (ok)
+            {
+                // Keep the in-memory list in sync so the list badge updates immediately
+                selectedMember.Occupation = selectedMemberOccupation;
+                memberOccupationMessage = "Occupation updated.";
+                memberOccupationError = false;
+            }
+            else
+            {
+                memberOccupationMessage = "Could not update occupation. Please try again.";
+                memberOccupationError = true;
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -829,6 +995,10 @@
 
             // Load employees for shift assignment in WorkWeek templates
             employees = await UserService.GetUsersByRoleAsync(Roles.Employee);
+
+            // Load employees linked to this manager (exclude the manager themselves)
+            var allLinked = await UserService.GetLinkedUsersForManagerAsync(_username);
+            linkedUsers = allLinked.Where(u => u.Username != _username).ToList();
         }
 
         await LoadSchedules();

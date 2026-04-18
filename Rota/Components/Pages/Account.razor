@@ -53,18 +53,26 @@
                 <hr class="my-3" />
 
                 <label class="account-field-label mb-1">Occupation</label>
-                <div class="d-flex gap-2 align-items-start">
-                    <select class="form-select" @bind="occupationInput">
-                        @foreach (var wt in Enum.GetValues(typeof(WorkerType)).Cast<WorkerType>())
-                        {
-                            <option value="@wt">@wt</option>
-                        }
-                    </select>
-                    <button class="btn btn-primary text-nowrap" @onclick="SaveOccupation" disabled="@(!HasOccupationChanged || isBusy)">Save</button>
-                </div>
-                @if (!string.IsNullOrEmpty(occupationMessage))
+                @if (user.Roles.Contains(Roles.Manager))
                 {
-                    <div class="account-message @(occupationError ? "account-message-error" : "account-message-ok")">@occupationMessage</div>
+                    <div class="d-flex gap-2 align-items-start">
+                        <select class="form-select" @bind="occupationInput">
+                            @foreach (var wt in Enum.GetValues(typeof(WorkerType)).Cast<WorkerType>())
+                            {
+                                <option value="@wt">@wt</option>
+                            }
+                        </select>
+                        <button class="btn btn-primary text-nowrap" @onclick="SaveOccupation" disabled="@(!HasOccupationChanged || isBusy)">Save</button>
+                    </div>
+                    @if (!string.IsNullOrEmpty(occupationMessage))
+                    {
+                        <div class="account-message @(occupationError ? "account-message-error" : "account-message-ok")">@occupationMessage</div>
+                    }
+                }
+                else
+                {
+                    <div class="account-field-value">@user.Occupation</div>
+                    <div class="account-field-hint mt-1">Your occupation is managed by your manager.</div>
                 }
             </div>
         </div>
@@ -152,7 +160,7 @@
                                 else
                                 {
                                     <div class="avail-item">
-                                        <span class="avail-time">@a.StartTime – @a.EndTime</span>
+                                        <span class="avail-time">@FormatTime(a.StartTime) – @FormatTime(a.EndTime)</span>
                                         <button class="avail-edit" title="Edit" @onclick="() => BeginEditAvailability(a)" @onclick:stopPropagation="true">✏</button>
                                         <button class="avail-remove" title="Remove" @onclick="() => RemoveAvailability(a)" @onclick:stopPropagation="true">✕</button>
                                     </div>
@@ -470,6 +478,13 @@
     }
 
     // ── Availability methods ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Converts a stored "HH:mm" 24-hour string to a 12-hour AM/PM display string (e.g. "9:00 AM").
+    /// Returns the original string unchanged if it cannot be parsed.
+    /// </summary>
+    private static string FormatTime(string time) =>
+        TimeOnly.TryParse(time, out var t) ? t.ToString("h:mm tt") : time;
 
     /// <summary>
     /// Opens the inline add form for the given day, resetting time inputs to defaults.

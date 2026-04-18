@@ -205,7 +205,9 @@ namespace Rota.Services
                 if (manager is null) return false;
 
                 var filter = Builders<User>.Filter.Eq(u => u.Username, employeeUsername);
-                var update = Builders<User>.Update.Set(u => u.ManagerUsername, manager.Username);
+                var update = Builders<User>.Update
+                    .Set(u => u.ManagerUsername, manager.Username)
+                    .Set(u => u.ManagerCode, manager.ManagerCode);
                 await _users.UpdateOneAsync(filter, update);
                 return true;
             }

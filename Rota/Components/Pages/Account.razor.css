@@ -1,7 +1,8 @@
 .account-wrapper {
     /* Fill the available content area so the 7-day availability grid fits without scrolling */
     width: 100%;
-    max-width: 1100px;
+    /* Increased max-width so the 7-day availability grid and action buttons fit on most screens */
+    max-width: 1400px;
     margin: 0 auto;
     padding: 2rem 1rem 3rem;
 }
@@ -125,7 +126,8 @@
 /* Scrollable 7-column grid, matching the WorkWeek editor style */
 .avail-week-grid {
     display: grid;
-    grid-template-columns: repeat(7, minmax(110px, 1fr));
+    /* Increase the minimum column width so each day card comfortably fits the time + action buttons */
+    grid-template-columns: repeat(7, minmax(140px, 1fr));
     gap: 0.5rem;
     overflow-x: auto;
     padding-bottom: 0.25rem;
@@ -140,7 +142,8 @@
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
-    min-width: 110px;
+    /* Larger minimum width so the time string and the small edit/remove buttons fit on one line */
+    min-width: 140px;
 }
 
 /* Day name header */

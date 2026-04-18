@@ -77,5 +77,8 @@ namespace Rota.Components
         public bool EditAbsenceIsPartDay { get; set; }
         public TimeOnly EditAbsenceStartTime { get; set; } = new(9, 0);
         public TimeOnly EditAbsenceEndTime { get; set; } = new(17, 0);
+        // Approval state — managers default to Approved when creating, employees default to Pending
+        public AbsenceApprovalState NewAbsenceApprovalState { get; set; } = AbsenceApprovalState.Pending;
+        public AbsenceApprovalState EditAbsenceApprovalState { get; set; } = AbsenceApprovalState.Pending;
     }
 }

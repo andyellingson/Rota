@@ -300,6 +300,36 @@
                                 <label class="form-label">Notes (optional)</label>
                                 <textarea class="form-control" rows="3" @bind="State.NewAbsenceNotes" placeholder="Add any additional details"></textarea>
                             </div>
+                            @* Approval — managers can set state; employees always submit as Pending *@
+                            @if (CanManageShifts)
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Approval</label>
+                                    <div class="btn-group d-flex" role="group" aria-label="Approval state">
+                                        <input type="radio" class="btn-check" name="new-approval" id="new-approval-pending"
+                                               @onchange="(() => State.NewAbsenceApprovalState = AbsenceApprovalState.Pending)"
+                                               checked="@(State.NewAbsenceApprovalState == AbsenceApprovalState.Pending)" />
+                                        <label class="btn btn-sm btn-outline-warning" for="new-approval-pending">⏳ Pending</label>
+
+                                        <input type="radio" class="btn-check" name="new-approval" id="new-approval-approved"
+                                               @onchange="(() => State.NewAbsenceApprovalState = AbsenceApprovalState.Approved)"
+                                               checked="@(State.NewAbsenceApprovalState == AbsenceApprovalState.Approved)" />
+                                        <label class="btn btn-sm btn-outline-success" for="new-approval-approved">✅ Approve</label>
+
+                                        <input type="radio" class="btn-check" name="new-approval" id="new-approval-denied"
+                                               @onchange="(() => State.NewAbsenceApprovalState = AbsenceApprovalState.Denied)"
+                                               checked="@(State.NewAbsenceApprovalState == AbsenceApprovalState.Denied)" />
+                                        <label class="btn btn-sm btn-outline-danger" for="new-approval-denied">❌ Deny</label>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">Status</label>
+                                    <p class="form-control-plaintext">⏳ Pending Approval</p>
+                                </div>
+                            }
                         }
                         else
                         {
@@ -347,7 +377,7 @@
                             {
                                 <div class="mb-3">
                                     <label class="form-label">For</label>
-                                    <p class="form-control-plaintext">@(LinkedUsers.FirstOrDefault(u => u.Username == State.EditAbsenceForUsername)?.DisplayName ?? State.EditAbsenceForUsername)</p>
+                                    <p class="form-control-plaintext">@(LinkedUsers.FirstOrDefault(u => u.Id == State.EditAbsenceForUsername)?.DisplayName ?? LinkedUsers.FirstOrDefault(u => u.Id == State.EditAbsenceForUsername)?.Username ?? State.EditAbsenceForUsername)</p>
                                 </div>
                             }
                             <div class="mb-3">
@@ -363,6 +393,43 @@
                                 <label class="form-label">Notes (optional)</label>
                                 <textarea class="form-control" rows="3" @bind="State.EditAbsenceNotes" placeholder="Add any additional details"></textarea>
                             </div>
+                            @* Approval — managers can set state; employees see their current status read-only *@
+                            @if (CanManageShifts)
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Approval</label>
+                                    <div class="btn-group d-flex" role="group" aria-label="Approval state">
+                                        <input type="radio" class="btn-check" name="edit-approval" id="edit-approval-pending"
+                                               @onchange="(() => State.EditAbsenceApprovalState = AbsenceApprovalState.Pending)"
+                                               checked="@(State.EditAbsenceApprovalState == AbsenceApprovalState.Pending)" />
+                                        <label class="btn btn-sm btn-outline-warning" for="edit-approval-pending">⏳ Pending</label>
+
+                                        <input type="radio" class="btn-check" name="edit-approval" id="edit-approval-approved"
+                                               @onchange="(() => State.EditAbsenceApprovalState = AbsenceApprovalState.Approved)"
+                                               checked="@(State.EditAbsenceApprovalState == AbsenceApprovalState.Approved)" />
+                                        <label class="btn btn-sm btn-outline-success" for="edit-approval-approved">✅ Approve</label>
+
+                                        <input type="radio" class="btn-check" name="edit-approval" id="edit-approval-denied"
+                                               @onchange="(() => State.EditAbsenceApprovalState = AbsenceApprovalState.Denied)"
+                                               checked="@(State.EditAbsenceApprovalState == AbsenceApprovalState.Denied)" />
+                                        <label class="btn btn-sm btn-outline-danger" for="edit-approval-denied">❌ Deny</label>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">Status</label>
+                                    <p class="form-control-plaintext">
+                                        @(State.EditAbsenceApprovalState switch
+                                        {
+                                            AbsenceApprovalState.Approved => "✅ Approved",
+                                            AbsenceApprovalState.Denied   => "❌ Denied",
+                                            _                             => "⏳ Pending Approval"
+                                        })
+                                    </p>
+                                </div>
+                            }
                         }
                     }
                 </div>

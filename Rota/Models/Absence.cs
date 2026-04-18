@@ -3,6 +3,17 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace Rota.Models
 {
+    /// <summary>Approval state of an absence request.</summary>
+    public enum AbsenceApprovalState
+    {
+        /// <summary>Submitted but not yet reviewed by a manager.</summary>
+        Pending = 0,
+        /// <summary>Approved by a manager.</summary>
+        Approved = 1,
+        /// <summary>Denied by a manager.</summary>
+        Denied = 2
+    }
+
     /// <summary>
     /// Represents a period of absence for a user (e.g. sick leave, holiday).
     /// </summary>
@@ -71,5 +82,13 @@ namespace Rota.Models
         [BsonElement("createdAt")]
         [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>Approval state set by the manager. Defaults to Pending for employee-submitted requests.</summary>
+        [BsonElement("approvalState")]
+        public AbsenceApprovalState ApprovalState { get; set; } = AbsenceApprovalState.Pending;
+
+        /// <summary>Convenience property: true when the absence has been approved by a manager.</summary>
+        [BsonIgnore]
+        public bool IsApproved => ApprovalState == AbsenceApprovalState.Approved;
     }
 }

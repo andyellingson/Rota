@@ -104,6 +104,54 @@
 
 .day-detail-absence-card:hover { opacity: 0.85; }
 
+/* ── Absence approval state indicators ─────────────────── */
+
+/* Calendar tile: amber dashed border for pending requests */
+.absence-item--pending {
+    border: 2px dashed #ffc107 !important;
+    opacity: 0.85;
+}
+
+/* Calendar tile: red dashed border for denied requests */
+.absence-item--denied {
+    border: 2px dashed #dc3545 !important;
+    opacity: 0.75;
+}
+
+/* Day-detail modal card: amber dashed border for pending */
+.day-detail-absence-card--pending {
+    border: 2px dashed #ffc107 !important;
+    border-left-width: 4px !important;
+}
+
+/* Day-detail modal card: red dashed border for denied */
+.day-detail-absence-card--denied {
+    border: 2px dashed #dc3545 !important;
+    border-left-width: 4px !important;
+    opacity: 0.85;
+}
+
+/* Pending badge shown inside calendar tiles */
+.absence-pending-badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    border-radius: 3px;
+    padding: 0.05rem 0.3rem;
+    vertical-align: middle;
+    margin-left: 0.25rem;
+    white-space: nowrap;
+}
+
+/* Denied badge override — red background */
+.absence-denied-badge {
+    background: rgba(220, 53, 69, 0.75);
+}
+
 .day-detail-absence-title-text {
     font-weight: 600;
     font-size: 0.88rem;

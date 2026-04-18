@@ -94,10 +94,20 @@
                                         }
                                         else if (item.Absence is { } ab)
                                         {
-                                            <div class="absence-item mb-1" style="background-color: @(ab.Color ?? "#fa8c16");" @onclick:stopPropagation="true" @onclick="(() => OpenEditAbsenceModal(ab))">
+                                            <div class="absence-item mb-1 @(canManageShifts && !ab.IsApproved ? (ab.ApprovalState == AbsenceApprovalState.Denied ? "absence-item--denied" : "absence-item--pending") : "")" style="background-color: @(ab.Color ?? "#fa8c16");" @onclick:stopPropagation="true" @onclick="(() => OpenEditAbsenceModal(ab))">
                                                 <div class="d-flex w-100">
                                                     <div class="absence-left text-start text-truncate">@GetEmployeeDisplayNameById(ab.AssignedToUserId)</div>
-                                                    <div class="absence-right text-end text-truncate">@ab.Title</div>
+                                                    <div class="absence-right text-end text-truncate">
+                                                        @ab.Title
+                                                        @if (canManageShifts && ab.ApprovalState == AbsenceApprovalState.Pending)
+                                                        {
+                                                            <span class="absence-pending-badge">⏳ Pending</span>
+                                                        }
+                                                        else if (canManageShifts && ab.ApprovalState == AbsenceApprovalState.Denied)
+                                                        {
+                                                            <span class="absence-pending-badge absence-denied-badge">❌ Denied</span>
+                                                        }
+                                                    </div>
                                                 </div>
                                                 @if (!string.IsNullOrWhiteSpace(ab.StartTime) && !string.IsNullOrWhiteSpace(ab.EndTime) && ab.DayCount == 1)
                                                 {
@@ -160,10 +170,20 @@
                                         }
                                         else if (item.Absence is { } ab)
                                         {
-                                            <div class="absence-item mb-1" style="background-color: @(ab.Color ?? "#fa8c16");" @onclick:stopPropagation="true" @onclick="(() => OpenEditAbsenceModal(ab))">
+                                            <div class="absence-item mb-1 @(canManageShifts && !ab.IsApproved ? (ab.ApprovalState == AbsenceApprovalState.Denied ? "absence-item--denied" : "absence-item--pending") : "")" style="background-color: @(ab.Color ?? "#fa8c16");" @onclick:stopPropagation="true" @onclick="(() => OpenEditAbsenceModal(ab))">
                                                 <div class="d-flex w-100">
                                                     <div class="absence-left text-start text-truncate">@GetEmployeeDisplayNameById(ab.AssignedToUserId)</div>
-                                                    <div class="absence-right text-end text-truncate">@ab.Title</div>
+                                                    <div class="absence-right text-end text-truncate">
+                                                        @ab.Title
+                                                        @if (canManageShifts && ab.ApprovalState == AbsenceApprovalState.Pending)
+                                                        {
+                                                            <span class="absence-pending-badge">⏳ Pending</span>
+                                                        }
+                                                        else if (canManageShifts && ab.ApprovalState == AbsenceApprovalState.Denied)
+                                                        {
+                                                            <span class="absence-pending-badge absence-denied-badge">❌ Denied</span>
+                                                        }
+                                                    </div>
                                                 </div>
                                                 @if (!string.IsNullOrWhiteSpace(ab.StartTime) && !string.IsNullOrWhiteSpace(ab.EndTime) && ab.DayCount == 1)
                                                 {
@@ -373,13 +393,21 @@
                         @foreach (var a in detailAbsences)
                         {
                             var da = a;
-                            <div class="day-detail-absence-card" style="border-left-color: @(da.Color ?? "#fa8c16"); background-color: @(da.Color ?? "#fa8c16")1a;"
+                            <div class="day-detail-absence-card @(canManageShifts && !da.IsApproved ? (da.ApprovalState == AbsenceApprovalState.Denied ? "day-detail-absence-card--denied" : "day-detail-absence-card--pending") : "")" style="border-left-color: @(da.Color ?? "#fa8c16"); background-color: @(da.Color ?? "#fa8c16")1a;"
                                  @onclick="(() => OpenEditAbsenceModal(da))" role="button" title="Click to edit">
                                 <div class="day-detail-card-header">
                                     <div class="d-flex flex-column flex-grow-1 min-w-0">
                                         <div class="d-flex align-items-center gap-2">
                                             <span class="day-detail-absence-name fw-semibold text-truncate">@GetEmployeeDisplayNameById(da.AssignedToUserId)</span>
                                             <span class="day-detail-absence-title-badge" style="background-color: @(da.Color ?? "#fa8c16")1a; color: @(da.Color ?? "#fa8c16");">@da.Title</span>
+                                            @if (canManageShifts && da.ApprovalState == AbsenceApprovalState.Pending)
+                                            {
+                                                <span class="badge bg-warning text-dark" style="font-size:0.65rem;">⏳ Pending Approval</span>
+                                            }
+                                            else if (canManageShifts && da.ApprovalState == AbsenceApprovalState.Denied)
+                                            {
+                                                <span class="badge bg-danger" style="font-size:0.65rem;">❌ Denied</span>
+                                            }
                                         </div>
                                         <div class="mt-1">
                                             @{
@@ -456,6 +484,7 @@
     </div>
 }
 <CalendarEditModal State="modalState"
+                   CanManageShifts="canManageShifts"
                    Employees="employees"
                    LinkedUsers="linkedUsers"
                    ColorChoices="ColorChoices"
@@ -585,6 +614,8 @@
     private bool editAbsenceIsPartDay { get => modalState.EditAbsenceIsPartDay; set => modalState.EditAbsenceIsPartDay = value; }
     private TimeOnly editAbsenceStartTime { get => modalState.EditAbsenceStartTime; set => modalState.EditAbsenceStartTime = value; }
     private TimeOnly editAbsenceEndTime { get => modalState.EditAbsenceEndTime; set => modalState.EditAbsenceEndTime = value; }
+    private bool newAbsenceIsApproved { get => modalState.NewAbsenceApprovalState == AbsenceApprovalState.Approved; set => modalState.NewAbsenceApprovalState = value ? AbsenceApprovalState.Approved : AbsenceApprovalState.Pending; }
+    private bool editAbsenceIsApproved { get => modalState.EditAbsenceApprovalState == AbsenceApprovalState.Approved; set => modalState.EditAbsenceApprovalState = value ? AbsenceApprovalState.Approved : AbsenceApprovalState.Pending; }
 
     // Preset palette: red, green, blue, orange, gray
     private readonly string[] ColorChoices = new[] { "#ff4d4f", "#52c41a", "#1890ff", "#fa8c16", "#d3d3d3" };
@@ -932,6 +963,8 @@
         newAbsenceIsPartDay = false;
         newAbsenceStartTime = new(9, 0);
         newAbsenceEndTime = new(17, 0);
+        // Managers default to approved; employees default to pending (awaiting approval)
+        modalState.NewAbsenceApprovalState = canManageShifts ? AbsenceApprovalState.Approved : AbsenceApprovalState.Pending;
         editingAbsence = null;
 
         modalMode = ModalMode.Reminder;
@@ -1012,9 +1045,10 @@
 
         var startUtc = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
         var endUtc = day.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
+        // Absences are person-level records and are not filtered by schedule;
+        // every absence in the date range is shown regardless of which schedule is selected.
         return absences
             .Where(a => a.StartDate < endUtc && a.EndDate > startUtc)
-            .Where(a => string.IsNullOrEmpty(selectedScheduleId) || a.ScheduleId == selectedScheduleId)
             .ToList();
     }
 
@@ -1116,6 +1150,8 @@
             editAbsenceStartTime = new(9, 0);
             editAbsenceEndTime = new(17, 0);
         }
+        editAbsenceIsApproved = absence.IsApproved;
+        modalState.EditAbsenceApprovalState = absence.ApprovalState;
         modalError = null;
         modalMode = ModalMode.Absence;
         showModal = true;
@@ -1501,7 +1537,8 @@
                 Title = newAbsenceTitle,
                 Notes = newAbsenceNotes,
                 Color = newAbsenceColor,
-                AssignedToUserId = targetUser.Id
+                AssignedToUserId = targetUser.Id,
+                ApprovalState = modalState.NewAbsenceApprovalState
             };
             await AbsenceService.CreateAbsenceAsync(absence);
             CloseModal();
@@ -1550,7 +1587,7 @@
 
             var startTimeStr = (editAbsenceIsPartDay && dayCount == 1) ? editAbsenceStartTime.ToString("HH:mm") : null;
             var endTimeStr = (editAbsenceIsPartDay && dayCount == 1) ? editAbsenceEndTime.ToString("HH:mm") : null;
-            await AbsenceService.UpdateAbsenceAsync(editingAbsence.Id, _username, editAbsenceTitle, editAbsenceNotes, startUtc, endUtc, dayCount, editAbsenceColor, targetUser.Id, targetUser.Id, _managerCode, startTimeStr, endTimeStr);
+            await AbsenceService.UpdateAbsenceAsync(editingAbsence.Id, _username, editAbsenceTitle, editAbsenceNotes, startUtc, endUtc, dayCount, editAbsenceColor, targetUser.Id, targetUser.Id, _managerCode, startTimeStr, endTimeStr, modalState.EditAbsenceApprovalState);
             CloseModal();
             await LoadReminders();
         }

@@ -93,14 +93,21 @@ namespace Rota.Services
             }
         }
 
-        public async System.Threading.Tasks.Task<Absence?> UpdateAbsenceAsync(string id, string username, string title, string? notes, DateTime startDateUtc, DateTime endDateUtc, int dayCount, string? color, string? userId, string? assignedToUserId, string? managerCode, string? startTime = null, string? endTime = null)
+        public async System.Threading.Tasks.Task<Absence?> UpdateAbsenceAsync(string id, string username, string title, string? notes, DateTime startDateUtc, DateTime endDateUtc, int dayCount, string? color, string? userId, string? assignedToUserId, string? managerCode, string? startTime = null, string? endTime = null, AbsenceApprovalState approvalState = AbsenceApprovalState.Pending)
         {
             try
             {
-                var filter = Builders<Absence>.Filter.And(
+                // Allow the owner (by username) OR any manager with the matching manager code to update
+                var ownerFilter = Builders<Absence>.Filter.And(
                     Builders<Absence>.Filter.Eq(a => a.Id, id),
                     Builders<Absence>.Filter.Eq(a => a.Username, username)
                 );
+                var managerFilter = Builders<Absence>.Filter.And(
+                    Builders<Absence>.Filter.Eq(a => a.Id, id),
+                    Builders<Absence>.Filter.Eq(a => a.ManagerCode, managerCode)
+                );
+                var filter = Builders<Absence>.Filter.Or(ownerFilter, managerFilter);
+
                 var update = Builders<Absence>.Update
                     .Set(a => a.Title, title)
                     .Set(a => a.Notes, notes)
@@ -110,11 +117,10 @@ namespace Rota.Services
                     .Set(a => a.Color, color ?? "#fa8c16")
                     .Set(a => a.UserId, userId)
                     .Set(a => a.AssignedToUserId, assignedToUserId)
-                    .Set(a => a.ManagerCode, managerCode);
-                // Persist explicit part-day time strings (nullable)
-                update = update
+                    .Set(a => a.ManagerCode, managerCode)
                     .Set(a => a.StartTime, startTime)
-                    .Set(a => a.EndTime, endTime);
+                    .Set(a => a.EndTime, endTime)
+                    .Set(a => a.ApprovalState, approvalState);
 
                 var opts = new FindOneAndUpdateOptions<Absence> { ReturnDocument = ReturnDocument.After };
                 return await _absences.FindOneAndUpdateAsync(filter, update, opts);
