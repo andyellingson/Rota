@@ -11,6 +11,7 @@
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject Microsoft.Extensions.Logging.ILogger<Manage> Logger
+@inject IAbsencesService AbsencesService
 
 <div class="container my-4">
     <div class="card shadow-sm">
@@ -83,6 +84,7 @@
                                         </button>
                                     }
                                 </div>
+
                             </div>
                         </div>
                     }
@@ -391,6 +393,53 @@
                                     </div>
                                 }
                             </div>
+
+                            @* Upcoming Absences for this team member *@
+                            <div class="team-detail-field mt-3">
+                                <label class="team-detail-label">Upcoming Absences</label>
+
+                                @{
+                                    var memberKey = selectedMember.Id ?? selectedMember.Username ?? string.Empty;
+                                    upcomingAbsences.TryGetValue(memberKey, out var memberAbsences);
+                                }
+
+                                @if (memberAbsences == null || memberAbsences.Count == 0)
+                                {
+                                    <div class="team-member-no-avail mt-1">No upcoming absences.</div>
+                                }
+                                else
+                                {
+                                    <div class="list-group mt-1">
+                                        @foreach (var a in memberAbsences)
+                                        {
+                                            <div class="list-group-item d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <div class="fw-bold">@a.Title</div>
+                                                    <div class="text-muted small">@a.StartDate.ToLocalTime().ToString("d") – @a.EndDate.AddDays(-1).ToLocalTime().ToString("d")</div>
+                                                    @if (!string.IsNullOrEmpty(a.Notes))
+                                                    {
+                                                        <div class="text-muted small">@a.Notes</div>
+                                                    }
+                                                </div>
+                                                <div class="text-end">
+                                                    @if (a.IsApproved)
+                                                    {
+                                                        <span class="badge bg-success">Approved</span>
+                                                    }
+                                                    else if (a.ApprovalState == AbsenceApprovalState.Denied)
+                                                    {
+                                                        <span class="badge bg-danger">Denied</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-secondary">Pending</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
                         }
                     </div>
 
@@ -456,6 +505,12 @@
 
     // Employees linked to the logged-in manager
     private List<User> linkedUsers = new();
+
+    // Cached upcoming absences per user id (team-member panel)
+    private Dictionary<string, List<Absence>> upcomingAbsences = new();
+
+    // Cached upcoming absences per schedule id (schedule list panel)
+    private Dictionary<string, List<Absence>> scheduleAbsences = new();
 
     // Currently selected team member in the master/detail panel
     private User? selectedMember = null;
@@ -942,12 +997,46 @@
     /// Sets the selected team member and pre-populates the occupation dropdown.
     /// Clears any previous occupation save message.
     /// </summary>
-    private void SelectMember(User member)
+    private async Task SelectMember(User member)
     {
         selectedMember = member;
         selectedMemberOccupation = member.Occupation;
         memberOccupationMessage = null;
         memberOccupationError = false;
+
+        // Load upcoming absences for this member (next 30 days)
+        await LoadUpcomingAbsencesForMember(member);
+    }
+
+    private async Task LoadUpcomingAbsencesForMember(User member)
+    {
+        if (member == null)
+        {
+            return;
+        }
+
+        var key = member.Id ?? member.Username ?? string.Empty;
+
+        try
+        {
+            if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(_managerCode))
+            {
+                upcomingAbsences[key] = new List<Absence>();
+                return;
+            }
+
+            var start = DateOnly.FromDateTime(DateTime.Today);
+            var end = DateOnly.FromDateTime(DateTime.Today.AddDays(30));
+            // Pass null for managerCode so the OR filter in GetAbsencesAsync only matches by userId,
+            // preventing other team members' absences from leaking into this member's list.
+            var abs = await AbsencesService.GetAbsencesAsync(null, member.Id, start, end);
+            upcomingAbsences[key] = abs.OrderBy(a => a.StartDate).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading absences for member {Member}", member.Username);
+            upcomingAbsences[key] = new List<Absence>();
+        }
     }
 
     /// <summary>
@@ -1030,6 +1119,79 @@
         finally
         {
             isLoading = false;
+        }
+
+        // Load upcoming absences for each schedule after the schedule list is ready
+        await LoadScheduleAbsencesAsync();
+    }
+
+    /// <summary>
+    /// Loads all upcoming absences (next 30 days) for the manager's team and groups them by ScheduleId,
+    /// so each schedule row can display its own upcoming absences list.
+    /// </summary>
+    private async Task LoadScheduleAbsencesAsync()
+    {
+        scheduleAbsences.Clear();
+
+        if (string.IsNullOrEmpty(_managerCode))
+        {
+            return;
+        }
+
+        try
+        {
+            var start = DateOnly.FromDateTime(DateTime.Today);
+            var end = DateOnly.FromDateTime(DateTime.Today.AddDays(30));
+
+            // Fetch all upcoming absences for this manager's team in one query
+            var all = await AbsencesService.GetAbsencesAsync(_managerCode, null, start, end);
+
+            // Group by ScheduleId; absences with no scheduleId are shown under all schedules
+            foreach (var absence in all.OrderBy(a => a.StartDate))
+            {
+                var sid = absence.ScheduleId;
+
+                if (string.IsNullOrEmpty(sid))
+                {
+                    // No schedule link — add to every schedule so it isn't silently hidden
+                    foreach (var schedule in schedules)
+                    {
+                        if (string.IsNullOrEmpty(schedule.Id))
+                        {
+                            continue;
+                        }
+
+                        if (!scheduleAbsences.ContainsKey(schedule.Id))
+                        {
+                            scheduleAbsences[schedule.Id] = new List<Absence>();
+                        }
+
+                        scheduleAbsences[schedule.Id].Add(absence);
+                    }
+                }
+                else
+                {
+                    if (!scheduleAbsences.ContainsKey(sid))
+                    {
+                        scheduleAbsences[sid] = new List<Absence>();
+                    }
+
+                    scheduleAbsences[sid].Add(absence);
+                }
+            }
+
+            // Ensure every schedule has an entry (even if empty) so the UI doesn't fault
+            foreach (var schedule in schedules)
+            {
+                if (!string.IsNullOrEmpty(schedule.Id) && !scheduleAbsences.ContainsKey(schedule.Id))
+                {
+                    scheduleAbsences[schedule.Id] = new List<Absence>();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading schedule absences");
         }
     }
 
