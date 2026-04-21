@@ -108,27 +108,57 @@
 
 /* Calendar tile: amber dashed border for pending requests */
 .absence-item--pending {
-    border: 2px dashed #ffc107 !important;
+    border: 5px dashed #000 !important;
     opacity: 0.85;
 }
 
-/* Calendar tile: red dashed border for denied requests */
+/* Calendar tile: diagonal hatching overlay for denied requests */
 .absence-item--denied {
-    border: 2px dashed #dc3545 !important;
-    opacity: 0.75;
+    position: relative;
+    opacity: 0.85;
+}
+
+.absence-item--denied::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: repeating-linear-gradient(
+        -45deg,
+        rgba(0, 0, 0, 0.18) 0px,
+        rgba(0, 0, 0, 0.18) 3px,
+        transparent 3px,
+        transparent 9px
+    );
+    pointer-events: none;
 }
 
 /* Day-detail modal card: amber dashed border for pending */
 .day-detail-absence-card--pending {
-    border: 2px dashed #ffc107 !important;
-    border-left-width: 4px !important;
+    border: 5px dashed #000 !important;
+    border-left-width: 7px !important;
 }
 
-/* Day-detail modal card: red dashed border for denied */
+/* Day-detail modal card: diagonal hatching overlay for denied */
 .day-detail-absence-card--denied {
-    border: 2px dashed #dc3545 !important;
-    border-left-width: 4px !important;
+    position: relative;
+    border-left: 7px solid #dc3545 !important;
     opacity: 0.85;
+    overflow: hidden;
+}
+
+.day-detail-absence-card--denied::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        -45deg,
+        rgba(0, 0, 0, 0.08) 0px,
+        rgba(0, 0, 0, 0.08) 3px,
+        transparent 3px,
+        transparent 9px
+    );
+    pointer-events: none;
 }
 
 /* Pending badge shown inside calendar tiles */

@@ -412,7 +412,10 @@
                                     <div class="list-group mt-1">
                                         @foreach (var a in memberAbsences)
                                         {
-                                            <div class="list-group-item d-flex justify-content-between align-items-start">
+                                            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-start"
+                                                 style="cursor: pointer;"
+                                                 @onclick="(() => OpenEditAbsenceModal(a))"
+                                                 title="Click to edit absence">
                                                 <div>
                                                     <div class="fw-bold">@a.Title</div>
                                                     <div class="text-muted small">@a.StartDate.ToLocalTime().ToString("d") – @a.EndDate.AddDays(-1).ToLocalTime().ToString("d")</div>
@@ -467,6 +470,24 @@
                    OnUpdateAbsence="@(() => Task.CompletedTask)"
                    OnDeleteAbsence="@(() => Task.CompletedTask)" />
 
+@* CalendarEditModal for editing team member absences *@
+<CalendarEditModal State="absenceModalState"
+                   CanManageShifts="true"
+                   Employees="employees"
+                   LinkedUsers="linkedUsers"
+                   ColorChoices="ColorChoices"
+                   OnClose="CloseAbsenceModal"
+                   OnSaveReminder="@(() => Task.CompletedTask)"
+                   OnUpdateReminder="@(() => Task.CompletedTask)"
+                   OnDeleteReminder="@(() => Task.CompletedTask)"
+                   OnSaveShift="@(() => Task.CompletedTask)"
+                   OnUpdateShift="@(() => Task.CompletedTask)"
+                   OnDeleteShift="@(() => Task.CompletedTask)"
+                   OnDeleteShiftSeries="@(() => Task.CompletedTask)"
+                   OnSaveAbsence="@(() => Task.CompletedTask)"
+                   OnUpdateAbsence="UpdateAbsenceFromManage"
+                   OnDeleteAbsence="DeleteAbsenceFromManage" />
+
 @code {
     private List<Schedule> schedules = new();
     private bool isLoading = false;
@@ -497,6 +518,7 @@
     private DayOfWeek? createShiftForDay = null;
     private Shift? editingWorkWeekShift = null;
     private CalendarEditModalState workWeekModalState = new();
+    private CalendarEditModalState absenceModalState = new();
     private List<User> employees = new();
     private readonly string[] ColorChoices = new[] { "#ff4d4f", "#52c41a", "#1890ff", "#fa8c16", "#d3d3d3" };
 
@@ -1036,6 +1058,157 @@
         {
             Logger.LogError(ex, "Error loading absences for member {Member}", member.Username);
             upcomingAbsences[key] = new List<Absence>();
+        }
+    }
+
+    /// <summary>
+    /// Opens the CalendarEditModal pre-populated with the given absence for editing.
+    /// </summary>
+    private void OpenEditAbsenceModal(Absence absence)
+    {
+        absenceModalState.EditingAbsence = absence;
+        absenceModalState.EditAbsenceStartDateUtc = absence.StartDate.ToString("O");
+        absenceModalState.EditAbsenceDayCount = absence.DayCount;
+        absenceModalState.EditAbsenceTitle = absence.Title;
+        absenceModalState.EditAbsenceNotes = absence.Notes;
+        absenceModalState.EditAbsenceColor = absence.Color ?? "#fa8c16";
+        // Use the user id stored on the absence to pre-select the correct user
+        absenceModalState.EditAbsenceForUsername = absence.AssignedToUserId ?? absence.UserId ?? string.Empty;
+        absenceModalState.EditAbsenceApprovalState = absence.ApprovalState;
+
+        // Populate part-day fields
+        if (!string.IsNullOrWhiteSpace(absence.StartTime) && !string.IsNullOrWhiteSpace(absence.EndTime) && absence.DayCount == 1)
+        {
+            absenceModalState.EditAbsenceIsPartDay = true;
+            if (TimeOnly.TryParse(absence.StartTime, System.Globalization.CultureInfo.CurrentCulture, out var st))
+                absenceModalState.EditAbsenceStartTime = st;
+            if (TimeOnly.TryParse(absence.EndTime, System.Globalization.CultureInfo.CurrentCulture, out var et))
+                absenceModalState.EditAbsenceEndTime = et;
+        }
+        else
+        {
+            absenceModalState.EditAbsenceIsPartDay = false;
+            absenceModalState.EditAbsenceStartTime = new(9, 0);
+            absenceModalState.EditAbsenceEndTime = new(17, 0);
+        }
+
+        absenceModalState.ModalError = null;
+        absenceModalState.ModalMode = ModalMode.Absence;
+        absenceModalState.ShowModal = true;
+    }
+
+    private void CloseAbsenceModal()
+    {
+        absenceModalState.ShowModal = false;
+        absenceModalState.EditingAbsence = null;
+        absenceModalState.ModalError = null;
+    }
+
+    /// <summary>
+    /// Saves approval state and other edits for an absence opened from the Manage page.
+    /// Refreshes the absence list for the selected member on success.
+    /// </summary>
+    private async Task UpdateAbsenceFromManage()
+    {
+        var absence = absenceModalState.EditingAbsence;
+        if (absence?.Id is null) return;
+
+        absenceModalState.IsBusy = true;
+        try
+        {
+            var parsed = DateTime.Parse(absenceModalState.EditAbsenceStartDateUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind);
+            var startUtc = DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
+            var dayCount = Math.Max(1, Math.Min(absenceModalState.EditAbsenceDayCount, 365));
+            DateTime endUtc;
+            string? startTimeStr = null;
+            string? endTimeStr = null;
+
+            if (absenceModalState.EditAbsenceIsPartDay && dayCount == 1)
+            {
+                var localStartDate = DateOnly.FromDateTime(startUtc.ToLocalTime());
+                var localStart = localStartDate.ToDateTime(absenceModalState.EditAbsenceStartTime, DateTimeKind.Local);
+                var localEnd = localStartDate.ToDateTime(absenceModalState.EditAbsenceEndTime, DateTimeKind.Local);
+                var startUtcPart = DateTime.SpecifyKind(localStart.ToUniversalTime(), DateTimeKind.Utc);
+                endUtc = DateTime.SpecifyKind(localEnd.ToUniversalTime(), DateTimeKind.Utc);
+
+                if (endUtc <= startUtcPart)
+                {
+                    absenceModalState.ModalError = "End time must be after start time";
+                    return;
+                }
+
+                startUtc = startUtcPart;
+                startTimeStr = absenceModalState.EditAbsenceStartTime.ToString("HH:mm");
+                endTimeStr = absenceModalState.EditAbsenceEndTime.ToString("HH:mm");
+            }
+            else
+            {
+                endUtc = startUtc.AddDays(dayCount);
+            }
+
+            // Resolve the target user id from the selected linked user
+            var targetUser = linkedUsers.FirstOrDefault(u => u.Id == absenceModalState.EditAbsenceForUsername);
+            var targetUserId = targetUser?.Id ?? absenceModalState.EditAbsenceForUsername;
+
+            await AbsencesService.UpdateAbsenceAsync(
+                absence.Id,
+                absence.Username,
+                absenceModalState.EditAbsenceTitle,
+                absenceModalState.EditAbsenceNotes,
+                startUtc,
+                endUtc,
+                dayCount,
+                absenceModalState.EditAbsenceColor,
+                targetUserId,
+                targetUserId,
+                _managerCode,
+                startTimeStr,
+                endTimeStr,
+                absenceModalState.EditAbsenceApprovalState);
+
+            CloseAbsenceModal();
+
+            // Refresh absence list for the selected member
+            if (selectedMember is not null)
+                await LoadUpcomingAbsencesForMember(selectedMember);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating absence {Id}", absence.Id);
+            absenceModalState.ModalError = "An error occurred while saving. Please try again.";
+        }
+        finally
+        {
+            absenceModalState.IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Deletes an absence opened from the Manage page and refreshes the absence list.
+    /// </summary>
+    private async Task DeleteAbsenceFromManage()
+    {
+        var absence = absenceModalState.EditingAbsence;
+        if (absence?.Id is null) return;
+
+        absenceModalState.IsBusy = true;
+        try
+        {
+            await AbsencesService.DeleteAbsenceAsync(absence.Id, absence.Username);
+            CloseAbsenceModal();
+
+            // Refresh absence list for the selected member
+            if (selectedMember is not null)
+                await LoadUpcomingAbsencesForMember(selectedMember);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting absence {Id}", absence.Id);
+            absenceModalState.ModalError = "An error occurred while deleting. Please try again.";
+        }
+        finally
+        {
+            absenceModalState.IsBusy = false;
         }
     }
 
