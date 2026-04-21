@@ -42,53 +42,50 @@
             }
             else
             {
-                <div class="list-group">
+                <div class="schedule-list">
                     @foreach (var schedule in schedules)
                     {
-                        <div class="list-group-item @(schedule.IsDefault ? "list-group-item-primary" : "")">
-                            <div class="d-flex w-100 justify-content-between align-items-start">
-                                <div class="flex-grow-1">
-                                    <h5 class="mb-1">
-                                        @schedule.Name
-                                        @if (schedule.IsDefault)
-                                        {
-                                            <span class="badge bg-primary ms-2">Default</span>
-                                        }
-                                    </h5>
-                                    @if (!string.IsNullOrEmpty(schedule.Description))
+                        <div class="schedule-card @(schedule.IsDefault ? "schedule-card-default" : "")">
+                            <div class="schedule-card-body">
+                                <div class="schedule-card-title">
+                                    @schedule.Name
+                                    @if (schedule.IsDefault)
                                     {
-                                        <p class="mb-1 text-muted">@schedule.Description</p>
+                                        <span class="badge bg-primary ms-2">Default</span>
                                     }
-                                    <small class="text-muted">Created @schedule.CreatedAt.ToLocalTime().ToString("g")</small>
                                 </div>
-                                <div class="btn-group ms-3">
+                                @if (!string.IsNullOrEmpty(schedule.Description))
+                                {
+                                    <div class="schedule-card-desc">@schedule.Description</div>
+                                }
+                                <div class="schedule-card-meta">Created @schedule.CreatedAt.ToLocalTime().ToString("g")</div>
+                            </div>
+                            <div class="schedule-card-actions">
                                     @if (!schedule.IsDefault)
                                     {
                                         <button class="btn btn-sm btn-outline-primary" @onclick="(() => SetAsDefault(schedule))">
-                                            Set as Default
+                                            Set Default
                                         </button>
                                     }
                                     <button class="btn btn-sm btn-outline-secondary" @onclick="(() => ViewInCalendar(schedule))">
-                                        View Calendar
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-warning" @onclick="(() => OpenEditModal(schedule))">
-                                        Edit
+                                        Calendar
                                     </button>
                                     <button class="btn btn-sm btn-outline-secondary" @onclick="(() => OpenWorkWeeksModal(schedule))">
                                         Work Weeks
                                     </button>
+                                    <button class="btn btn-sm btn-outline-warning" @onclick="(() => OpenEditModal(schedule))">
+                                        Edit
+                                    </button>
                                     @if (schedules.Count > 1)
                                     {
-                                        <button class="btn btn-sm btn-outline-danger" @onclick="(() => OpenDeleteConfirm(schedule))">
-                                            Delete
-                                        </button>
-                                    }
-                                </div>
-
-                            </div>
-                        </div>
-                    }
-                </div>
+                                                            <button class="btn btn-sm btn-outline-danger" @onclick="(() => OpenDeleteConfirm(schedule))">
+                                                                Delete
+                                                            </button>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
             }
         </div>
     </div>
@@ -339,109 +336,113 @@
                                 <div class="team-detail-username text-muted small">@selectedMember.Username</div>
                             </div>
 
-                            @* Occupation editor *@
-                            <div class="team-detail-field mt-3">
-                                <label class="team-detail-label">Occupation</label>
-                                <div class="d-flex gap-2 align-items-start mt-1">
-                                    <select class="form-select form-select-sm" @bind="selectedMemberOccupation">
-                                        @foreach (var wt in Enum.GetValues<WorkerType>())
-                                        {
-                                            <option value="@wt">@wt</option>
-                                        }
-                                    </select>
-                                    <button class="btn btn-sm btn-primary text-nowrap"
-                                            @onclick="SaveMemberOccupation"
-                                            disabled="@(!HasMemberOccupationChanged || isBusy)">
-                                        Save
-                                    </button>
-                                </div>
-                                @if (!string.IsNullOrEmpty(memberOccupationMessage))
-                                {
-                                    <div class="team-detail-message @(memberOccupationError ? "team-detail-message-error" : "team-detail-message-ok")">
-                                        @memberOccupationMessage
-                                    </div>
-                                }
-                            </div>
+                            <div class="team-detail-info-grid mt-3">
 
-                            @* Availability *@
-                            <div class="team-detail-field mt-3">
-                                <label class="team-detail-label">Weekly Availability</label>
-                                @if (selectedMember.Availability.Count == 0)
-                                {
-                                    <div class="team-member-no-avail mt-1">No availability set.</div>
-                                }
-                                else
-                                {
-                                    <div class="team-member-avail mt-1">
-                                        @foreach (var day in Enum.GetValues<DayOfWeek>())
-                                        {
-                                            var windows = selectedMember.Availability
-                                                .Where(a => a.DayOfWeek == day)
-                                                .OrderBy(a => a.StartTime)
-                                                .ToList();
-
-                                            @if (windows.Count > 0)
+                                @* Occupation editor — row 1, col 2 *@
+                                <div class="team-detail-field" style="grid-row: 1; grid-column: 1;">
+                                    <label class="team-detail-label">Occupation</label>
+                                    <div class="d-flex gap-2 align-items-start mt-1">
+                                        <select class="form-select form-select-sm" @bind="selectedMemberOccupation">
+                                            @foreach (var wt in Enum.GetValues<WorkerType>())
                                             {
-                                                <div class="team-avail-row">
-                                                    <span class="team-avail-day">@day.ToString()[..3]</span>
-                                                    <span class="team-avail-times">
-                                                        @string.Join(", ", windows.Select(w => $"{FormatTime(w.StartTime)}–{FormatTime(w.EndTime)}"))
-                                                    </span>
+                                                <option value="@wt">@wt</option>
+                                            }
+                                        </select>
+                                        <button class="btn btn-sm btn-primary text-nowrap"
+                                                @onclick="SaveMemberOccupation"
+                                                disabled="@(!HasMemberOccupationChanged || isBusy)">
+                                            Save
+                                        </button>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(memberOccupationMessage))
+                                    {
+                                        <div class="team-detail-message @(memberOccupationError ? "team-detail-message-error" : "team-detail-message-ok")">
+                                            @memberOccupationMessage
+                                        </div>
+                                    }
+                                </div>
+
+                                @* Availability — row 2, col 1 *@
+                                <div class="team-detail-field" style="grid-row: 2; grid-column: 1;">
+                                    <label class="team-detail-label">Weekly Availability</label>
+                                    @if (selectedMember.Availability.Count == 0)
+                                    {
+                                        <div class="team-member-no-avail mt-1">No availability set.</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="team-member-avail mt-1">
+                                            @foreach (var day in Enum.GetValues<DayOfWeek>())
+                                            {
+                                                var windows = selectedMember.Availability
+                                                    .Where(a => a.DayOfWeek == day)
+                                                    .OrderBy(a => a.StartTime)
+                                                    .ToList();
+
+                                                @if (windows.Count > 0)
+                                                {
+                                                    <div class="team-avail-row">
+                                                        <span class="team-avail-day">@day.ToString()[..3]</span>
+                                                        <span class="team-avail-times">
+                                                            @string.Join(", ", windows.Select(w => $"{FormatTime(w.StartTime)}–{FormatTime(w.EndTime)}"))
+                                                        </span>
+                                                    </div>
+                                                }
+                                            }
+                                        </div>
+                                    }
+                                </div>
+
+                                @* Upcoming Absences — row 2, col 2 *@
+                                <div class="team-detail-field" style="grid-row: 2; grid-column: 2;">
+                                    <label class="team-detail-label">Upcoming Absences</label>
+
+                                    @{
+                                        var memberKey = selectedMember.Id ?? selectedMember.Username ?? string.Empty;
+                                        upcomingAbsences.TryGetValue(memberKey, out var memberAbsences);
+                                    }
+
+                                    @if (memberAbsences == null || memberAbsences.Count == 0)
+                                    {
+                                        <div class="team-member-no-avail mt-1">No upcoming absences.</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="list-group mt-1">
+                                            @foreach (var a in memberAbsences)
+                                            {
+                                                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-start"
+                                                     style="cursor: pointer;"
+                                                     @onclick="(() => OpenEditAbsenceModal(a))"
+                                                     title="Click to edit absence">
+                                                    <div>
+                                                        <div class="fw-bold">@a.Title</div>
+                                                        <div class="text-muted small">@a.StartDate.ToLocalTime().ToString("d") – @a.EndDate.AddDays(-1).ToLocalTime().ToString("d")</div>
+                                                        @if (!string.IsNullOrEmpty(a.Notes))
+                                                        {
+                                                            <div class="text-muted small">@a.Notes</div>
+                                                        }
+                                                    </div>
+                                                    <div class="text-end ms-3 flex-shrink-0">
+                                                        @if (a.IsApproved)
+                                                        {
+                                                            <span class="badge bg-success">Approved</span>
+                                                        }
+                                                        else if (a.ApprovalState == AbsenceApprovalState.Denied)
+                                                        {
+                                                            <span class="badge bg-danger">Denied</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-secondary">Pending</span>
+                                                        }
+                                                    </div>
                                                 </div>
                                             }
-                                        }
-                                    </div>
-                                }
-                            </div>
+                                        </div>
+                                    }
+                                </div>
 
-                            @* Upcoming Absences for this team member *@
-                            <div class="team-detail-field mt-3">
-                                <label class="team-detail-label">Upcoming Absences</label>
-
-                                @{
-                                    var memberKey = selectedMember.Id ?? selectedMember.Username ?? string.Empty;
-                                    upcomingAbsences.TryGetValue(memberKey, out var memberAbsences);
-                                }
-
-                                @if (memberAbsences == null || memberAbsences.Count == 0)
-                                {
-                                    <div class="team-member-no-avail mt-1">No upcoming absences.</div>
-                                }
-                                else
-                                {
-                                    <div class="list-group mt-1">
-                                        @foreach (var a in memberAbsences)
-                                        {
-                                            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-start"
-                                                 style="cursor: pointer;"
-                                                 @onclick="(() => OpenEditAbsenceModal(a))"
-                                                 title="Click to edit absence">
-                                                <div>
-                                                    <div class="fw-bold">@a.Title</div>
-                                                    <div class="text-muted small">@a.StartDate.ToLocalTime().ToString("d") – @a.EndDate.AddDays(-1).ToLocalTime().ToString("d")</div>
-                                                    @if (!string.IsNullOrEmpty(a.Notes))
-                                                    {
-                                                        <div class="text-muted small">@a.Notes</div>
-                                                    }
-                                                </div>
-                                                <div class="text-end">
-                                                    @if (a.IsApproved)
-                                                    {
-                                                        <span class="badge bg-success">Approved</span>
-                                                    }
-                                                    else if (a.ApprovalState == AbsenceApprovalState.Denied)
-                                                    {
-                                                        <span class="badge bg-danger">Denied</span>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span class="badge bg-secondary">Pending</span>
-                                                    }
-                                                </div>
-                                            </div>
-                                        }
-                                    </div>
-                                }
                             </div>
                         }
                     </div>

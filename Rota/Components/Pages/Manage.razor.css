@@ -1,3 +1,80 @@
+/* ── Schedule list cards ─────────────────────────────────── */
+
+.schedule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.schedule-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1.1rem;
+    border: 1px solid rgba(0,0,0,0.09);
+    border-radius: 8px;
+    background: #fff;
+    transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.schedule-card:hover {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    border-color: rgba(13,110,253,0.25);
+}
+
+.schedule-card-default {
+    border-left: 4px solid #0d6efd;
+    background: #f0f5ff;
+}
+
+.schedule-card-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.schedule-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #212529;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.schedule-card-desc {
+    font-size: 0.82rem;
+    color: #6c757d;
+    margin-top: 0.15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.schedule-card-meta {
+    font-size: 0.75rem;
+    color: #adb5bd;
+    margin-top: 0.2rem;
+}
+
+.schedule-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+    .schedule-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .schedule-card-actions {
+        flex-wrap: wrap;
+    }
+}
+
 .manage-wrapper {
     max-width: 900px;
     margin: 0 auto;
@@ -91,21 +168,52 @@
 }
 
 .team-detail-name {
-    font-size: 1.05rem;
+    font-size: 1.2rem;
     font-weight: 700;
+    color: #212529;
 }
 
 .team-detail-label {
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #495057;
-    margin-bottom: 0;
+    letter-spacing: 0.07em;
+    color: #0d6efd;
+    margin-bottom: 0.35rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.team-detail-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(13,110,253,0.15);
+    min-width: 1rem;
 }
 
 .team-detail-field {
-    max-width: 380px;
+    width: 100%;
+}
+
+/* Two-column info grid inside detail panel */
+.team-detail-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem 2rem;
+    margin-top: 0.75rem;
+}
+
+/* Full-width row inside the info grid */
+.team-detail-field-full {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 700px) {
+    .team-detail-info-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .team-detail-message {
@@ -123,32 +231,37 @@
 
 /* Availability rows inside detail panel */
 .team-member-no-avail {
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     color: #adb5bd;
     font-style: italic;
 }
 
 .team-member-avail {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.35rem 0.5rem;
 }
 
 .team-avail-row {
     display: flex;
-    gap: 0.4rem;
-    font-size: 0.88rem;
-    align-items: baseline;
+    flex-direction: column;
+    font-size: 0.82rem;
+    background: #f8f9fa;
+    border: 1px solid rgba(0,0,0,0.07);
+    border-radius: 6px;
+    padding: 0.3rem 0.55rem;
 }
 
 .team-avail-day {
     font-weight: 700;
-    min-width: 2.4rem;
-    color: #495057;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #0d6efd;
 }
 
 .team-avail-times {
-    font-size: 0.88rem;
+    font-size: 0.82rem;
     color: #495057;
 }
 

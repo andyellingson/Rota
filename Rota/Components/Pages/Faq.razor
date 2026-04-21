@@ -13,12 +13,75 @@
 
         <div class="faq-item">
             <div class="faq-question">How do I view my schedule?</div>
-            <div class="faq-answer">Log in and click <strong>Schedules</strong> in the navigation menu. You can switch between the week and month views using the buttons at the top of the calendar.</div>
+            <div class="faq-answer">Log in and click <strong>Calendar</strong> in the navigation menu. Your default schedule is loaded automatically. Use the schedule dropdown at the top of the calendar to switch between schedules.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">How do I switch between Week and Month view?</div>
+            <div class="faq-answer">Use the <strong>Week</strong> and <strong>Month</strong> toggle buttons at the top of the calendar. Week view shows a detailed day-by-day layout, while Month view gives a broader overview.</div>
         </div>
 
         <div class="faq-item">
             <div class="faq-question">How do I navigate between months or weeks?</div>
-            <div class="faq-answer">Use the <strong>‹</strong> and <strong>›</strong> buttons to move backward or forward. Click <strong>Today</strong> to jump back to the current date.</div>
+            <div class="faq-answer">Use the <strong>‹</strong> and <strong>›</strong> arrow buttons to move backward or forward by one week or month at a time.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">How do I filter what is shown on the calendar?</div>
+            <div class="faq-answer">Use the <strong>Shifts</strong>, <strong>Absences</strong>, and <strong>Reminders</strong> toggle buttons at the top of the calendar to show or hide each event type.</div>
+        </div>
+    </div>
+
+    <div class="faq-section">
+        <h5 class="faq-section-title">🗂 Managing Schedules</h5>
+
+        <div class="faq-item">
+            <div class="faq-question">How do I create a new schedule?</div>
+            <div class="faq-answer">Go to <strong>Manage</strong> and click <strong>+ New Schedule</strong>. Give it a name, an optional description, and choose whether it should be the default. Click <strong>Save</strong> to create it.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">What is the default schedule?</div>
+            <div class="faq-answer">The default schedule is the one automatically loaded when you open the Calendar. You can change the default at any time by clicking <strong>Set Default</strong> next to a schedule on the Manage page.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">Can I have multiple schedules?</div>
+            <div class="faq-answer">Yes. You can create as many schedules as you need — for example, one per month or one per location. Switch between them using the dropdown at the top of the Calendar page.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">How do I delete a schedule?</div>
+            <div class="faq-answer">On the Manage page, click <strong>Delete</strong> next to the schedule. Note: you cannot delete your only remaining schedule. Shifts, absences, and reminders linked to a deleted schedule are kept but will no longer be grouped under it.</div>
+        </div>
+    </div>
+
+    <div class="faq-section">
+        <h5 class="faq-section-title">🗓 Work Weeks</h5>
+
+        <div class="faq-item">
+            <div class="faq-question">What is a Work Week?</div>
+            <div class="faq-answer">A Work Week is a reusable shift template for a given schedule. You define which shifts occur on which days of the week once, and then apply the template to any date range on the calendar — saving you from recreating the same shifts every week.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">How do I create a Work Week template?</div>
+            <div class="faq-answer">On the Manage page, click <strong>Work Weeks</strong> next to a schedule, then click <strong>+ Create New WorkWeek</strong>. Give it a name, then click any day column to add shifts. Each shift can have a start time, end time, worker type, colour, and optional notes.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">Can I add the same shift to multiple days at once?</div>
+            <div class="faq-answer">Yes. When adding a shift inside a Work Week template, choose a <strong>Repeat</strong> option — <em>Daily</em> (all 7 days), <em>Work Week</em> (Mon–Fri), or <em>Weekends</em> (Sat–Sun) — and the shift will be added to every matching day automatically.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">How do I edit an existing Work Week?</div>
+            <div class="faq-answer">Click <strong>Work Weeks</strong> on the Manage page, then select the Work Week you want to change. Click any existing shift to edit it, or click an empty area of a day column to add a new one. Click <strong>Save WorkWeek</strong> when you are done.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">How do I apply a Work Week to my calendar?</div>
+            <div class="faq-answer">On the Calendar page, click a day to open the day modal, then select <strong>Apply Work Week</strong>. Choose the template and the target week, and Rota will create all the shifts from the template for that week.</div>
         </div>
     </div>
 
@@ -27,17 +90,46 @@
 
         <div class="faq-item">
             <div class="faq-question">How do I add a shift?</div>
-            <div class="faq-answer">Click any day on the calendar to open the day view, then click <strong>+ Shift</strong>. Fill in the start time, end time, worker type, and any notes, then click <strong>Create Shift</strong>.</div>
+            <div class="faq-answer">Click any day on the calendar to open the event modal, switch to the <strong>Shift</strong> tab, fill in the start time, end time, worker type, and any notes, then click <strong>Save Shift</strong>.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">Can I assign a shift to a specific employee?</div>
+            <div class="faq-answer">Yes. When creating or editing a shift, use the <strong>Assign To</strong> dropdown to pick a linked team member. The shift will then appear attributed to that employee on the calendar.</div>
         </div>
 
         <div class="faq-item">
             <div class="faq-question">Can I create a recurring shift?</div>
-            <div class="faq-answer">Yes. When adding a shift, choose a <strong>Repeat</strong> option — Daily, Work week (Mon–Fri), or Weekends only — and Rota will create one shift for every matching day in that month.</div>
+            <div class="faq-answer">Yes. When adding a shift, choose a <strong>Repeat</strong> option — Daily, Work Week (Mon–Fri), or Weekends — and Rota will create one shift for every matching day in that month.</div>
         </div>
 
         <div class="faq-item">
             <div class="faq-question">How do I edit or delete a shift?</div>
-            <div class="faq-answer">Click a shift card anywhere on the calendar to open the edit form. Change any fields and click <strong>Save Changes</strong>, or click <strong>Delete</strong> to remove it.</div>
+            <div class="faq-answer">Click the shift card on the calendar to open it for editing. Update any fields and click <strong>Save Changes</strong>, or click <strong>Delete</strong> to remove just that occurrence. For recurring shifts, you can also delete the entire series at once.</div>
+        </div>
+    </div>
+
+    <div class="faq-section">
+        <h5 class="faq-section-title">🙅 Absences</h5>
+
+        <div class="faq-item">
+            <div class="faq-question">How do I request an absence?</div>
+            <div class="faq-answer">Click a day on the calendar, switch to the <strong>Absence</strong> tab, enter a title (e.g. <em>Holiday</em> or <em>Sick</em>), select the number of days, and click <strong>Save</strong>. Your manager will be notified and can approve or deny the request.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">Can I request a part-day absence?</div>
+            <div class="faq-answer">Yes. When creating a single-day absence, tick the <strong>Part Day</strong> checkbox and enter the start and end times for the partial absence.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">How do I know if my absence has been approved?</div>
+            <div class="faq-answer">Absence cards on the calendar display a coloured badge — <strong>Pending</strong> (grey), <strong>Approved</strong> (green), or <strong>Denied</strong> (red) — so you can see the status at a glance.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">How does a manager approve or deny an absence? (Managers)</div>
+            <div class="faq-answer">Go to the <strong>Manage</strong> page and select a team member from the Team Members panel. Their upcoming absences are listed on the right. Click any absence to open it, change the approval state using the dropdown, and click <strong>Save</strong>.</div>
         </div>
     </div>
 
@@ -46,17 +138,41 @@
 
         <div class="faq-item">
             <div class="faq-question">How do I add a reminder?</div>
-            <div class="faq-answer">Click a day on the calendar and then click <strong>+ Reminder</strong>. Enter a title, pick a time and colour, add optional notes, and click <strong>Save</strong>.</div>
+            <div class="faq-answer">Click a day on the calendar, switch to the <strong>Reminder</strong> tab, enter a title, pick a colour, add optional notes, and click <strong>Save</strong>. Reminders are personal and only visible to you.</div>
         </div>
 
         <div class="faq-item">
             <div class="faq-question">What do the reminder colours mean?</div>
-            <div class="faq-answer">Colours are purely for your own organisation — use them however you like, for example red for urgent items and green for completed tasks.</div>
+            <div class="faq-answer">Colours are purely for your own organisation — use them however you like, for example red for urgent items and blue for informational notes.</div>
         </div>
 
         <div class="faq-item">
             <div class="faq-question">How do I edit or delete a reminder?</div>
-            <div class="faq-answer">Click a reminder on the calendar or in the day detail view to open it for editing. You can update any field or click <strong>Delete</strong> to remove it.</div>
+            <div class="faq-answer">Click the reminder on the calendar to open the edit form. Update any field and click <strong>Save Changes</strong>, or click <strong>Delete</strong> to remove it.</div>
+        </div>
+    </div>
+
+    <div class="faq-section">
+        <h5 class="faq-section-title">👥 Team Members (Managers)</h5>
+
+        <div class="faq-item">
+            <div class="faq-question">How do employees join my team?</div>
+            <div class="faq-answer">Share your <strong>Team Code</strong> with your employees — they can find the join field on their <strong>Account</strong> page. Once they enter the code, they will appear in your Team Members panel on the Manage page.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">Where do I find my Team Code?</div>
+            <div class="faq-answer">Go to the <strong>Account</strong> page. Your Team Code is displayed there and can be copied to share with employees.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">How do I change an employee's occupation?</div>
+            <div class="faq-answer">On the <strong>Manage</strong> page, select the employee from the Team Members list. Use the <strong>Occupation</strong> dropdown to pick the new role and click <strong>Save</strong>.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">Can I see an employee's availability?</div>
+            <div class="faq-answer">Yes. Select any team member on the Manage page and their <strong>Weekly Availability</strong> is shown in the detail panel, displaying the days and time windows they have set on their own Account page.</div>
         </div>
     </div>
 
@@ -64,13 +180,23 @@
         <h5 class="faq-section-title">🔐 Account</h5>
 
         <div class="faq-item">
+            <div class="faq-question">How do I set my availability?</div>
+            <div class="faq-answer">Go to the <strong>Account</strong> page and use the Weekly Availability section to add time windows for each day of the week. Your manager can view this to help plan shifts around your schedule.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">How do I join a manager's team?</div>
+            <div class="faq-answer">Ask your manager for their <strong>Team Code</strong>, then enter it in the <strong>Join a Team</strong> field on your Account page and click <strong>Join</strong>.</div>
+        </div>
+
+        <div class="faq-item">
             <div class="faq-question">How long does my login session last?</div>
-            <div class="faq-answer">Your session lasts <strong>8 hours</strong> from the time you log in. After that you will be asked to log in again.</div>
+            <div class="faq-answer">Your session lasts <strong>8 hours</strong> from the time you log in. After that you will be asked to sign in again.</div>
         </div>
 
         <div class="faq-item">
             <div class="faq-question">How do I log out?</div>
-            <div class="faq-answer">Click the <strong>Logout</strong> link in the top-right corner of any page.</div>
+            <div class="faq-answer">Click the <strong>Logout</strong> link in the navigation menu.</div>
         </div>
     </div>
 </div>
