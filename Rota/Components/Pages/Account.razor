@@ -200,7 +200,25 @@
             </div>
         </div>
 
-        @* ── Security ─────────────────────────────────────── *@
+        @* ── Appearance ───────────────────────────────────── *@
+        <div class="account-section">
+            <h5 class="account-section-title">🎨 Appearance</h5>
+            <div class="account-card">
+                <label class="account-field-label mb-2">Theme</label>
+                <div class="d-flex gap-2">
+                    <button class="btn @(themeInput == "light" ? "btn-primary" : "btn-outline-secondary")"
+                            @onclick='() => SelectTheme("light")'>☀️ Light</button>
+                    <button class="btn @(themeInput == "dark" ? "btn-primary" : "btn-outline-secondary")"
+                            @onclick='() => SelectTheme("dark")'>🌙 Dark</button>
+                </div>
+                @if (!string.IsNullOrEmpty(themeMessage))
+                {
+                    <div class="account-message @(themeError ? "account-message-error" : "account-message-ok") mt-2">@themeMessage</div>
+                }
+            </div>
+        </div>
+
+        @* ── Security ─────────────────────────────────────────────────────────────── *@
         <div class="account-section">
             <h5 class="account-section-title">🔐 Security</h5>
 
@@ -250,6 +268,11 @@
     private string confirmPassword = string.Empty;
     private string? passwordMessage;
     private bool passwordError;
+
+    // Theme
+    private string themeInput = "light";
+    private string? themeMessage;
+    private bool themeError;
 
     // Manager code
     private bool codeCopied = false;
@@ -301,6 +324,7 @@
             user = await UserService.GetByUsernameAsync(username);
             displayNameInput = user?.DisplayName ?? string.Empty;
             occupationInput = user?.Occupation ?? WorkerType.General;
+            themeInput = user?.Theme ?? "light";
 
             // Load the user's saved availability into the working copy
             availability = user?.Availability.Select(a => new UserAvailability
@@ -478,6 +502,38 @@
     }
 
     // ── Availability methods ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Saves the selected theme to the user's profile and applies it immediately.
+    /// </summary>
+    private async Task SelectTheme(string theme)
+    {
+        if (user is null) return;
+        themeMessage = null;
+        themeInput = theme;
+        isBusy = true;
+        try
+        {
+            var ok = await UserService.UpdateThemeAsync(user.Username, theme);
+            if (ok)
+            {
+                user.Theme = theme;
+                themeMessage = "Theme updated.";
+                themeError = false;
+                // Apply the new theme immediately in the browser
+                await JS.InvokeVoidAsync("setTheme", theme);
+            }
+            else
+            {
+                themeMessage = "Could not save theme preference. Please try again.";
+                themeError = true;
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
 
     /// <summary>
     /// Converts a stored "HH:mm" 24-hour string to a 12-hour AM/PM display string (e.g. "9:00 AM").

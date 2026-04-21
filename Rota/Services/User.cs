@@ -68,5 +68,12 @@ namespace Rota.Services
         /// </summary>
         [BsonElement("availability")]
         public List<UserAvailability> Availability { get; set; } = new();
+
+        /// <summary>
+        /// The user's preferred UI theme. Supported values are "light" and "dark".
+        /// Defaults to "light".
+        /// </summary>
+        [BsonElement("theme")]
+        public string Theme { get; set; } = "light";
     }
 }

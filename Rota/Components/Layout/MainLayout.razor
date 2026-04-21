@@ -3,6 +3,8 @@
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject Microsoft.Extensions.Logging.ILogger<MainLayout> Logger
+@inject Rota.Services.IUserService UserService
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
 
 <div class="page">
     <div class="sidebar">
@@ -38,6 +40,30 @@
 <script src="/auth.js"></script>
 
 @code {
+    /// <summary>
+    /// Applies the user's saved theme preference on the first interactive render.
+    /// Falls back to "light" if the user is not authenticated or has no preference set.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            var username = HttpContextAccessor.HttpContext?.User.Identity?.Name;
+            var theme = "light";
+            if (!string.IsNullOrEmpty(username))
+            {
+                var user = await UserService.GetByUsernameAsync(username);
+                theme = user?.Theme ?? "light";
+            }
+            await JS.InvokeVoidAsync("setTheme", theme);
+        }
+        catch (System.Exception ex)
+        {
+            Logger.LogWarning(ex, "Could not apply user theme preference");
+        }
+    }
+
     /// <summary>
     /// Invoked when the user clicks the logout button. Calls the client-side helper
     /// which posts to the server logout endpoint. On success the app is reloaded.

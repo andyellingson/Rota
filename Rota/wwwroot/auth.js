@@ -65,3 +65,9 @@ window.authPut = async function (url, data) {
   }
   return { ok: resp.ok, status: resp.status, body: body, text: text };
 };
+
+// Applies the given theme by setting the data-theme attribute on <html>.
+// Call with "light" or "dark"; defaults to "light" for any unrecognised value.
+window.setTheme = function (theme) {
+    document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+};

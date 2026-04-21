@@ -1,3 +1,19 @@
+/* Ensure Bootstrap .card inside the Calendar component follows the app theme variables
+   so the calendar surface isn't bright white in dark mode. */
+.card {
+    background: var(--color-bg-card);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+}
+
+.card .card-body {
+    background: transparent;
+    color: var(--color-text-primary);
+}
+
+/* Keep calendar cards and day cells theme-aware so they match dark mode */
+
+/* Layout container */
 .calendar-card { max-width: 1600px; margin-left: auto; margin-right: auto; }
 
 .calendar-grid {
@@ -10,8 +26,8 @@
     font-weight: 600;
     text-align: center;
     padding: 0.5rem 0;
-    color: #495057;
-    background: rgba(0,0,0,0.03);
+    color: var(--color-text-medium);
+    background: var(--color-bg-muted);
     border-radius: 6px;
 }
 
@@ -20,8 +36,8 @@
     max-height: 340px;
     min-width: 0;
     overflow-x: hidden;
-    background: #fff;
-    border: 1px solid rgba(0,0,0,0.06);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-muted);
     border-radius: 6px;
     padding: 0.5rem;
     position: relative;
@@ -42,7 +58,7 @@
     top: 0.4rem;
     right: 0.6rem;
     font-size: 0.85rem;
-    color: #6c757d;
+    color: var(--color-text-secondary);
     font-weight: 600;
 }
 
@@ -56,6 +72,7 @@
     overflow-x: hidden;
 }
 
+/* Shift item uses accent color with subtle background; keep as-is but ensure legible text */
 .shift-item {
     background: rgba(24,144,255,0.08);
     border-left: 4px solid rgba(24,144,255,0.6);
@@ -65,17 +82,16 @@
     flex-direction: column;
     align-items: flex-start;
     cursor: pointer;
-    /* Fill the full width of the day cell so cards always span edge-to-edge */
     width: 100%;
     box-sizing: border-box;
     min-width: 0;
 }
 .shift-worker-type { font-weight: 700; font-size: 0.78rem; color: #1890ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.shift-time { font-size: 0.7rem; color: #6c757d; }
-.shift-assigned { font-size: 0.68rem; color: #6c757d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.shift-time { font-size: 0.7rem; color: var(--color-text-secondary); }
+.shift-assigned { font-size: 0.68rem; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
-/* ── Absence items ──────────────────────────────────────── */
-
+/* ── Absence items ────────────────────────────────────────
+   Make text and panels theme-aware, avoid hard white text-only contrasts */
 .absence-item {
     border-radius: 6px;
     padding: 0.25rem 0.5rem;
@@ -104,15 +120,13 @@
 
 .day-detail-absence-card:hover { opacity: 0.85; }
 
-/* ── Absence approval state indicators ─────────────────── */
-
-/* Calendar tile: amber dashed border for pending requests */
+/* Use theme-aware border for pending indicators so they don't become stark black in dark mode */
 .absence-item--pending {
-    border: 5px dashed #000 !important;
+    border: 5px dashed var(--color-border);
     opacity: 0.85;
 }
 
-/* Calendar tile: diagonal hatching overlay for denied requests */
+/* Denied overlay should be subtle in both themes */
 .absence-item--denied {
     position: relative;
     opacity: 0.85;
@@ -125,24 +139,23 @@
     border-radius: inherit;
     background: repeating-linear-gradient(
         -45deg,
-        rgba(0, 0, 0, 0.18) 0px,
-        rgba(0, 0, 0, 0.18) 3px,
+        rgba(0, 0, 0, 0.08) 0px,
+        rgba(0, 0, 0, 0.08) 3px,
         transparent 3px,
         transparent 9px
     );
     pointer-events: none;
 }
 
-/* Day-detail modal card: amber dashed border for pending */
+/* Day-detail modal variants */
 .day-detail-absence-card--pending {
-    border: 5px dashed #000 !important;
-    border-left-width: 7px !important;
+    border: 5px dashed var(--color-border);
+    border-left-width: 7px;
 }
 
-/* Day-detail modal card: diagonal hatching overlay for denied */
 .day-detail-absence-card--denied {
     position: relative;
-    border-left: 7px solid #dc3545 !important;
+    border-left: 7px solid #dc3545;
     opacity: 0.85;
     overflow: hidden;
 }
@@ -161,7 +174,7 @@
     pointer-events: none;
 }
 
-/* Pending badge shown inside calendar tiles */
+/* Badges */
 .absence-pending-badge {
     display: inline-block;
     font-size: 0.6rem;
@@ -176,16 +189,13 @@
     margin-left: 0.25rem;
     white-space: nowrap;
 }
+.absence-denied-badge { background: rgba(220, 53, 69, 0.75); }
 
-/* Denied badge override — red background */
-.absence-denied-badge {
-    background: rgba(220, 53, 69, 0.75);
-}
-
+/* Day-detail modal text should follow theme text colors */
 .day-detail-absence-title-text {
     font-weight: 600;
     font-size: 0.88rem;
-    color: #212529;
+    color: var(--color-text-primary);
 }
 
 .day-detail-absence-name { max-width: 35%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
@@ -196,7 +206,7 @@
 }
 
 .other-month {
-    background: #f8f9fa;
+    background: var(--color-bg-subtle);
 }
 
 .other-month .day-number {
@@ -218,7 +228,7 @@
     gap: 0.75rem;
 }
 
-.week-day-card { flex: 1; min-width: 0; cursor: pointer; transition: box-shadow 0.2s, border-color 0.2s; }
+.week-day-card { flex: 1; min-width: 0; cursor: pointer; transition: box-shadow 0.2s, border-color 0.2s; background: var(--color-bg-card); border: 1px solid var(--color-border-subtle); border-radius: 6px; }
 
 .week-day-card:hover {
     box-shadow: 0 4px 16px rgba(13,110,253,0.18);
@@ -226,11 +236,12 @@
     background-color: rgba(13,110,253,0.03);
 }
 
-.week-day-card .events { 
+.week-day-card .events {
     min-height: 8rem;
     margin-top: 0.5rem;
 }
 
+/* Color swatches should use the theme border variable so they read correctly in dark mode */
 .color-swatch {
     height: 36px;
     display: inline-flex;
@@ -239,24 +250,23 @@
     align-items: center;
     justify-content: center;
     border-radius: 8px;
-    border: 2px solid rgba(0,0,0,0.12);
+    border: 2px solid var(--color-border);
     cursor: pointer;
     margin-right: 0.4rem;
     padding: 0;
     box-shadow: 0 1px 3px rgba(0,0,0,0.15);
     -webkit-appearance: none;
     appearance: none;
-    /* Guarantee the inline background-color isn't reset by Bootstrap's button reboot */
     background-image: none;
 }
 .color-swatch.selected {
-    border-color: rgba(0,0,0,0.7);
-    outline: 2px solid rgba(0,0,0,0.5);
+    border-color: var(--color-border);
+    outline: 2px solid rgba(13,110,253,0.12);
     outline-offset: 1px;
     transform: scale(1.1);
 }
 .color-swatch:focus {
-    outline: 2px solid rgba(0,0,0,0.25);
+    outline: 2px solid rgba(13,110,253,0.12);
     outline-offset: 1px;
 }
 
@@ -290,11 +300,7 @@
     .absence-right { text-align: left; max-width: 100%; }
 }
 
-/* ══════════════════════════════════════════════════════════
-   Day detail modal
-   ══════════════════════════════════════════════════════════ */
-
-/* Outer modal shell – slightly lifted shadow */
+/* Day detail modal shell */
 .day-modal-content {
     border: none;
     border-radius: 14px;
@@ -302,10 +308,10 @@
     overflow: hidden;
 }
 
-/* ── Header ─────────────────────────────────────────────── */
+/* Header */
 .day-modal-header {
-    background: #fff;
-    border-bottom: 1px solid rgba(0,0,0,0.07);
+    background: var(--color-bg-card);
+    border-bottom: 1px solid var(--color-border);
     padding: 1rem 1.25rem;
 }
 
@@ -318,8 +324,8 @@
     width: 52px;
     height: 52px;
     border-radius: 12px;
-    background: #f0f4ff;
-    border: 1px solid #d0dbff;
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-border-subtle);
     flex-shrink: 0;
     line-height: 1;
 }
@@ -346,10 +352,10 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: #6c757d;
+    color: var(--color-text-secondary);
 }
 
-/* Action buttons in header */
+/* Header action buttons */
 .day-modal-action-btn {
     border-radius: 20px;
     padding: 0.25rem 0.75rem;
@@ -362,9 +368,9 @@
     margin-right: 0.15rem;
 }
 
-/* ── Apply Template bar ─────────────────────────────────── */
+/* Template bar */
 .day-modal-template-bar {
-    background: #f8f9ff;
+    background: var(--color-bg-subtle);
     border-bottom: 1px solid rgba(13,110,253,0.12);
     padding: 0.75rem 1.25rem;
 }
@@ -393,254 +399,9 @@
     width: 9rem;
 }
 
-/* ── Section icons ──────────────────────────────────────── */
-.day-modal-section-icon {
-    font-size: 0.95rem;
-    line-height: 1;
+/* Small tweak: ensure list-group items inside modals match theme (if used) */
+.list-group-item {
+    background: var(--color-bg-card);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
 }
-
-.day-modal-section-icon--shift    { filter: hue-rotate(0deg);   }
-.day-modal-section-icon--absence  { filter: hue-rotate(30deg);  }
-.day-modal-section-icon--reminder { filter: hue-rotate(180deg); }
-.day-modal-section-icon--template { filter: hue-rotate(220deg); }
-
-/* ── Modal body ─────────────────────────────────────────── */
-.day-detail-body {
-    padding: 1.25rem;
-    background: #fafbfd;
-}
-
-/* Summary pill row at the top of the body */
-.day-modal-summary-row {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-bottom: 1.25rem;
-}
-
-.day-modal-summary-pill {
-    font-size: 0.72rem;
-    font-weight: 700;
-    border-radius: 20px;
-    padding: 0.2rem 0.65rem;
-    letter-spacing: 0.03em;
-}
-
-.day-modal-summary-pill--shift    { background: #e8f0fe; color: #1a56db; }
-.day-modal-summary-pill--absence  { background: #fff3e0; color: #e65100; }
-.day-modal-summary-pill--reminder { background: #fffde7; color: #f57f17; }
-
-/* ── Section header row ─────────────────────────────────── */
-.day-detail-section-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-}
-
-.day-detail-section-title-text {
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #495057;
-    flex: 1;
-}
-
-/* Small count badge next to the section title */
-.day-detail-section-count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.3rem;
-    height: 1.3rem;
-    border-radius: 50%;
-    background: rgba(0,0,0,0.07);
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: #495057;
-    flex-shrink: 0;
-}
-
-/* ── Shift cards ────────────────────────────────────────── */
-.day-detail-shift-card {
-    background: #fff;
-    border: 1px solid rgba(0,0,0,0.07);
-    border-left: 4px solid #1890ff;
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.6rem;
-    cursor: pointer;
-    transition: box-shadow 0.15s, transform 0.1s;
-}
-
-.day-detail-shift-card:hover {
-    box-shadow: 0 4px 18px rgba(24,144,255,0.15);
-    transform: translateY(-1px);
-}
-
-/* ── Absence cards ──────────────────────────────────────── */
-.day-detail-absence-card {
-    border-left: 4px solid #fa8c16;
-    border-radius: 10px;
-    border: 1px solid rgba(0,0,0,0.07);
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.6rem;
-    cursor: pointer;
-    transition: box-shadow 0.15s, transform 0.1s;
-}
-
-.day-detail-absence-card:hover {
-    box-shadow: 0 4px 18px rgba(250,140,22,0.15);
-    transform: translateY(-1px);
-}
-
-.day-detail-absence-title-badge {
-    display: inline-block;
-    font-size: 0.7rem;
-    font-weight: 700;
-    padding: 0.1rem 0.5rem;
-    border-radius: 20px;
-    white-space: nowrap;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    flex-shrink: 0;
-}
-
-.day-detail-absence-name {
-    font-size: 0.9rem;
-    color: #212529;
-    max-width: 55%;
-}
-
-/* ── Reminder cards ─────────────────────────────────────── */
-.day-detail-reminder-card {
-    background: #fff;
-    border: 1px solid rgba(0,0,0,0.07);
-    border-left: 4px solid #ffeb3b;
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.6rem;
-    cursor: pointer;
-    transition: box-shadow 0.15s, transform 0.1s;
-}
-
-.day-detail-reminder-card:hover {
-    box-shadow: 0 4px 18px rgba(0,0,0,0.1);
-    transform: translateY(-1px);
-}
-
-/* ── Shared card elements ───────────────────────────────── */
-.day-detail-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.35rem;
-}
-
-.day-detail-worker-badge {
-    display: inline-block;
-    font-size: 0.7rem;
-    font-weight: 700;
-    padding: 0.15rem 0.55rem;
-    border-radius: 20px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-}
-
-.day-detail-reminder-title-text {
-    font-weight: 600;
-    font-size: 0.92rem;
-    color: #212529;
-}
-
-.day-detail-time-badge {
-    font-size: 0.78rem;
-    color: #6c757d;
-    font-weight: 500;
-    white-space: nowrap;
-}
-
-/* Small "Xh Ym" duration shown alongside the time */
-.day-detail-duration-badge {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #fff;
-    background: rgba(0,0,0,0.3);
-    border-radius: 10px;
-    padding: 0.1rem 0.45rem;
-    white-space: nowrap;
-}
-
-/* Subtle "Edit ›" affordance that appears on hover */
-.day-detail-edit-hint {
-    font-size: 0.7rem;
-    color: #adb5bd;
-    white-space: nowrap;
-    transition: color 0.15s;
-}
-
-.day-detail-shift-card:hover   .day-detail-edit-hint,
-.day-detail-absence-card:hover .day-detail-edit-hint,
-.day-detail-reminder-card:hover .day-detail-edit-hint {
-    color: #0d6efd;
-}
-
-.day-detail-item-notes {
-    font-size: 0.82rem;
-    color: #6c757d;
-    line-height: 1.45;
-    margin-top: 0.3rem;
-    padding-top: 0.3rem;
-    border-top: 1px dashed rgba(0,0,0,0.07);
-}
-
-.day-detail-assigned {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.8rem;
-    color: #6c757d;
-    margin-top: 0.3rem;
-}
-
-.day-detail-assigned-icon {
-    font-size: 0.75rem;
-}
-
-/* ── Empty state ────────────────────────────────────────── */
-.day-detail-empty {
-    text-align: center;
-    padding: 3rem 1.5rem 2rem;
-    color: #adb5bd;
-}
-
-.day-detail-empty-icon {
-    font-size: 3rem;
-    margin-bottom: 0.75rem;
-    display: block;
-}
-
-.day-detail-empty-title {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #6c757d;
-    margin-bottom: 0.35rem;
-}
-
-.day-detail-empty-text {
-    font-size: 0.88rem;
-    color: #adb5bd;
-    max-width: 22rem;
-    margin: 0 auto;
-}
-
-/* ── Removed legacy aliases kept for back-compat ─────────── */
-.day-detail-section-title       { display: none; } /* replaced by .day-detail-section-header */
-.day-detail-section-icon        { display: none; } /* replaced by .day-modal-section-icon    */
-.day-detail-item-title          { font-weight: 600; font-size: 0.9rem; color: #212529; }
-.day-detail-absence-title-text  { font-weight: 600; font-size: 0.88rem; color: #212529; }

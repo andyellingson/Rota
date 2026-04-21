@@ -65,5 +65,11 @@ namespace Rota.Services
         /// Returns true when the document was modified.
         /// </summary>
         System.Threading.Tasks.Task<bool> UpdateAvailabilityAsync(string username, List<Rota.Models.UserAvailability> availability);
+
+        /// <summary>
+        /// Updates the theme preference for the specified user.
+        /// Returns true when the document was modified.
+        /// </summary>
+        System.Threading.Tasks.Task<bool> UpdateThemeAsync(string username, string theme);
     }
 }

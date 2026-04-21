@@ -259,5 +259,25 @@ namespace Rota.Services
                 return false;
             }
         }
+
+        /// <summary>
+        /// Updates the theme preference for the specified user.
+        /// Returns true when the document was modified.
+        /// </summary>
+        public async System.Threading.Tasks.Task<bool> UpdateThemeAsync(string username, string theme)
+        {
+            try
+            {
+                var filter = Builders<User>.Filter.Eq(u => u.Username, username);
+                var update = Builders<User>.Update.Set(u => u.Theme, theme);
+                var result = await _users.UpdateOneAsync(filter, update);
+                return result.ModifiedCount > 0;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error updating theme for user {User}", username);
+                return false;
+            }
+        }
     }
 }
