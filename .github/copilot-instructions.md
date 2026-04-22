@@ -12,6 +12,7 @@
 
 ## Code Style
 - Prefer using theme variables (var(--color-bg-card), var(--color-border), var(--color-text-primary)) for component card backgrounds to avoid bright white surfaces in dark mode.
+- Prefer higher-specificity, theme-variable based CSS overrides for dark-mode UI fixes (e.g., calendar navigation arrows) and allow using !important when component-scoped CSS is overridden by Bootstrap; use --color-bg-card and --color-text-medium for navigation buttons.
 
 ## Project-Specific Rules
 - User prefers changes in code to use userId (OwnerId) instead of Username for Reminder ownership and requested removal of Reminder.Username property; update services and endpoints accordingly.

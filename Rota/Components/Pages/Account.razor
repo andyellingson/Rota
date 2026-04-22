@@ -223,9 +223,19 @@
             <h5 class="account-section-title">🔐 Security</h5>
 
             <div class="account-card">
+                @* Hidden anti-autofill fields placed before visible password inputs to capture browser autofill
+                   so the visible 'Current Password' input is not auto-filled. This is a common, low-impact
+                   technique to reduce unintended password population. *@
+                <input type="text" autocomplete="username" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0;" aria-hidden="true" />
+                <input type="password" autocomplete="current-password" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0;" aria-hidden="true" />
+
                 <div class="mb-3">
                     <label class="form-label account-field-label">Current Password</label>
-                    <input class="form-control" type="password" @bind="currentPassword" autocomplete="current-password" />
+                    @* Prevent browser autofill on this visible field; clear possible autofill on focus to be safe *@
+                    <input class="form-control" type="password"
+                           @bind="currentPassword"
+                           autocomplete="off"
+                           @onfocus="(() => currentPassword = string.Empty)" />
                 </div>
                 <div class="mb-3">
                     <label class="form-label account-field-label">New Password</label>

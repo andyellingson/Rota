@@ -405,3 +405,44 @@
     border-color: var(--color-border);
     color: var(--color-text-primary);
 }
+
+/* Stronger, high-specificity override for the calendar forward/back buttons in dark mode.
+   Using aria-label and .card-body scope to avoid affecting other .btn-light usages.
+   Uses theme variables and !important to overcome Bootstrap defaults when necessary. */
+[data-theme="dark"] .calendar-card .card-body .btn-group[aria-label="Navigation"] > .btn.btn-light,
+[data-theme="dark"] .calendar-card .card-body .btn-group[aria-label="Navigation"] > .btn.btn-light:focus,
+[data-theme="dark"] .calendar-card .card-body .btn-group[aria-label="Navigation"] > .btn.btn-light:hover {
+    background-color: var(--color-bg-card) !important;      /* darker surface matching cards */
+    border: 1px solid var(--color-border) !important;       /* theme-aware border */
+    color: var(--color-text-medium) !important;             /* slightly muted glyph color */
+    box-shadow: none !important;
+    filter: none !important;                                /* clear any global invert/filters */
+    padding: 0.3rem 0.55rem !important;
+    min-width: 2.2rem;
+    line-height: 1;
+    font-weight: 700;
+    border-radius: 8px;
+}
+
+/* Tidy the grouping so the pair looks like a single control but keeps clear glyphs */
+[data-theme="dark"] .calendar-card .card-body .btn-group[aria-label="Navigation"] > .btn.btn-light:first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+[data-theme="dark"] .calendar-card .card-body .btn-group[aria-label="Navigation"] > .btn.btn-light:last-child {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+/* Hover uses a subtle contrast */
+[data-theme="dark"] .calendar-card .card-body .btn-group[aria-label="Navigation"] > .btn.btn-light:hover {
+    background-color: var(--color-bg-hover) !important;
+    border-color: rgba(13,110,253,0.12) !important;
+}
+
+/* Fallback broader selector if markup changes slightly (keeps lower precedence than the aria-label rule) */
+[data-theme="dark"] .calendar-card .btn-group > .btn.btn-light {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border);
+    color: var(--color-text-medium);
+}
