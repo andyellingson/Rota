@@ -89,13 +89,13 @@ namespace Rota.Models
             public Guid? SeriesId { get; set; }
 
             /// <summary>
-            /// Optional WorkWeek ID (MongoDB ObjectId string) that this shift belongs to.
+            /// Optional Rotation ID (MongoDB ObjectId string) that this shift belongs to.
             /// When set, this shift acts as a template and is not tied to a specific calendar date.
-            /// ScheduleId should NOT be set for workweek template shifts.
+            /// ScheduleId should NOT be set for rotation template shifts.
             /// </summary>
-            [BsonElement("workWeekId")]
+            [BsonElement("rotationId")]
             [BsonRepresentation(BsonType.ObjectId)]
-            public string? WorkWeekId { get; set; }
+            public string? RotationId { get; set; }
 
             /// <summary>
             /// Day of the week this shift template should be generated for.

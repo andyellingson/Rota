@@ -3,7 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace Rota.Models
 {
-    public class WorkWeek
+    public class Rotation
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
@@ -13,9 +13,9 @@ namespace Rota.Models
         public string Name { get; set; } = null!;
 
         /// <summary>
-        /// Collection of shift definitions for this work week. DayOfWeek indicates which weekday the shift applies to.
+        /// Collection of shift definitions for this rotation. DayOfWeek indicates which weekday the shift applies to.
         /// </summary>
         [BsonElement("shifts")]
-        public List<WorkWeekShift> Shifts { get; set; } = new();
+        public List<RotationShift> Shifts { get; set; } = new();
     }
 }

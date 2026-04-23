@@ -49,13 +49,13 @@ namespace Rota.Services
         Task<List<Schedule>> GetSchedulesByIdsAsync(IEnumerable<string> scheduleIds);
 
         /// <summary>
-        /// Adds a new WorkWeek template to the specified schedule.
+        /// Adds a new Rotation template to the specified schedule.
         /// </summary>
-        Task<WorkWeek> AddWorkWeekAsync(string scheduleId, string managerId, WorkWeek workWeek);
+        Task<Rotation> AddRotationAsync(string scheduleId, string managerId, Rotation rotation);
 
         /// <summary>
-        /// Deletes a WorkWeek template from the specified schedule.
+        /// Deletes a Rotation template from the specified schedule.
         /// </summary>
-        Task<bool> DeleteWorkWeekAsync(string scheduleId, string managerId, string workWeekId);
+        Task<bool> DeleteRotationAsync(string scheduleId, string managerId, string rotationId);
     }
 }

@@ -266,7 +266,7 @@
                 @if (canManageShifts)
                 {
                     var wwSel = availableSchedules.FirstOrDefault(s => s.Id == selectedScheduleId);
-                    if (wwSel?.WorkWeeks?.Count > 0)
+                    if (wwSel?.Rotations?.Count > 0)
                     {
                         <div class="day-modal-template-bar">
                             <div class="day-modal-template-bar-label">
@@ -276,7 +276,7 @@
                             <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
                                 <select class="form-select form-select-sm day-modal-template-select" @bind="dayModalSelectedWorkWeekId">
                                     <option value="">— Select WorkWeek —</option>
-                                    @foreach (var ww in wwSel.WorkWeeks)
+                                    @foreach (var ww in wwSel.Rotations)
                                     {
                                         <option value="@ww.Id">@ww.Name</option>
                                     }
@@ -786,7 +786,7 @@
         {
             dayModalIsApplying = true;
 
-            var templateShifts = await ShiftService.GetWorkWeekTemplateShiftsAsync(dayModalSelectedWorkWeekId, _managerCode);
+            var templateShifts = await ShiftService.GetRotationTemplateShiftsAsync(dayModalSelectedWorkWeekId, _managerCode);
 
             if (templateShifts.Count == 0)
             {
@@ -818,7 +818,7 @@
                         ManagerCode = _managerCode,
                         ScheduleId = selectedScheduleId,
                         WorkerType = template.WorkerType,
-                        WorkWeekId = null,  // Actual calendar shifts do not carry a WorkWeekId
+                        RotationId = null,  // Actual calendar shifts do not carry a WorkWeekId
                         WorkDay = null      // WorkDay is only meaningful on template shifts
                     });
                 }

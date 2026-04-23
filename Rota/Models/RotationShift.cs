@@ -4,7 +4,7 @@ using System;
 
 namespace Rota.Models
 {
-    public class WorkWeekShift
+    public class RotationShift
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]

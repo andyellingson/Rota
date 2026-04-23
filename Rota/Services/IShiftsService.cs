@@ -15,14 +15,14 @@ namespace Rota.Services
         System.Threading.Tasks.Task<List<string>> GetDistinctScheduleIdsForUserAsync(string userId);
 
         /// <summary>
-        /// Gets all template shifts for a specific WorkWeek ID.
-        /// These are shifts with WorkWeekId set and are not tied to specific calendar dates.
+        /// Gets all template shifts for a specific Rotation ID.
+        /// These are shifts with RotationId set and are not tied to specific calendar dates.
         /// </summary>
-        System.Threading.Tasks.Task<List<Shift>> GetWorkWeekTemplateShiftsAsync(string workWeekId, string managerCode);
+        System.Threading.Tasks.Task<List<Shift>> GetRotationTemplateShiftsAsync(string rotationId, string managerCode);
 
         /// <summary>
-        /// Deletes all template shifts associated with a specific WorkWeek ID.
+        /// Deletes all template shifts associated with a specific Rotation ID.
         /// </summary>
-        System.Threading.Tasks.Task<int> DeleteWorkWeekTemplateShiftsAsync(string workWeekId, string managerCode);
+        System.Threading.Tasks.Task<int> DeleteRotationTemplateShiftsAsync(string rotationId, string managerCode);
     }
 }

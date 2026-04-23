@@ -19,7 +19,7 @@ namespace Rota.Services
             _schedules = db.GetCollection<Schedule>("schedules");
         }
 
-        public async Task<WorkWeek> AddWorkWeekAsync(string scheduleId, string managerId, WorkWeek workWeek)
+        public async Task<Rotation> AddRotationAsync(string scheduleId, string managerId, Rotation rotation)
         {
             try
             {
@@ -30,25 +30,25 @@ namespace Rota.Services
                 );
 
                 // Assign id if missing
-                if (string.IsNullOrEmpty(workWeek.Id)) workWeek.Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
+                if (string.IsNullOrEmpty(rotation.Id)) rotation.Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
 
-                var update = Builders<Schedule>.Update.Push(s => s.WorkWeeks, workWeek);
+                var update = Builders<Schedule>.Update.Push(s => s.Rotations, rotation);
                 var result = await _schedules.UpdateOneAsync(filter, update);
                 if (result.ModifiedCount > 0)
                 {
-                    return workWeek;
+                    return rotation;
                 }
 
-                throw new InvalidOperationException("Unable to add work week (schedule not found or not authorized).");
+                throw new InvalidOperationException("Unable to add rotation (schedule not found or not authorized).");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding work week to schedule {ScheduleId}", scheduleId);
+                _logger.LogError(ex, "Error adding rotation to schedule {ScheduleId}", scheduleId);
                 throw;
             }
         }
 
-        public async Task<bool> DeleteWorkWeekAsync(string scheduleId, string managerId, string workWeekId)
+        public async Task<bool> DeleteRotationAsync(string scheduleId, string managerId, string rotationId)
         {
             try
             {
@@ -57,13 +57,13 @@ namespace Rota.Services
                     Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId)
                 );
 
-                var update = Builders<Schedule>.Update.PullFilter(s => s.WorkWeeks, Builders<WorkWeek>.Filter.Eq(w => w.Id, workWeekId));
+                var update = Builders<Schedule>.Update.PullFilter(s => s.Rotations, Builders<Rotation>.Filter.Eq(w => w.Id, rotationId));
                 var result = await _schedules.UpdateOneAsync(filter, update);
                 return result.ModifiedCount > 0;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting work week {WorkWeekId} from schedule {ScheduleId}", workWeekId, scheduleId);
+                _logger.LogError(ex, "Error deleting rotation {RotationId} from schedule {ScheduleId}", rotationId, scheduleId);
                 throw;
             }
         }

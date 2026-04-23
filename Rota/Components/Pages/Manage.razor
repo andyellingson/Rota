@@ -61,67 +61,67 @@
                                 <div class="schedule-card-meta">Created @schedule.CreatedAt.ToLocalTime().ToString("g")</div>
                             </div>
                             <div class="schedule-card-actions">
-                                    @if (!schedule.IsDefault)
-                                    {
-                                        <button class="btn btn-sm btn-outline-primary" @onclick="(() => SetAsDefault(schedule))">
-                                            Set Default
-                                        </button>
-                                    }
-                                    <button class="btn btn-sm btn-outline-secondary" @onclick="(() => ViewInCalendar(schedule))">
-                                        Calendar
+                                @if (!schedule.IsDefault)
+                                {
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="(() => SetAsDefault(schedule))">
+                                        Set Default
                                     </button>
-                                    <button class="btn btn-sm btn-outline-secondary" @onclick="(() => OpenWorkWeeksModal(schedule))">
-                                        Work Weeks
+                                }
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="(() => ViewInCalendar(schedule))">
+                                    Calendar
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="(() => OpenRotationsModal(schedule))">
+                                    Rotations
+                                </button>
+                                <button class="btn btn-sm btn-outline-warning" @onclick="(() => OpenEditModal(schedule))">
+                                    Edit
+                                </button>
+                                @if (schedules.Count > 1)
+                                {
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="(() => OpenDeleteConfirm(schedule))">
+                                        Delete
                                     </button>
-                                    <button class="btn btn-sm btn-outline-warning" @onclick="(() => OpenEditModal(schedule))">
-                                        Edit
-                                    </button>
-                                    @if (schedules.Count > 1)
-                                    {
-                                                            <button class="btn btn-sm btn-outline-danger" @onclick="(() => OpenDeleteConfirm(schedule))">
-                                                                Delete
-                                                            </button>
-                                                        }
-                                                    </div>
-                                                </div>
-                                            }
-                                        </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
             }
         </div>
     </div>
 </div>
 
-@* WorkWeek selection modal *@
-@if (showWorkWeekSelectionModal && workWeekSchedule != null)
+@* Rotation selection modal *@
+@if (showRotationSelectionModal && rotationSchedule != null)
 {
     <div class="modal-backdrop fade show"></div>
     <div class="modal fade show d-block" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Work Weeks - @workWeekSchedule.Name</h5>
-                    <button type="button" class="btn-close" @onclick="CloseWorkWeekSelectionModal" aria-label="Close"></button>
+                    <h5 class="modal-title">Rotations - @rotationSchedule.Name</h5>
+                    <button type="button" class="btn-close" @onclick="CloseRotationSelectionModal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <button class="btn btn-primary w-100" @onclick="OpenCreateWorkWeek">
-                            <span class="me-2">+</span> Create New WorkWeek
+                        <button class="btn btn-primary w-100" @onclick="OpenCreateRotation">
+                            <span class="me-2">+</span> Create New Rotation
                         </button>
                     </div>
 
-                    @if (workWeekSchedule.WorkWeeks == null || workWeekSchedule.WorkWeeks.Count == 0)
+                    @if (rotationSchedule.Rotations == null || rotationSchedule.Rotations.Count == 0)
                     {
-                        <div class="alert alert-info">No work week templates exist yet. Create one to get started.</div>
+                        <div class="alert alert-info">No rotation templates exist yet. Create one to get started.</div>
                     }
                     else
                     {
                         <div class="list-group">
-                            @foreach (var ww in workWeekSchedule.WorkWeeks)
+                            @foreach (var ww in rotationSchedule.Rotations)
                             {
-                                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" style="cursor: pointer;" @onclick="(() => OpenEditWorkWeek(ww))">
+                                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" style="cursor: pointer;" @onclick="(() => OpenEditRotation(ww))">
                                     <div>
                                         <div class="fw-bold">@ww.Name</div>
-                                        <div class="text-muted small">@(workWeekShiftCounts.GetValueOrDefault(ww.Id ?? "", 0)) shift(s)</div>
+                                        <div class="text-muted small">@(rotationShiftCounts.GetValueOrDefault(ww.Id ?? "", 0)) shift(s)</div>
                                     </div>
                                     @* Removed inline Edit badge — clicking the list item opens the edit modal *@
                                 </div>
@@ -130,30 +130,30 @@
                     }
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="CloseWorkWeekSelectionModal">Close</button>
+                    <button class="btn btn-secondary" @onclick="CloseRotationSelectionModal">Close</button>
                 </div>
             </div>
         </div>
     </div>
 }
 
-@* WorkWeek edit modal *@
-@if (showWorkWeeksModal && workWeekSchedule != null)
+@* Rotation edit modal *@
+@if (showRotationModal && rotationSchedule != null)
 {
     <div class="modal-backdrop fade show"></div>
     <div class="modal fade show d-block" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-dialog-centered ww-modal-dialog modal-dialog-scrollable" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">@(editingWorkWeek == null ? "Create New WorkWeek" : "Edit WorkWeek") — @workWeekSchedule.Name</h5>
-                    <button type="button" class="btn-close" @onclick="CloseWorkWeeksModal" aria-label="Close"></button>
+                    <h5 class="modal-title">@(editingRotation == null ? "Create New Rotation" : "Edit Rotation") — @rotationSchedule.Name</h5>
+                    <button type="button" class="btn-close" @onclick="CloseRotationModal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    @if (showCreateWorkWeek)
+                    @if (showCreateRotation)
                     {
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">WorkWeek Name</label>
-                            <input class="form-control" @bind="newWorkWeekName" @bind:after="OnWorkWeekChanged" />
+                            <label class="form-label fw-semibold">Rotation Name</label>
+                            <input class="form-control" @bind="newRotationName" @bind:after="OnRotationChanged" />
                         </div>
 
                         <div class="mb-2">
@@ -177,11 +177,11 @@
                                         <div class="fw-bold">@d.ToString("dddd")</div>
                                     </div>
                                     <div class="events">
-                                        @foreach (var s in newWorkWeekShifts.Where(s => s.WorkDay == dow).OrderBy(s => s.Start))
+                                        @foreach (var s in newRotationShifts.Where(s => s.WorkDay == dow).OrderBy(s => s.Start))
                                         {
                                             <div class="shift-item mb-1"
                                                  style="border-left-color:@(s.Color ?? "#1890ff"); background:@(s.Color ?? "#1890ff")18;"
-                                                 @onclick:stopPropagation="true" @onclick="(() => EditWorkWeekShift(s))">
+                                                 @onclick:stopPropagation="true" @onclick="(() => EditRotationShift(s))">
                                                 <div class="shift-worker-type" style="color:@(s.Color ?? "#1890ff");">
                                                     @* Match the calendar display format: "Title - WorkerType", or just WorkerType when no title is set *@
                                                     @(string.IsNullOrWhiteSpace(s.Title) ? s.WorkerType.ToString() : $"{s.Title} - {s.WorkerType}")
@@ -199,16 +199,16 @@
                 @* Footer: Delete on the left, Cancel + Save on the right *@
                 <div class="modal-footer">
                     <div class="me-auto">
-                        @if (editingWorkWeek != null)
+                        @if (editingRotation != null)
                         {
-                            <button class="btn btn-outline-danger" @onclick="DeleteCurrentWorkWeek" disabled="@isBusy">
-                                Delete WorkWeek
+                            <button class="btn btn-outline-danger" @onclick="DeleteCurrentRotation" disabled="@isBusy">
+                                Delete Rotation
                             </button>
                         }
                     </div>
-                    <button class="btn btn-secondary" @onclick="CancelCreateWorkWeek" disabled="@isBusy">Cancel</button>
-                    <button class="btn btn-primary" @onclick="SaveNewWorkWeek" disabled="@(!hasWorkWeekChanges || isBusy)">
-                        @(isBusy ? "Saving…" : "Save WorkWeek")
+                    <button class="btn btn-secondary" @onclick="CancelCreateRotation" disabled="@isBusy">Cancel</button>
+                    <button class="btn btn-primary" @onclick="SaveRotation" disabled="@(!hasRotationChanges || isBusy)">
+                        @(isBusy ? "Saving…" : "Save Rotation")
                     </button>
                 </div>
             </div>
@@ -232,12 +232,12 @@
                     {
                         <div class="alert alert-danger">@modalError</div>
                     }
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Schedule Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" @bind="scheduleName" placeholder="e.g. April 2026 Schedule" />
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="form-label">Description (optional)</label>
                         <textarea class="form-control" rows="3" @bind="scheduleDescription" placeholder="Add a description for this schedule"></textarea>
@@ -375,9 +375,9 @@
                                             @foreach (var day in Enum.GetValues<DayOfWeek>())
                                             {
                                                 var windows = selectedMember.Availability
-                                                    .Where(a => a.DayOfWeek == day)
-                                                    .OrderBy(a => a.StartTime)
-                                                    .ToList();
+                                                .Where(a => a.DayOfWeek == day)
+                                                .OrderBy(a => a.StartTime)
+                                                .ToList();
 
                                                 @if (windows.Count > 0)
                                                 {
@@ -453,19 +453,19 @@
     </div>
 </div>
 
-@* CalendarEditModal for adding shifts to WorkWeek templates *@
-<CalendarEditModal State="workWeekModalState"
+@* CalendarEditModal for adding shifts to Rotation templates *@
+<CalendarEditModal State="rotationModalState"
                    CanManageShifts="true"
                    Employees="employees"
                    LinkedUsers="new List<User>()"
                    ColorChoices="ColorChoices"
-                   OnClose="CloseWorkWeekShiftModal"
+                   OnClose="CloseRotationShiftModal"
                    OnSaveReminder="@(() => Task.CompletedTask)"
                    OnUpdateReminder="@(() => Task.CompletedTask)"
                    OnDeleteReminder="@(() => Task.CompletedTask)"
-                   OnSaveShift="SaveWorkWeekShift"
+                   OnSaveShift="SaveRotationShift"
                    OnUpdateShift="@(() => Task.CompletedTask)"
-                   OnDeleteShift="DeleteWorkWeekShift"
+                   OnDeleteShift="DeleteRotationShift"
                    OnDeleteShiftSeries="@(() => Task.CompletedTask)"
                    OnSaveAbsence="@(() => Task.CompletedTask)"
                    OnUpdateAbsence="@(() => Task.CompletedTask)"
@@ -507,24 +507,24 @@
     private string? modalError;
     private bool isBusy = false;
 
-    // WorkWeek management state
-    private bool showWorkWeekSelectionModal = false;
-    private bool showWorkWeeksModal = false;
-    private Schedule? workWeekSchedule;
-    private bool showCreateWorkWeek = false;
-    private WorkWeek? editingWorkWeek = null;
-    private string newWorkWeekName = string.Empty;
-    private List<Shift> newWorkWeekShifts = new();
+    // Rotation management state
+    private bool showRotationSelectionModal = false;
+    private bool showRotationModal = false;
+    private Schedule? rotationSchedule;
+    private bool showCreateRotation = false;
+    private Rotation? editingRotation = null;
+    private string newRotationName = string.Empty;
+    private List<Shift> newRotationShifts = new();
     private DayOfWeek newShiftDay = DayOfWeek.Monday;
     private DayOfWeek? createShiftForDay = null;
-    private Shift? editingWorkWeekShift = null;
-    private CalendarEditModalState workWeekModalState = new();
+    private Shift? editingRotationShift = null;
+    private CalendarEditModalState rotationModalState = new();
     private CalendarEditModalState absenceModalState = new();
     private List<User> employees = new();
     private readonly string[] ColorChoices = new[] { "#ff4d4f", "#52c41a", "#1890ff", "#fa8c16", "#d3d3d3" };
 
-    // Stores the real template-shift count per WorkWeek ID, loaded from the shifts collection
-    private Dictionary<string, int> workWeekShiftCounts = new();
+    // Stores the real template-shift count per Rotation ID, loaded from the shifts collection
+    private Dictionary<string, int> rotationShiftCounts = new();
 
     // Employees linked to the logged-in manager
     private List<User> linkedUsers = new();
@@ -545,39 +545,39 @@
     private bool HasMemberOccupationChanged =>
         selectedMember is not null && selectedMemberOccupation != selectedMember.Occupation;
 
-    // Change tracking for WorkWeek
-    private string originalWorkWeekName = string.Empty;
-    private List<Shift> originalWorkWeekShifts = new();
-    private bool hasWorkWeekChanges => CheckWorkWeekChanges();
+    // Change tracking for Rotation
+    private string originalRotationName = string.Empty;
+    private List<Shift> originalRotationShifts = new();
+    private bool hasRotationChanges => CheckRotationChanges();
 
     private void BeginCreateShiftForDay(DayOfWeek day)
     {
         createShiftForDay = day;
         newShiftDay = day;
-        editingWorkWeekShift = null;
+        editingRotationShift = null;
 
         // Initialize modal state for a new shift.
         // EditingShift MUST be cleared here — if the user previously opened an existing
         // shift's edit form, the stale reference would cause the modal to open in edit
         // mode even when clicking an empty area of a day column.
-        workWeekModalState.EditingShift = null;
-        workWeekModalState.ShowModal = true;
-        workWeekModalState.ModalMode = ModalMode.Shift;
-        workWeekModalState.SelectedDate = DateOnly.FromDateTime(DateTime.Today); // Not used for templates but required
-        workWeekModalState.NewShiftStartTime = new TimeOnly(9, 0);
-        workWeekModalState.NewShiftEndTime = new TimeOnly(17, 0);
-        workWeekModalState.NewShiftTitle = string.Empty;
-        workWeekModalState.NewShiftColor = "#1890ff";
-        workWeekModalState.NewShiftNotes = null;
-        workWeekModalState.NewShiftWorkerType = WorkerType.General;
-        workWeekModalState.NewShiftAssignedTo = string.Empty;
-        workWeekModalState.NewShiftRecurrence = ShiftRecurrence.None;
-        workWeekModalState.ModalError = null;
+        rotationModalState.EditingShift = null;
+        rotationModalState.ShowModal = true;
+        rotationModalState.ModalMode = ModalMode.Shift;
+        rotationModalState.SelectedDate = DateOnly.FromDateTime(DateTime.Today); // Not used for templates but required
+        rotationModalState.NewShiftStartTime = new TimeOnly(9, 0);
+        rotationModalState.NewShiftEndTime = new TimeOnly(17, 0);
+        rotationModalState.NewShiftTitle = string.Empty;
+        rotationModalState.NewShiftColor = "#1890ff";
+        rotationModalState.NewShiftNotes = null;
+        rotationModalState.NewShiftWorkerType = WorkerType.General;
+        rotationModalState.NewShiftAssignedTo = string.Empty;
+        rotationModalState.NewShiftRecurrence = ShiftRecurrence.None;
+        rotationModalState.ModalError = null;
     }
 
-    private void EditWorkWeekShift(Shift shift)
+    private void EditRotationShift(Shift shift)
     {
-        editingWorkWeekShift = shift;
+        editingRotationShift = shift;
         createShiftForDay = shift.WorkDay;
         newShiftDay = shift.WorkDay ?? DayOfWeek.Monday;
 
@@ -586,52 +586,52 @@
         var endTime = TimeOnly.FromDateTime(shift.End);
 
         // Initialize modal state with existing shift data
-        workWeekModalState.ShowModal = true;
-        workWeekModalState.ModalMode = ModalMode.Shift;
-        workWeekModalState.EditingShift = shift; // Set editing shift so delete button appears
-        workWeekModalState.SelectedDate = DateOnly.FromDateTime(DateTime.Today); // Not used for templates but required
-        workWeekModalState.EditShiftDate = DateOnly.FromDateTime(DateTime.Today);
-        workWeekModalState.EditShiftStartTime = startTime;
-        workWeekModalState.EditShiftEndTime = endTime;
-        workWeekModalState.EditShiftTitle = shift.Title ?? string.Empty;
-        workWeekModalState.EditShiftColor = shift.Color ?? "#1890ff";
-        workWeekModalState.EditShiftNotes = shift.Notes;
-        workWeekModalState.EditShiftWorkerType = shift.WorkerType;
-        workWeekModalState.EditShiftAssignedTo = shift.AssignedToUserId ?? string.Empty;
-        workWeekModalState.ModalError = null;
+        rotationModalState.ShowModal = true;
+        rotationModalState.ModalMode = ModalMode.Shift;
+        rotationModalState.EditingShift = shift; // Set editing shift so delete button appears
+        rotationModalState.SelectedDate = DateOnly.FromDateTime(DateTime.Today); // Not used for templates but required
+        rotationModalState.EditShiftDate = DateOnly.FromDateTime(DateTime.Today);
+        rotationModalState.EditShiftStartTime = startTime;
+        rotationModalState.EditShiftEndTime = endTime;
+        rotationModalState.EditShiftTitle = shift.Title ?? string.Empty;
+        rotationModalState.EditShiftColor = shift.Color ?? "#1890ff";
+        rotationModalState.EditShiftNotes = shift.Notes;
+        rotationModalState.EditShiftWorkerType = shift.WorkerType;
+        rotationModalState.EditShiftAssignedTo = shift.AssignedToUserId ?? string.Empty;
+        rotationModalState.ModalError = null;
     }
 
-    private void CloseWorkWeekShiftModal()
+    private void CloseRotationShiftModal()
     {
-        workWeekModalState.ShowModal = false;
+        rotationModalState.ShowModal = false;
         createShiftForDay = null;
-        editingWorkWeekShift = null;
+        editingRotationShift = null;
     }
 
-    private async Task SaveWorkWeekShift()
+    private async Task SaveRotationShift()
     {
         if (!createShiftForDay.HasValue) return;
 
-        if (editingWorkWeekShift != null)
+        if (editingRotationShift != null)
         {
             // Update existing template shift
-            editingWorkWeekShift.WorkDay = createShiftForDay.Value;
+            editingRotationShift.WorkDay = createShiftForDay.Value;
             // Create a reference date to store times (will be replaced when applying to calendar)
             var refDate = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            editingWorkWeekShift.Start = refDate.Add(workWeekModalState.NewShiftStartTime.ToTimeSpan());
-            editingWorkWeekShift.End = refDate.Add(workWeekModalState.NewShiftEndTime.ToTimeSpan());
-            editingWorkWeekShift.Title = string.IsNullOrWhiteSpace(workWeekModalState.NewShiftTitle) ? "" : workWeekModalState.NewShiftTitle.Trim();
-            editingWorkWeekShift.Color = workWeekModalState.NewShiftColor;
-            editingWorkWeekShift.Notes = workWeekModalState.NewShiftNotes;
-            editingWorkWeekShift.WorkerType = workWeekModalState.NewShiftWorkerType;
-            editingWorkWeekShift.AssignedToUserId = string.IsNullOrWhiteSpace(workWeekModalState.NewShiftAssignedTo) ? null : workWeekModalState.NewShiftAssignedTo;
+            editingRotationShift.Start = refDate.Add(rotationModalState.NewShiftStartTime.ToTimeSpan());
+            editingRotationShift.End = refDate.Add(rotationModalState.NewShiftEndTime.ToTimeSpan());
+            editingRotationShift.Title = string.IsNullOrWhiteSpace(rotationModalState.NewShiftTitle) ? "" : rotationModalState.NewShiftTitle.Trim();
+            editingRotationShift.Color = rotationModalState.NewShiftColor;
+            editingRotationShift.Notes = rotationModalState.NewShiftNotes;
+            editingRotationShift.WorkerType = rotationModalState.NewShiftWorkerType;
+            editingRotationShift.AssignedToUserId = string.IsNullOrWhiteSpace(rotationModalState.NewShiftAssignedTo) ? null : rotationModalState.NewShiftAssignedTo;
         }
         else
         {
             // Determine which days to create shifts for based on recurrence
             var daysToCreate = new List<DayOfWeek>();
 
-            switch (workWeekModalState.NewShiftRecurrence)
+            switch (rotationModalState.NewShiftRecurrence)
             {
                 case ShiftRecurrence.None:
                     daysToCreate.Add(createShiftForDay.Value);
@@ -639,20 +639,20 @@
 
                 case ShiftRecurrence.Daily:
                     // All 7 days
-                    daysToCreate.AddRange(new[] 
-                    { 
-                        DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, 
-                        DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, 
-                        DayOfWeek.Saturday 
+                    daysToCreate.AddRange(new[]
+                    {
+                        DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday,
+                        DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday,
+                        DayOfWeek.Saturday
                     });
                     break;
 
                 case ShiftRecurrence.Workdays:
                     // Monday through Friday
-                    daysToCreate.AddRange(new[] 
-                    { 
-                        DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, 
-                        DayOfWeek.Thursday, DayOfWeek.Friday 
+                    daysToCreate.AddRange(new[]
+                    {
+                        DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
+                        DayOfWeek.Thursday, DayOfWeek.Friday
                     });
                     break;
 
@@ -663,45 +663,45 @@
             }
 
             // Create a template shift for each day
-            // Note: WorkWeekId will be set when SaveNewWorkWeek is called
+            // Note: RotationId will be set when SaveRotation is called
             foreach (var day in daysToCreate)
             {
                 // Use a reference date to store the time (2000-01-01)
                 var refDate = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-                var start = refDate.Add(workWeekModalState.NewShiftStartTime.ToTimeSpan());
-                var end = refDate.Add(workWeekModalState.NewShiftEndTime.ToTimeSpan());
+                var start = refDate.Add(rotationModalState.NewShiftStartTime.ToTimeSpan());
+                var end = refDate.Add(rotationModalState.NewShiftEndTime.ToTimeSpan());
 
-                newWorkWeekShifts.Add(new Shift
+                newRotationShifts.Add(new Shift
                 {
                     Id = null,
                     WorkDay = day,
                     Start = start,
                     End = end,
-                    Title = string.IsNullOrWhiteSpace(workWeekModalState.NewShiftTitle) ? "" : workWeekModalState.NewShiftTitle.Trim(),
-                    Color = workWeekModalState.NewShiftColor,
-                    Notes = workWeekModalState.NewShiftNotes,
-                    WorkerType = workWeekModalState.NewShiftWorkerType,
-                    AssignedToUserId = string.IsNullOrWhiteSpace(workWeekModalState.NewShiftAssignedTo) ? null : workWeekModalState.NewShiftAssignedTo,
+                    Title = string.IsNullOrWhiteSpace(rotationModalState.NewShiftTitle) ? "" : rotationModalState.NewShiftTitle.Trim(),
+                    Color = rotationModalState.NewShiftColor,
+                    Notes = rotationModalState.NewShiftNotes,
+                    WorkerType = rotationModalState.NewShiftWorkerType,
+                    AssignedToUserId = string.IsNullOrWhiteSpace(rotationModalState.NewShiftAssignedTo) ? null : rotationModalState.NewShiftAssignedTo,
                     Username = _username ?? string.Empty,
                     ManagerCode = _managerCode,
                     ScheduleId = null, // Template shifts don't have ScheduleId
-                    WorkWeekId = null  // Will be set when SaveNewWorkWeek creates the WorkWeek
+                    RotationId = null  // Will be set when SaveRotation creates the Rotation
                 });
             }
         }
 
-        CloseWorkWeekShiftModal();
+        CloseRotationShiftModal();
         StateHasChanged(); // Trigger change detection
         await Task.CompletedTask;
     }
 
-    private async Task DeleteWorkWeekShift()
+    private async Task DeleteRotationShift()
     {
-        if (editingWorkWeekShift != null)
+        if (editingRotationShift != null)
         {
             // Remove the shift from the template
-            newWorkWeekShifts.Remove(editingWorkWeekShift);
-            CloseWorkWeekShiftModal();
+            newRotationShifts.Remove(editingRotationShift);
+            CloseRotationShiftModal();
             StateHasChanged(); // Trigger change detection
         }
 
@@ -715,92 +715,92 @@
         return date.AddDays(-diff);
     }
 
-    private async Task OpenWorkWeeksModal(Schedule schedule)
+    private async Task OpenRotationsModal(Schedule schedule)
     {
-        workWeekSchedule = schedule;
-        showWorkWeekSelectionModal = true;
-        showWorkWeeksModal = false;
-        showCreateWorkWeek = false;
-        editingWorkWeek = null;
-        newWorkWeekName = string.Empty;
-        newWorkWeekShifts.Clear();
-        originalWorkWeekName = string.Empty;
-        originalWorkWeekShifts.Clear();
+        rotationSchedule = schedule;
+        showRotationSelectionModal = true;
+        showRotationModal = false;
+        showCreateRotation = false;
+        editingRotation = null;
+        newRotationName = string.Empty;
+        newRotationShifts.Clear();
+        originalRotationName = string.Empty;
+        originalRotationShifts.Clear();
 
         // Load the real template-shift counts from the shifts collection.
-        // The embedded WorkWeek.Shifts list is always empty; actual template shifts
-        // are stored as Shift documents with WorkWeekId set.
-        await RefreshWorkWeekShiftCountsAsync(schedule);
+        // The embedded Rotation.Shifts list is always empty; actual template shifts
+        // are stored as Shift documents with RotationId set.
+        await RefreshRotationShiftCountsAsync(schedule);
     }
 
     /// <summary>
-    /// Queries the shifts collection for each WorkWeek in the given schedule and
-    /// populates workWeekShiftCounts so the selection list shows accurate counts.
+    /// Queries the shifts collection for each Rotation in the given schedule and
+    /// populates rotationShiftCounts so the selection list shows accurate counts.
     /// </summary>
-    private async Task RefreshWorkWeekShiftCountsAsync(Schedule? schedule)
+    private async Task RefreshRotationShiftCountsAsync(Schedule? schedule)
     {
-        workWeekShiftCounts.Clear();
+        rotationShiftCounts.Clear();
 
-        if (schedule?.WorkWeeks == null || string.IsNullOrEmpty(_managerCode)) return;
+        if (schedule?.Rotations == null || string.IsNullOrEmpty(_managerCode)) return;
 
-        foreach (var ww in schedule.WorkWeeks)
+        foreach (var ww in schedule.Rotations)
         {
             if (string.IsNullOrEmpty(ww.Id)) continue;
 
             try
             {
-                var shifts = await ShiftsService.GetWorkWeekTemplateShiftsAsync(ww.Id, _managerCode);
-                workWeekShiftCounts[ww.Id] = shifts.Count;
+                var shifts = await ShiftsService.GetRotationTemplateShiftsAsync(ww.Id, _managerCode);
+                rotationShiftCounts[ww.Id] = shifts.Count;
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error loading shift count for WorkWeek {WorkWeekId}", ww.Id);
-                workWeekShiftCounts[ww.Id] = 0;
+                Logger.LogError(ex, "Error loading shift count for Rotation {RotationId}", ww.Id);
+                rotationShiftCounts[ww.Id] = 0;
             }
         }
     }
 
-    private void CloseWorkWeekSelectionModal()
+    private void CloseRotationSelectionModal()
     {
-        showWorkWeekSelectionModal = false;
-        workWeekSchedule = null;
+        showRotationSelectionModal = false;
+        rotationSchedule = null;
     }
 
-    private void CloseWorkWeeksModal()
+    private void CloseRotationModal()
     {
-        showWorkWeeksModal = false;
-        showWorkWeekSelectionModal = true; // Go back to selection modal
+        showRotationModal = false;
+        showRotationSelectionModal = true; // Go back to selection modal
     }
 
-    private void OpenCreateWorkWeek()
+    private void OpenCreateRotation()
     {
-        editingWorkWeek = null;
-        showCreateWorkWeek = true;
-        showWorkWeeksModal = true;
-        showWorkWeekSelectionModal = false;
-        newWorkWeekName = string.Empty;
-        newWorkWeekShifts.Clear();
-        originalWorkWeekName = string.Empty;
-        originalWorkWeekShifts.Clear();
+        editingRotation = null;
+        showCreateRotation = true;
+        showRotationModal = true;
+        showRotationSelectionModal = false;
+        newRotationName = string.Empty;
+        newRotationShifts.Clear();
+        originalRotationName = string.Empty;
+        originalRotationShifts.Clear();
     }
 
-    private async Task OpenEditWorkWeek(WorkWeek ww)
+    private async Task OpenEditRotation(Rotation ww)
     {
         if (ww == null || string.IsNullOrEmpty(ww.Id) || string.IsNullOrEmpty(_managerCode)) return;
 
-        editingWorkWeek = ww;
-        newWorkWeekName = ww.Name;
-        showCreateWorkWeek = true;
-        showWorkWeeksModal = true;
-        showWorkWeekSelectionModal = false;
+        editingRotation = ww;
+        newRotationName = ww.Name;
+        showCreateRotation = true;
+        showRotationModal = true;
+        showRotationSelectionModal = false;
 
-        // Load existing template shifts for this workweek
+        // Load existing template shifts for this rotation
         try
         {
-            newWorkWeekShifts = await ShiftsService.GetWorkWeekTemplateShiftsAsync(ww.Id, _managerCode);
+            newRotationShifts = await ShiftsService.GetRotationTemplateShiftsAsync(ww.Id, _managerCode);
             // Store original values for change detection
-            originalWorkWeekName = ww.Name;
-            originalWorkWeekShifts = newWorkWeekShifts.Select(s => new Shift
+            originalRotationName = ww.Name;
+            originalRotationShifts = newRotationShifts.Select(s => new Shift
             {
                 Id = s.Id,
                 WorkDay = s.WorkDay,
@@ -815,55 +815,55 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading workweek shifts");
-            newWorkWeekShifts = new List<Shift>();
-            originalWorkWeekShifts = new List<Shift>();
+            Logger.LogError(ex, "Error loading rotation shifts");
+            newRotationShifts = new List<Shift>();
+            originalRotationShifts = new List<Shift>();
         }
     }
 
-    private void CancelCreateWorkWeek()
+    private void CancelCreateRotation()
     {
-        showCreateWorkWeek = false;
-        showWorkWeeksModal = false;
-        showWorkWeekSelectionModal = true;
-        editingWorkWeek = null;
-        newWorkWeekName = string.Empty;
-        newWorkWeekShifts.Clear();
-        originalWorkWeekName = string.Empty;
-        originalWorkWeekShifts.Clear();
+        showCreateRotation = false;
+        showRotationModal = false;
+        showRotationSelectionModal = true;
+        editingRotation = null;
+        newRotationName = string.Empty;
+        newRotationShifts.Clear();
+        originalRotationName = string.Empty;
+        originalRotationShifts.Clear();
     }
 
-    private async Task SaveNewWorkWeek()
+    private async Task SaveRotation()
     {
-        if (workWeekSchedule == null || string.IsNullOrEmpty(_userId) || string.IsNullOrEmpty(_managerCode)) return;
-        if (string.IsNullOrWhiteSpace(newWorkWeekName)) return;
+        if (rotationSchedule == null || string.IsNullOrEmpty(_userId) || string.IsNullOrEmpty(_managerCode)) return;
+        if (string.IsNullOrWhiteSpace(newRotationName)) return;
 
         try
         {
             isBusy = true;
 
-            if (editingWorkWeek != null)
+            if (editingRotation != null)
             {
-                // Update existing WorkWeek
+                // Update existing Rotation
                 // First, delete old template shifts
-                await ShiftsService.DeleteWorkWeekTemplateShiftsAsync(editingWorkWeek.Id!, _managerCode);
+                await ShiftsService.DeleteRotationTemplateShiftsAsync(editingRotation.Id!, _managerCode);
 
-                // Update the name (we can't directly update WorkWeek in the embedded array, so we delete and re-add)
-                await SchedulesService.DeleteWorkWeekAsync(workWeekSchedule.Id!, _userId, editingWorkWeek.Id!);
+                // Update the name (we can't directly update Rotation in the embedded array, so we delete and re-add)
+                await SchedulesService.DeleteRotationAsync(rotationSchedule.Id!, _userId, editingRotation.Id!);
 
-                var updatedWw = new WorkWeek
+                var updatedRotation = new Rotation
                 {
-                    Id = editingWorkWeek.Id,
-                    Name = newWorkWeekName.Trim(),
-                    Shifts = new List<WorkWeekShift>()
+                    Id = editingRotation.Id,
+                    Name = newRotationName.Trim(),
+                    Shifts = new List<RotationShift>()
                 };
 
-                var added = await SchedulesService.AddWorkWeekAsync(workWeekSchedule.Id!, _userId, updatedWw);
+                var added = await SchedulesService.AddRotationAsync(rotationSchedule.Id!, _userId, updatedRotation);
 
-                // Now create all the template shifts with the WorkWeekId
-                foreach (var templateShift in newWorkWeekShifts)
+                // Now create all the template shifts with the RotationId
+                foreach (var templateShift in newRotationShifts)
                 {
-                    templateShift.WorkWeekId = added.Id;
+                    templateShift.RotationId = added.Id;
                     templateShift.ManagerCode = _managerCode;
                     templateShift.Username = _username ?? string.Empty;
                     templateShift.ScheduleId = null;
@@ -872,20 +872,20 @@
             }
             else
             {
-                // Create new WorkWeek
-                var ww = new WorkWeek
+                // Create new Rotation
+                var rotation = new Rotation
                 {
-                    Name = newWorkWeekName.Trim(),
-                    Shifts = new List<WorkWeekShift>()
+                    Name = newRotationName.Trim(),
+                    Shifts = new List<RotationShift>()
                 };
 
-                // Add the WorkWeek metadata to the schedule
-                var added = await SchedulesService.AddWorkWeekAsync(workWeekSchedule.Id!, _userId, ww);
+                // Add the Rotation metadata to the schedule
+                var added = await SchedulesService.AddRotationAsync(rotationSchedule.Id!, _userId, rotation);
 
-                // Now create all the template shifts with the WorkWeekId
-                foreach (var templateShift in newWorkWeekShifts)
+                // Now create all the template shifts with the RotationId
+                foreach (var templateShift in newRotationShifts)
                 {
-                    templateShift.WorkWeekId = added.Id;
+                    templateShift.RotationId = added.Id;
                     templateShift.ManagerCode = _managerCode;
                     templateShift.Username = _username ?? string.Empty;
                     templateShift.ScheduleId = null;
@@ -895,21 +895,21 @@
 
             await LoadSchedules();
             // Refresh reference to updated schedule
-            workWeekSchedule = schedules.FirstOrDefault(s => s.Id == workWeekSchedule.Id);
+            rotationSchedule = schedules.FirstOrDefault(s => s.Id == rotationSchedule.Id);
             // Refresh counts so the selection list reflects the newly saved shifts
-            await RefreshWorkWeekShiftCountsAsync(workWeekSchedule);
-            showCreateWorkWeek = false;
-            showWorkWeeksModal = false;
-            showWorkWeekSelectionModal = true;
-            editingWorkWeek = null;
-            newWorkWeekName = string.Empty;
-            newWorkWeekShifts.Clear();
-            originalWorkWeekName = string.Empty;
-            originalWorkWeekShifts.Clear();
+            await RefreshRotationShiftCountsAsync(rotationSchedule);
+            showCreateRotation = false;
+            showRotationModal = false;
+            showRotationSelectionModal = true;
+            editingRotation = null;
+            newRotationName = string.Empty;
+            newRotationShifts.Clear();
+            originalRotationName = string.Empty;
+            originalRotationShifts.Clear();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error saving work week");
+            Logger.LogError(ex, "Error saving rotation");
         }
         finally
         {
@@ -917,27 +917,27 @@
         }
     }
 
-    private async Task DeleteWorkWeek(WorkWeek ww)
+    private async Task DeleteRotation(Rotation ww)
     {
-        if (workWeekSchedule == null || string.IsNullOrEmpty(_userId) || string.IsNullOrEmpty(_managerCode) || ww == null) return;
+        if (rotationSchedule == null || string.IsNullOrEmpty(_userId) || string.IsNullOrEmpty(_managerCode) || ww == null) return;
 
         try
         {
             isBusy = true;
-            // Delete all template shifts associated with this WorkWeek
-            await ShiftsService.DeleteWorkWeekTemplateShiftsAsync(ww.Id!, _managerCode);
+            // Delete all template shifts associated with this Rotation
+            await ShiftsService.DeleteRotationTemplateShiftsAsync(ww.Id!, _managerCode);
 
-            // Delete the WorkWeek metadata from the schedule
-            await SchedulesService.DeleteWorkWeekAsync(workWeekSchedule.Id!, _userId, ww.Id!);
+            // Delete the Rotation metadata from the schedule
+            await SchedulesService.DeleteRotationAsync(rotationSchedule.Id!, _userId, ww.Id!);
 
             await LoadSchedules();
-            workWeekSchedule = schedules.FirstOrDefault(s => s.Id == workWeekSchedule.Id);
-            // Refresh counts so the selection list no longer shows the deleted WorkWeek's shifts
-            await RefreshWorkWeekShiftCountsAsync(workWeekSchedule);
+            rotationSchedule = schedules.FirstOrDefault(s => s.Id == rotationSchedule.Id);
+            // Refresh counts so the selection list no longer shows the deleted Rotation's shifts
+            await RefreshRotationShiftCountsAsync(rotationSchedule);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error deleting work week");
+            Logger.LogError(ex, "Error deleting rotation");
         }
         finally
         {
@@ -945,46 +945,46 @@
         }
     }
 
-    private async Task DeleteCurrentWorkWeek()
+    private async Task DeleteCurrentRotation()
     {
-        if (editingWorkWeek == null) return;
+        if (editingRotation == null) return;
 
-        await DeleteWorkWeek(editingWorkWeek);
-        showCreateWorkWeek = false;
-        showWorkWeeksModal = false;
-        showWorkWeekSelectionModal = true;
-        editingWorkWeek = null;
-        newWorkWeekName = string.Empty;
-        newWorkWeekShifts.Clear();
-        originalWorkWeekName = string.Empty;
-        originalWorkWeekShifts.Clear();
+        await DeleteRotation(editingRotation);
+        showCreateRotation = false;
+        showRotationModal = false;
+        showRotationSelectionModal = true;
+        editingRotation = null;
+        newRotationName = string.Empty;
+        newRotationShifts.Clear();
+        originalRotationName = string.Empty;
+        originalRotationShifts.Clear();
     }
 
-    private bool CheckWorkWeekChanges()
+    private bool CheckRotationChanges()
     {
-        // For new workweeks, enable save if name is not empty and has shifts
-        if (editingWorkWeek == null)
+        // For new rotations, enable save if name is not empty
+        if (editingRotation == null)
         {
-            return !string.IsNullOrWhiteSpace(newWorkWeekName);
+            return !string.IsNullOrWhiteSpace(newRotationName);
         }
 
-        // For existing workweeks, check if name or shifts changed
-        if (newWorkWeekName != originalWorkWeekName)
+        // For existing rotations, check if name or shifts changed
+        if (newRotationName != originalRotationName)
         {
             return true;
         }
 
         // Check if shifts changed (count, content, or order)
-        if (newWorkWeekShifts.Count != originalWorkWeekShifts.Count)
+        if (newRotationShifts.Count != originalRotationShifts.Count)
         {
             return true;
         }
 
         // Deep comparison of shifts
-        for (int i = 0; i < newWorkWeekShifts.Count; i++)
+        for (int i = 0; i < newRotationShifts.Count; i++)
         {
-            var current = newWorkWeekShifts[i];
-            var original = originalWorkWeekShifts.FirstOrDefault(s => s.Id == current.Id);
+            var current = newRotationShifts[i];
+            var original = originalRotationShifts.FirstOrDefault(s => s.Id == current.Id);
 
             if (original == null ||
                 current.WorkDay != original.WorkDay ||
@@ -1003,7 +1003,7 @@
         return false;
     }
 
-    private void OnWorkWeekChanged()
+    private void OnRotationChanged()
     {
         // Trigger re-render to update button state
         StateHasChanged();
@@ -1256,7 +1256,7 @@
             _userId = caller?.Id;
             _managerCode = caller?.ManagerCode;
 
-            // Load employees for shift assignment in WorkWeek templates
+            // Load employees for shift assignment in Rotation templates
             employees = await UserService.GetUsersByRoleAsync(Roles.Employee);
 
             // Load employees linked to this manager (exclude the manager themselves)
@@ -1278,7 +1278,7 @@
         try
         {
             schedules = await SchedulesService.GetSchedulesForManagerAsync(_userId);
-            
+
             // Ensure at least one schedule exists
             if (schedules.Count == 0 && !string.IsNullOrEmpty(_username))
             {

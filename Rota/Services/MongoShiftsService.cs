@@ -168,12 +168,12 @@ namespace Rota.Services
             }
         }
 
-        public async System.Threading.Tasks.Task<List<Shift>> GetWorkWeekTemplateShiftsAsync(string workWeekId, string managerCode)
+        public async System.Threading.Tasks.Task<List<Shift>> GetRotationTemplateShiftsAsync(string rotationId, string managerCode)
         {
             try
             {
                 var filter = Builders<Shift>.Filter.And(
-                    Builders<Shift>.Filter.Eq(s => s.WorkWeekId, workWeekId),
+                    Builders<Shift>.Filter.Eq(s => s.RotationId, rotationId),
                     Builders<Shift>.Filter.Eq(s => s.ManagerCode, managerCode)
                 );
 
@@ -182,17 +182,17 @@ namespace Rota.Services
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error getting template shifts for WorkWeek {WorkWeekId}", workWeekId);
+                _logger.LogError(ex, "Error getting template shifts for Rotation {RotationId}", rotationId);
                 return new List<Shift>();
             }
         }
 
-        public async System.Threading.Tasks.Task<int> DeleteWorkWeekTemplateShiftsAsync(string workWeekId, string managerCode)
+        public async System.Threading.Tasks.Task<int> DeleteRotationTemplateShiftsAsync(string rotationId, string managerCode)
         {
             try
             {
                 var filter = Builders<Shift>.Filter.And(
-                    Builders<Shift>.Filter.Eq(s => s.WorkWeekId, workWeekId),
+                    Builders<Shift>.Filter.Eq(s => s.RotationId, rotationId),
                     Builders<Shift>.Filter.Eq(s => s.ManagerCode, managerCode)
                 );
 
@@ -201,7 +201,7 @@ namespace Rota.Services
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error deleting template shifts for WorkWeek {WorkWeekId}", workWeekId);
+                _logger.LogError(ex, "Error deleting template shifts for Rotation {RotationId}", rotationId);
                 return 0;
             }
         }
