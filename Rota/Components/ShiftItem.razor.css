@@ -1,0 +1,41 @@
+/* Compact shift chip displayed in calendar grid cells and week view cards */
+.shift-item {
+    background: rgba(24, 144, 255, 0.08);
+    border-left: 4px solid rgba(24, 144, 255, 0.6);
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+/* Worker type / title label — color overridden inline via accent colour */
+.shift-worker-type {
+    font-weight: 700;
+    font-size: 0.78rem;
+    color: #1890ff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Time range row */
+.shift-time {
+    font-size: 0.7rem;
+    color: var(--color-text-secondary);
+}
+
+/* Assigned-to name row */
+.shift-assigned {
+    font-size: 0.68rem;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}

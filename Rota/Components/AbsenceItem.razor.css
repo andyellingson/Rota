@@ -1,0 +1,101 @@
+/* Compact absence chip displayed in calendar grid cells and week view cards */
+.absence-item {
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.72rem;
+    color: #fff;
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+/* Employee name on the left */
+.absence-left {
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1 1 auto;
+}
+
+/* Absence title on the right */
+.absence-right {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 0 0 auto;
+    max-width: 50%;
+}
+
+/* Part-day time range */
+.absence-time {
+    color: rgba(255, 255, 255, 0.95);
+    opacity: 0.95;
+}
+
+/* Pending approval — dashed border overlay */
+.absence-item--pending {
+    border: 5px dashed rgba(255, 255, 255, 0.4);
+    opacity: 0.85;
+}
+
+/* Denied — hatched pattern overlay */
+.absence-item--denied {
+    position: relative;
+    opacity: 0.85;
+}
+
+.absence-item--denied::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: repeating-linear-gradient(
+        -45deg,
+        rgba(0, 0, 0, 0.08) 0px,
+        rgba(0, 0, 0, 0.08) 3px,
+        transparent 3px,
+        transparent 9px
+    );
+    pointer-events: none;
+}
+
+/* Small inline approval badge */
+.absence-pending-badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    border-radius: 3px;
+    padding: 0.05rem 0.3rem;
+    vertical-align: middle;
+    margin-left: 0.25rem;
+    white-space: nowrap;
+}
+
+.absence-denied-badge {
+    background: rgba(220, 53, 69, 0.75);
+}
+
+/* Stack layout on narrow screens */
+@media (max-width: 768px) {
+    .absence-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
+    .absence-right {
+        text-align: left;
+        max-width: 100%;
+    }
+}

@@ -1,0 +1,33 @@
+@using Rota.Models
+
+<div class="shift-item mb-1" style="border-left-color: @(Shift.Color ?? "#1890ff");"
+     @onclick:stopPropagation="true" @onclick="HandleEdit">
+    <div class="shift-worker-type" style="color: @(Shift.Color ?? "#1890ff");">@DisplayTitle</div>
+    <div class="shift-time">@Shift.Start.ToLocalTime().ToString("t") – @Shift.End.ToLocalTime().ToString("t")</div>
+    @if (!string.IsNullOrEmpty(AssignedToDisplayName))
+    {
+        <div class="shift-assigned">@AssignedToDisplayName</div>
+    }
+</div>
+
+@code {
+    /// <summary>The shift to display.</summary>
+    [Parameter, EditorRequired]
+    public Shift Shift { get; set; } = default!;
+
+    /// <summary>Display name of the assigned user, resolved by the parent.</summary>
+    [Parameter]
+    public string AssignedToDisplayName { get; set; } = string.Empty;
+
+    /// <summary>Callback invoked when the item is clicked for editing.</summary>
+    [Parameter]
+    public EventCallback<Shift> OnEdit { get; set; }
+
+    // Show "Title - WorkerType" when a title exists, otherwise just the worker type
+    private string DisplayTitle => string.IsNullOrWhiteSpace(Shift.Title)
+        ? Shift.WorkerType.ToString()
+        : $"{Shift.Title} - {Shift.WorkerType}";
+
+    private Task HandleEdit()
+        => OnEdit.HasDelegate ? OnEdit.InvokeAsync(Shift) : Task.CompletedTask;
+}

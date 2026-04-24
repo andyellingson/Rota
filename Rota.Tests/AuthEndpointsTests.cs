@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Moq;
 using NUnit.Framework;
+using Rota.Models;
 using Rota.Services;
 
 namespace Rota.Tests

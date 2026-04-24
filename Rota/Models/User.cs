@@ -1,9 +1,8 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using Rota.Models;
 using System.Collections.Generic;
 
-namespace Rota.Services
+namespace Rota.Models
 {
     /// <summary>
     /// Represents an application user stored in MongoDB.

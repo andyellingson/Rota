@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using BCrypt.Net;
+using Rota.Models;
 
 namespace Rota.Services
 {

@@ -261,7 +261,7 @@
         .Select(i => (DayOfWeek)(((int)CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek + i) % 7))
         .ToArray();
 
-    private Rota.Services.User? user;
+    private Rota.Models.User? user;
     private bool isLoading = true;
     private bool isBusy = false;
 

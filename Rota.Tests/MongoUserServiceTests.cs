@@ -7,6 +7,7 @@ using Moq;
 using MongoDB.Driver;
 using NUnit.Framework;
 using Rota.Services;
+using Rota.Models;
 
 namespace Rota.Tests
 {

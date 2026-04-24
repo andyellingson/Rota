@@ -84,7 +84,7 @@ namespace Rota.Endpoints
 
                     var isManager = dto.Role?.Trim().ToLowerInvariant() == "manager";
 
-                    var newUser = new User
+                    var newUser = new Rota.Models.User
                     {
                         Username = dto.Username,
                         DisplayName = string.IsNullOrWhiteSpace(dto.DisplayName) ? null : dto.DisplayName.Trim(),

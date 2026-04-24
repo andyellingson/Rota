@@ -17,7 +17,7 @@ namespace Rota.Tests
         {
             var mockUserService = new Mock<IUserService>();
             mockUserService.Setup(s => s.ValidateCredentialsAsync("test", "pass")).ReturnsAsync(true);
-            mockUserService.Setup(s => s.GetByUsernameAsync("test")).ReturnsAsync(new User { Username = "test", Roles = System.Array.Empty<string>() });
+            mockUserService.Setup(s => s.GetByUsernameAsync("test")).ReturnsAsync(new Rota.Models.User { Username = "test", Roles = System.Array.Empty<string>() });
 
             await using var factory = TestHelpers.CreateFactoryWithUserService(mockUserService.Object);
 

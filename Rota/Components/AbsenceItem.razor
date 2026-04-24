@@ -1,0 +1,62 @@
+@using Rota.Models
+@using System.Globalization
+
+<div class="absence-item mb-1 @PendingClass"
+     style="background-color: @(Absence.Color ?? "#fa8c16");"
+     @onclick:stopPropagation="true" @onclick="HandleEdit">
+    <div class="d-flex w-100">
+        <div class="absence-left text-start text-truncate">@AssignedToDisplayName</div>
+        <div class="absence-right text-end text-truncate">
+            @Absence.Title
+            @if (ShowApprovalState && Absence.ApprovalState == AbsenceApprovalState.Pending)
+            {
+                <span class="absence-pending-badge">⏳ Pending</span>
+            }
+            else if (ShowApprovalState && Absence.ApprovalState == AbsenceApprovalState.Denied)
+            {
+                <span class="absence-pending-badge absence-denied-badge">❌ Denied</span>
+            }
+        </div>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Absence.StartTime) &&
+         !string.IsNullOrWhiteSpace(Absence.EndTime) &&
+         Absence.DayCount == 1)
+    {
+        // Show part-day times when available
+        if (TimeOnly.TryParse(Absence.StartTime, CultureInfo.CurrentCulture, out var st) &&
+            TimeOnly.TryParse(Absence.EndTime, CultureInfo.CurrentCulture, out var et))
+        {
+            <div class="absence-time small mt-1">
+                @st.ToString("t", CultureInfo.CurrentCulture) – @et.ToString("t", CultureInfo.CurrentCulture)
+            </div>
+        }
+    }
+</div>
+
+@code {
+    /// <summary>The absence to display.</summary>
+    [Parameter, EditorRequired]
+    public Absence Absence { get; set; } = default!;
+
+    /// <summary>Display name of the assigned user, resolved by the parent.</summary>
+    [Parameter]
+    public string AssignedToDisplayName { get; set; } = string.Empty;
+
+    /// <summary>When true, pending/denied approval badges are shown.</summary>
+    [Parameter]
+    public bool ShowApprovalState { get; set; }
+
+    /// <summary>Callback invoked when the item is clicked for editing.</summary>
+    [Parameter]
+    public EventCallback<Absence> OnEdit { get; set; }
+
+    // Returns a modifier CSS class when the absence is not yet approved
+    private string PendingClass => ShowApprovalState && !Absence.IsApproved
+        ? (Absence.ApprovalState == AbsenceApprovalState.Denied
+            ? "absence-item--denied"
+            : "absence-item--pending")
+        : string.Empty;
+
+    private Task HandleEdit()
+        => OnEdit.HasDelegate ? OnEdit.InvokeAsync(Absence) : Task.CompletedTask;
+}

@@ -1,3 +1,5 @@
+using Rota.Models;
+
 namespace Rota.Services
 {
     public interface IUserService

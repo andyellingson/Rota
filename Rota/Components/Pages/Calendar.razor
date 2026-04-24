@@ -83,40 +83,16 @@
                                     {
                                         if (item.Shift is { } s)
                                         {
-                                            <div class="shift-item mb-1" style="border-left-color: @(s.Color ?? "#1890ff");" @onclick:stopPropagation="true" @onclick="(() => { if (canManageShifts) OpenEditShiftModal(s); })">
-                                                <div class="shift-worker-type" style="color: @(s.Color ?? "#1890ff");">@GetShiftDisplayTitle(s)</div>
-                                                <div class="shift-time">@s.Start.ToLocalTime().ToString("t") – @s.End.ToLocalTime().ToString("t")</div>
-                                                @if (!string.IsNullOrEmpty(s.AssignedToUserId))
-                                                {
-                                                    <div class="shift-assigned">@GetEmployeeDisplayNameById(s.AssignedToUserId)</div>
-                                                }
-                                            </div>
+                                            <ShiftItem Shift="s"
+                                                       AssignedToDisplayName="@GetEmployeeDisplayNameById(s.AssignedToUserId)"
+                                                       OnEdit="@(canManageShifts ? EventCallback.Factory.Create<Shift>(this, OpenEditShiftModal) : default)" />
                                         }
                                         else if (item.Absence is { } ab)
                                         {
-                                            <div class="absence-item mb-1 @(canManageShifts && !ab.IsApproved ? (ab.ApprovalState == AbsenceApprovalState.Denied ? "absence-item--denied" : "absence-item--pending") : "")" style="background-color: @(ab.Color ?? "#fa8c16");" @onclick:stopPropagation="true" @onclick="(() => OpenEditAbsenceModal(ab))">
-                                                <div class="d-flex w-100">
-                                                    <div class="absence-left text-start text-truncate">@GetEmployeeDisplayNameById(ab.AssignedToUserId)</div>
-                                                    <div class="absence-right text-end text-truncate">
-                                                        @ab.Title
-                                                        @if (canManageShifts && ab.ApprovalState == AbsenceApprovalState.Pending)
-                                                        {
-                                                            <span class="absence-pending-badge">⏳ Pending</span>
-                                                        }
-                                                        else if (canManageShifts && ab.ApprovalState == AbsenceApprovalState.Denied)
-                                                        {
-                                                            <span class="absence-pending-badge absence-denied-badge">❌ Denied</span>
-                                                        }
-                                                    </div>
-                                                </div>
-                                                @if (!string.IsNullOrWhiteSpace(ab.StartTime) && !string.IsNullOrWhiteSpace(ab.EndTime) && ab.DayCount == 1)
-                                                {
-                                                    if (TimeOnly.TryParse(ab.StartTime, CultureInfo.CurrentCulture, out var sst) && TimeOnly.TryParse(ab.EndTime, CultureInfo.CurrentCulture, out var eet))
-                                                    {
-                                                        <div class="absence-time small mt-1">@sst.ToString("t", CultureInfo.CurrentCulture) – @eet.ToString("t", CultureInfo.CurrentCulture)</div>
-                                                    }
-                                                }
-                                            </div>
+                                            <AbsenceItem Absence="ab"
+                                                         AssignedToDisplayName="@GetEmployeeDisplayNameById(ab.AssignedToUserId)"
+                                                         ShowApprovalState="canManageShifts"
+                                                         OnEdit="EventCallback.Factory.Create<Absence>(this, OpenEditAbsenceModal)" />
                                         }
                                         else if (item.Reminder is { } reminder)
                                         {
@@ -159,40 +135,16 @@
                                     {
                                         if (item.Shift is { } s)
                                         {
-                                            <div class="shift-item mb-1" style="border-left-color: @(s.Color ?? "#1890ff");" @onclick:stopPropagation="true" @onclick="(() => { if (canManageShifts) OpenEditShiftModal(s); })">
-                                                <div class="shift-worker-type" style="color: @(s.Color ?? "#1890ff");">@GetShiftDisplayTitle(s)</div>
-                                                <div class="shift-time">@s.Start.ToLocalTime().ToString("t") – @s.End.ToLocalTime().ToString("t")</div>
-                                                @if (!string.IsNullOrEmpty(s.AssignedToUserId))
-                                                {
-                                                    <div class="shift-assigned">@GetEmployeeDisplayNameById(s.AssignedToUserId)</div>
-                                                }
-                                            </div>
+                                            <ShiftItem Shift="s"
+                                                       AssignedToDisplayName="@GetEmployeeDisplayNameById(s.AssignedToUserId)"
+                                                       OnEdit="@(canManageShifts ? EventCallback.Factory.Create<Shift>(this, OpenEditShiftModal) : default)" />
                                         }
                                         else if (item.Absence is { } ab)
                                         {
-                                            <div class="absence-item mb-1 @(canManageShifts && !ab.IsApproved ? (ab.ApprovalState == AbsenceApprovalState.Denied ? "absence-item--denied" : "absence-item--pending") : "")" style="background-color: @(ab.Color ?? "#fa8c16");" @onclick:stopPropagation="true" @onclick="(() => OpenEditAbsenceModal(ab))">
-                                                <div class="d-flex w-100">
-                                                    <div class="absence-left text-start text-truncate">@GetEmployeeDisplayNameById(ab.AssignedToUserId)</div>
-                                                    <div class="absence-right text-end text-truncate">
-                                                        @ab.Title
-                                                        @if (canManageShifts && ab.ApprovalState == AbsenceApprovalState.Pending)
-                                                        {
-                                                            <span class="absence-pending-badge">⏳ Pending</span>
-                                                        }
-                                                        else if (canManageShifts && ab.ApprovalState == AbsenceApprovalState.Denied)
-                                                        {
-                                                            <span class="absence-pending-badge absence-denied-badge">❌ Denied</span>
-                                                        }
-                                                    </div>
-                                                </div>
-                                                @if (!string.IsNullOrWhiteSpace(ab.StartTime) && !string.IsNullOrWhiteSpace(ab.EndTime) && ab.DayCount == 1)
-                                                {
-                                                    if (TimeOnly.TryParse(ab.StartTime, CultureInfo.CurrentCulture, out var sst) && TimeOnly.TryParse(ab.EndTime, CultureInfo.CurrentCulture, out var eet))
-                                                    {
-                                                        <div class="absence-time small mt-1">@sst.ToString("t", CultureInfo.CurrentCulture) – @eet.ToString("t", CultureInfo.CurrentCulture)</div>
-                                                    }
-                                                }
-                                            </div>
+                                            <AbsenceItem Absence="ab"
+                                                         AssignedToDisplayName="@GetEmployeeDisplayNameById(ab.AssignedToUserId)"
+                                                         ShowApprovalState="canManageShifts"
+                                                         OnEdit="EventCallback.Factory.Create<Absence>(this, OpenEditAbsenceModal)" />
                                         }
                                         else if (item.Reminder is { } reminder)
                                         {
@@ -226,39 +178,19 @@
 
                 @* ── Modal header ──────────────────────────────────────────── *@
                 <div class="modal-header day-modal-header">
-                    <div class="d-flex align-items-center gap-3">
-                        @* Date badge showing day number *@
-                        <div class="day-modal-date-badge @(isToday ? "day-modal-date-badge--today" : "")">
-                            <span class="day-modal-date-badge-num">@dayModalDate.Day</span>
-                            <span class="day-modal-date-badge-month">@dayModalDate.ToString("MMM", CultureInfo.CurrentCulture)</span>
-                        </div>
-                        <div>
-                            <h5 class="modal-title mb-0 fw-bold">
-                                @dayModalDate.ToString("dddd", CultureInfo.CurrentCulture)
-                                @if (isToday)
-                                {
-                                    <span class="badge bg-primary ms-2" style="font-size:0.6rem;vertical-align:middle;">Today</span>
-                                }
-                            </h5>
-                            <small class="text-muted">@dayModalDate.ToString("d MMMM yyyy", CultureInfo.CurrentCulture)</small>
-                        </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="modal-title mb-0 fw-bold">
+                            @dayModalDate.ToString("dddd, MMMM d, yyyy", CultureInfo.CurrentCulture)
+                            @if (isToday)
+                            {
+                                <span class="badge bg-primary ms-2" style="font-size:0.65rem;vertical-align:middle;">Today</span>
+                            }
+                        </h5>
                     </div>
 
-                    @* Action buttons + close *@
-                    <div class="d-flex gap-2 align-items-center ms-auto">
-                        @if (canManageShifts)
-                        {
-                            <button class="btn btn-sm btn-primary day-modal-action-btn" @onclick="AddShiftFromDayModal" title="Add a shift">
-                                <span class="day-modal-btn-icon">＋</span> Shift
-                            </button>
-                        }
-                        <button class="btn btn-sm btn-warning text-dark day-modal-action-btn" @onclick="AddAbsenceFromDayModal" title="Add an absence">
-                            <span class="day-modal-btn-icon">＋</span> Absence
-                        </button>
-                        <button class="btn btn-sm btn-outline-secondary day-modal-action-btn" @onclick="AddReminderFromDayModal" title="Add a reminder">
-                            <span class="day-modal-btn-icon">＋</span> Reminder
-                        </button>
-                        <button type="button" class="btn-close ms-1" @onclick="CloseDayModal" aria-label="Close"></button>
+                    @* Close button *@
+                    <div class="d-flex align-items-center ms-auto">
+                        <button type="button" class="btn-close" @onclick="CloseDayModal" aria-label="Close"></button>
                     </div>
                 </div>
 
@@ -275,7 +207,7 @@
                             </div>
                             <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
                                 <select class="form-select form-select-sm day-modal-template-select" @bind="dayModalSelectedWorkWeekId">
-                                    <option value="">— Select WorkWeek —</option>
+                                    <option value="">— Select Rotation Template —</option>
                                     @foreach (var ww in wwSel.Rotations)
                                     {
                                         <option value="@ww.Id">@ww.Name</option>
@@ -313,25 +245,6 @@
 
                 @* ── Modal body ────────────────────────────────────────────── *@
                 <div class="modal-body day-detail-body">
-
-                    @* Summary pill row *@
-                    @if (totalItems > 0)
-                    {
-                        <div class="day-modal-summary-row">
-                            @if (detailShifts.Count > 0)
-                            {
-                                <span class="day-modal-summary-pill day-modal-summary-pill--shift">@detailShifts.Count shift@(detailShifts.Count == 1 ? "" : "s")</span>
-                            }
-                            @if (detailAbsences.Count > 0)
-                            {
-                                <span class="day-modal-summary-pill day-modal-summary-pill--absence">@detailAbsences.Count absence@(detailAbsences.Count == 1 ? "" : "s")</span>
-                            }
-                            @if (detailReminders.Count > 0)
-                            {
-                                <span class="day-modal-summary-pill day-modal-summary-pill--reminder">@detailReminders.Count reminder@(detailReminders.Count == 1 ? "" : "s")</span>
-                            }
-                        </div>
-                    }
 
                     @* ── Shifts section ───────────────────────────────────── *@
                     @if (detailShifts.Count > 0)
@@ -468,16 +381,18 @@
                             <div class="day-detail-empty-icon">📅</div>
                             <div class="day-detail-empty-title">Nothing scheduled</div>
                             <div class="day-detail-empty-text">There are no shifts, absences, or reminders for this day yet.</div>
-                            <div class="d-flex justify-content-center gap-2 flex-wrap mt-3">
-                                @if (canManageShifts)
-                                {
-                                    <button class="btn btn-primary btn-sm" @onclick="AddShiftFromDayModal">＋ Add Shift</button>
-                                }
-                                <button class="btn btn-warning btn-sm text-dark" @onclick="AddAbsenceFromDayModal">＋ Add Absence</button>
-                                <button class="btn btn-outline-secondary btn-sm" @onclick="AddReminderFromDayModal">＋ Add Reminder</button>
-                            </div>
                         </div>
                     }
+                </div>
+
+                @* ── Modal footer – always-visible action buttons ────────── *@
+                <div class="modal-footer day-modal-footer">
+                    @if (canManageShifts)
+                    {
+                        <button class="btn btn-primary btn-sm" @onclick="AddShiftFromDayModal">＋ Add Shift</button>
+                    }
+                    <button class="btn btn-warning btn-sm text-dark" @onclick="AddAbsenceFromDayModal">＋ Add Absence</button>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="AddReminderFromDayModal">＋ Add Reminder</button>
                 </div>
             </div>
         </div>

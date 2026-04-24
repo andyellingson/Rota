@@ -11,7 +11,11 @@
     color: var(--color-text-primary);
 }
 
-/* Keep calendar cards and day cells theme-aware so they match dark mode */
+/* "View and browse your schedule" and "Week starts on Sunday" are .text-muted which
+   renders too dark on dark backgrounds. Override only in dark mode so light mode is unchanged. */
+[data-theme="dark"] .calendar-card .text-muted {
+    color: var(--color-text-medium) !important;
+}
 
 /* Layout container */
 .calendar-card { max-width: 1600px; margin-left: auto; margin-right: auto; }
@@ -72,43 +76,21 @@
     overflow-x: hidden;
 }
 
-/* Shift item uses accent color with subtle background; keep as-is but ensure legible text */
-.shift-item {
-    background: rgba(24,144,255,0.08);
-    border-left: 4px solid rgba(24,144,255,0.6);
-    padding: 0.25rem 0.5rem;
+/* ── Day detail modal – shift cards ──────────────────────────────────── */
+.day-detail-shift-card {
+    border: 1px solid var(--color-border);
+    border-left: 4px solid #1890ff;
     border-radius: 6px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.5rem;
     cursor: pointer;
-    width: 100%;
-    box-sizing: border-box;
-    min-width: 0;
+    transition: opacity 0.15s;
+    background: var(--color-bg-subtle);
 }
-.shift-worker-type { font-weight: 700; font-size: 0.78rem; color: #1890ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.shift-time { font-size: 0.7rem; color: var(--color-text-secondary); }
-.shift-assigned { font-size: 0.68rem; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
-/* ── Absence items ────────────────────────────────────────
-   Make text and panels theme-aware, avoid hard white text-only contrasts */
-.absence-item {
-    border-radius: 6px;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.72rem;
-    color: #fff;
-    cursor: pointer;
-    width: 100%;
-    box-sizing: border-box;
-    min-width: 0;
-    overflow: hidden;
-}
-.absence-item { display: flex; flex-direction: column; gap: 0.15rem; }
-.absence-left { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1 1 auto; }
-.absence-right { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 0 auto; max-width: 50%; }
-.absence-time { color: rgba(255,255,255,0.95); opacity: 0.95; }
-.absence-days  { font-size: 0.65rem; opacity: 0.85; }
+.day-detail-shift-card:hover { opacity: 0.85; }
 
+/* ── Day detail modal – absence cards ────────────────────────────────── */
 .day-detail-absence-card {
     border-left: 4px solid #fa8c16;
     border-radius: 6px;
@@ -120,34 +102,6 @@
 
 .day-detail-absence-card:hover { opacity: 0.85; }
 
-/* Use theme-aware border for pending indicators so they don't become stark black in dark mode */
-.absence-item--pending {
-    border: 5px dashed var(--color-border);
-    opacity: 0.85;
-}
-
-/* Denied overlay should be subtle in both themes */
-.absence-item--denied {
-    position: relative;
-    opacity: 0.85;
-}
-
-.absence-item--denied::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: repeating-linear-gradient(
-        -45deg,
-        rgba(0, 0, 0, 0.08) 0px,
-        rgba(0, 0, 0, 0.08) 3px,
-        transparent 3px,
-        transparent 9px
-    );
-    pointer-events: none;
-}
-
-/* Day-detail modal variants */
 .day-detail-absence-card--pending {
     border: 5px dashed var(--color-border);
     border-left-width: 7px;
@@ -172,30 +126,6 @@
         transparent 9px
     );
     pointer-events: none;
-}
-
-/* Badges */
-.absence-pending-badge {
-    display: inline-block;
-    font-size: 0.6rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    background: rgba(0, 0, 0, 0.3);
-    color: #fff;
-    border-radius: 3px;
-    padding: 0.05rem 0.3rem;
-    vertical-align: middle;
-    margin-left: 0.25rem;
-    white-space: nowrap;
-}
-.absence-denied-badge { background: rgba(220, 53, 69, 0.75); }
-
-/* Day-detail modal text should follow theme text colors */
-.day-detail-absence-title-text {
-    font-weight: 600;
-    font-size: 0.88rem;
-    color: var(--color-text-primary);
 }
 
 .day-detail-absence-name { max-width: 35%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
@@ -241,7 +171,7 @@
     margin-top: 0.5rem;
 }
 
-/* Color swatches should use the theme border variable so they read correctly in dark mode */
+/* Color swatches */
 .color-swatch {
     height: 36px;
     display: inline-flex;
@@ -259,12 +189,14 @@
     appearance: none;
     background-image: none;
 }
+
 .color-swatch.selected {
     border-color: var(--color-border);
     outline: 2px solid rgba(13,110,253,0.12);
     outline-offset: 1px;
     transform: scale(1.1);
 }
+
 .color-swatch:focus {
     outline: 2px solid rgba(13,110,253,0.12);
     outline-offset: 1px;
@@ -280,11 +212,11 @@
 }
 
 @media (max-width: 768px) {
-    .calendar-grid { 
-        grid-template-columns: repeat(7, minmax(0, 1fr)); 
+    .calendar-grid {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
         gap: 0.25rem;
     }
-    .day-cell { 
+    .day-cell {
         min-height: 130px;
         max-height: 260px;
         padding: 0.3rem;
@@ -294,13 +226,9 @@
     }
     .week-grid { flex-direction: column; }
     .week-day-card { margin-bottom: 0.5rem; }
-
-    /* Stack absence title/name on small screens to avoid truncation overlap */
-    .absence-item { flex-direction: column; align-items: flex-start; gap: 0.25rem; }
-    .absence-right { text-align: left; max-width: 100%; }
 }
 
-/* Day detail modal shell */
+/* ── Day detail modal ─────────────────────────────────────────────────── */
 .day-modal-content {
     border: none;
     border-radius: 14px;
@@ -308,54 +236,36 @@
     overflow: hidden;
 }
 
-/* Header */
+.day-detail-body {
+    max-height: 60vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.day-modal-footer {
+    background: var(--color-bg-card);
+    border-top: 1px solid var(--color-border);
+    padding: 0.65rem 1.25rem;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
 .day-modal-header {
     background: var(--color-bg-card);
     border-bottom: 1px solid var(--color-border);
     padding: 1rem 1.25rem;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
 }
 
-/* Circular date badge on the left of the header */
-.day-modal-date-badge {
+.day-modal-header-text {
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: center;
-    width: 52px;
-    height: 52px;
-    border-radius: 12px;
-    background: var(--color-bg-subtle);
-    border: 1px solid var(--color-border-subtle);
-    flex-shrink: 0;
-    line-height: 1;
 }
 
-.day-modal-date-badge--today {
-    background: #0d6efd;
-    border-color: #0d6efd;
-}
-
-.day-modal-date-badge--today .day-modal-date-badge-num,
-.day-modal-date-badge--today .day-modal-date-badge-month {
-    color: #fff;
-}
-
-.day-modal-date-badge-num {
-    font-size: 1.35rem;
-    font-weight: 800;
-    color: #0d6efd;
-    line-height: 1.1;
-}
-
-.day-modal-date-badge-month {
-    font-size: 0.6rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--color-text-secondary);
-}
-
-/* Header action buttons */
 .day-modal-action-btn {
     border-radius: 20px;
     padding: 0.25rem 0.75rem;
@@ -368,7 +278,6 @@
     margin-right: 0.15rem;
 }
 
-/* Template bar */
 .day-modal-template-bar {
     background: var(--color-bg-subtle);
     border-bottom: 1px solid rgba(13,110,253,0.12);
@@ -399,24 +308,21 @@
     width: 9rem;
 }
 
-/* Small tweak: ensure list-group items inside modals match theme (if used) */
 .list-group-item {
     background: var(--color-bg-card);
     border-color: var(--color-border);
     color: var(--color-text-primary);
 }
 
-/* Stronger, high-specificity override for the calendar forward/back buttons in dark mode.
-   Using aria-label and .card-body scope to avoid affecting other .btn-light usages.
-   Uses theme variables and !important to overcome Bootstrap defaults when necessary. */
+/* ── Dark mode nav button overrides ──────────────────────────────────── */
 [data-theme="dark"] .calendar-card .card-body .btn-group[aria-label="Navigation"] > .btn.btn-light,
 [data-theme="dark"] .calendar-card .card-body .btn-group[aria-label="Navigation"] > .btn.btn-light:focus,
 [data-theme="dark"] .calendar-card .card-body .btn-group[aria-label="Navigation"] > .btn.btn-light:hover {
-    background-color: var(--color-bg-card) !important;      /* darker surface matching cards */
-    border: 1px solid var(--color-border) !important;       /* theme-aware border */
-    color: var(--color-text-medium) !important;             /* slightly muted glyph color */
+    background-color: var(--color-bg-card) !important;
+    border: 1px solid var(--color-border) !important;
+    color: var(--color-text-medium) !important;
     box-shadow: none !important;
-    filter: none !important;                                /* clear any global invert/filters */
+    filter: none !important;
     padding: 0.3rem 0.55rem !important;
     min-width: 2.2rem;
     line-height: 1;
@@ -424,23 +330,21 @@
     border-radius: 8px;
 }
 
-/* Tidy the grouping so the pair looks like a single control but keeps clear glyphs */
 [data-theme="dark"] .calendar-card .card-body .btn-group[aria-label="Navigation"] > .btn.btn-light:first-child {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
 }
+
 [data-theme="dark"] .calendar-card .card-body .btn-group[aria-label="Navigation"] > .btn.btn-light:last-child {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
 }
 
-/* Hover uses a subtle contrast */
 [data-theme="dark"] .calendar-card .card-body .btn-group[aria-label="Navigation"] > .btn.btn-light:hover {
     background-color: var(--color-bg-hover) !important;
     border-color: rgba(13,110,253,0.12) !important;
 }
 
-/* Fallback broader selector if markup changes slightly (keeps lower precedence than the aria-label rule) */
 [data-theme="dark"] .calendar-card .btn-group > .btn.btn-light {
     background-color: var(--color-bg-card);
     border-color: var(--color-border);
