@@ -87,11 +87,26 @@
             error = "Passwords do not match";
             return;
         }
+        if (string.IsNullOrWhiteSpace(register.FirstName) || string.IsNullOrWhiteSpace(register.LastName))
+        {
+            error = "First name and last name are required";
+            return;
+        }
 
         isBusy = true;
         try
         {
-            var result = await JS.InvokeAsync<JsonElement>("authPost", "/api/auth/register", new { Username = register.Username, Password = register.Password, RememberMe = register.RememberMe, DisplayName = register.DisplayName, Role = register.Role, LinkManagerCode = string.IsNullOrWhiteSpace(register.LinkManagerCode) ? null : register.LinkManagerCode });
+            var result = await JS.InvokeAsync<JsonElement>("authPost", "/api/auth/register", new
+            {
+                Username = register.Username,
+                Password = register.Password,
+                RememberMe = register.RememberMe,
+                FirstName = string.IsNullOrWhiteSpace(register.FirstName) ? null : register.FirstName,
+                LastName = string.IsNullOrWhiteSpace(register.LastName) ? null : register.LastName,
+                DisplayName = string.IsNullOrWhiteSpace(register.DisplayName) ? null : register.DisplayName,
+                Role = register.Role,
+                LinkManagerCode = string.IsNullOrWhiteSpace(register.LinkManagerCode) ? null : register.LinkManagerCode
+            });
             var ok = result.TryGetProperty("ok", out var okProp) && okProp.ValueKind == JsonValueKind.True;
             if (ok)
             {
@@ -131,6 +146,8 @@
     private class RegisterModel
     {
         public string Username { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string ConfirmPassword { get; set; } = string.Empty;
@@ -211,9 +228,20 @@
             <input class="form-control" @bind="register.Username" />
         </div>
 
+        <div class="row mb-3">
+            <div class="col">
+                <label class="form-label">First Name <span class="text-danger">*</span></label>
+                <input class="form-control" @bind="register.FirstName" placeholder="First name" />
+            </div>
+            <div class="col">
+                <label class="form-label">Last Name <span class="text-danger">*</span></label>
+                <input class="form-control" @bind="register.LastName" placeholder="Last name" />
+            </div>
+        </div>
+
         <div class="mb-3">
-            <label class="form-label">Display Name</label>
-            <input class="form-control" @bind="register.DisplayName" placeholder="How your name appears in the app" />
+            <label class="form-label">Display Name <span class="text-muted small">(optional)</span></label>
+            <input class="form-control" @bind="register.DisplayName" placeholder="Defaults to first + last name" />
         </div>
 
         <div class="mb-3">

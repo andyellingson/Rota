@@ -490,7 +490,12 @@
 }
 
 @code {
-    private static readonly WorkerType[] WorkerTypes = Enum.GetValues<WorkerType>();
+    /// <summary>
+    /// Manager-defined worker type names passed in from the parent page.
+    /// Rendered as options in the worker type dropdown on shift forms.
+    /// </summary>
+    [Parameter]
+    public IReadOnlyList<string> WorkerTypes { get; set; } = Array.Empty<string>();
 
     [Parameter, EditorRequired]
     public CalendarEditModalState State { get; set; } = default!;

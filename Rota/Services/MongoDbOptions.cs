@@ -27,5 +27,10 @@ namespace Rota.Services
         /// Name of the collection that stores absence documents.
         /// </summary>
         public string AbsencesCollectionName { get; set; } = "absences";
+
+        /// <summary>
+        /// Name of the collection that stores manager-defined worker type documents.
+        /// </summary>
+        public string WorkerTypesCollectionName { get; set; } = "workerTypes";
     }
 }

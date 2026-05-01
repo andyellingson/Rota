@@ -41,22 +41,28 @@ namespace Rota.Models
         public string? DisplayName { get; set; }
 
         /// <summary>
-        /// The type of work the user performs.
+        /// The user's first name.
+        /// </summary>
+        [BsonElement("firstName")]
+        public string? FirstName { get; set; }
+
+        /// <summary>
+        /// The user's last name.
+        /// </summary>
+        [BsonElement("lastName")]
+        public string? LastName { get; set; }
+
+        /// <summary>
+        /// The type of work the user performs (manager-defined name stored as string).
         /// Used when assigning employees to shifts.
         /// </summary>
         [BsonElement("occupation")]
-        [BsonRepresentation(BsonType.String)]
-        public WorkerType Occupation { get; set; } = WorkerType.General;
-
-        /// <summary>
-        /// For employee accounts: the username of the manager responsible for this user.
-        /// </summary>
-        [BsonElement("managerUsername")]
-        public string? ManagerUsername { get; set; }
+        public string Occupation { get; set; } = "General";
 
         /// <summary>
         /// For manager accounts: a unique code (GUID) that employees use to link themselves
-        /// to this manager. Generated automatically at registration.
+        /// to this manager. Generated automatically at registration. When an employee is
+        /// linked to a manager, the employee's document stores the manager's ManagerCode.
         /// </summary>
         [BsonElement("managerCode")]
         public string? ManagerCode { get; set; }

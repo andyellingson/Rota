@@ -21,6 +21,7 @@ builder.Services.AddScoped<IRemindersService, MongoRemindersService>();
 builder.Services.AddScoped<IShiftsService, MongoShiftsService>();
 builder.Services.AddScoped<IAbsencesService, MongoAbsencesService>();
 builder.Services.AddScoped<ISchedulesService, MongoSchedulesService>();
+builder.Services.AddScoped<IWorkerTypesService, MongoWorkerTypesService>();
 builder.Services.AddScoped<AuthenticationStateProvider, HttpContextAuthenticationStateProvider>();
 
 // Enable detailed circuit errors for debugging (remove or set false in production)
@@ -34,6 +35,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     .AddCookie(options =>
     {
         options.LoginPath = "/login";
+        options.AccessDeniedPath = "/login"; // redirect to login instead of a non-existent page
         options.Cookie.HttpOnly = true;
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = false;

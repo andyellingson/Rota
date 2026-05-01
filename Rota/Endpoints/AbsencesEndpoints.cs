@@ -39,11 +39,8 @@ namespace Rota.Endpoints
                     }
                     else if (context.User.IsInRole(Roles.Employee))
                     {
-                        if (!string.IsNullOrEmpty(caller?.ManagerUsername))
-                        {
-                            var manager = await users.GetByUsernameAsync(caller.ManagerUsername);
-                            queryManagerCode = manager?.ManagerCode;
-                        }
+                        // Employee documents store the manager's ManagerCode when linked
+                        queryManagerCode = caller?.ManagerCode;
                     }
 
                     var startDate = string.IsNullOrEmpty(start) ? DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)) : DateOnly.Parse(start);
@@ -110,10 +107,10 @@ namespace Rota.Endpoints
                     {
                         managerCode = creator?.ManagerCode;
                     }
-                    else if (!string.IsNullOrEmpty(creator?.ManagerUsername))
+                    else
                     {
-                        var mgr = await users.GetByUsernameAsync(creator.ManagerUsername);
-                        managerCode = mgr?.ManagerCode;
+                        // For employees, the creator document stores the manager's ManagerCode when linked
+                        managerCode = creator?.ManagerCode;
                     }
 
                     var targetUserId = string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? creator?.Id : dto.AssignedToUserId;
@@ -121,7 +118,7 @@ namespace Rota.Endpoints
 
                     if (!string.IsNullOrEmpty(managerCode))
                     {
-                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(isManager ? username : creator!.ManagerUsername!);
+                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(managerCode);
                         targetUser = linkedUsers.FirstOrDefault(u => u.Id == targetUserId);
                     }
 
@@ -222,10 +219,9 @@ namespace Rota.Endpoints
                     {
                         managerCode = creator?.ManagerCode;
                     }
-                    else if (!string.IsNullOrEmpty(creator?.ManagerUsername))
+                    else
                     {
-                        var mgr = await users.GetByUsernameAsync(creator.ManagerUsername);
-                        managerCode = mgr?.ManagerCode;
+                        managerCode = creator?.ManagerCode;
                     }
 
                     var targetUserId = string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? creator?.Id : dto.AssignedToUserId;
@@ -233,7 +229,7 @@ namespace Rota.Endpoints
 
                     if (!string.IsNullOrEmpty(managerCode))
                     {
-                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(isManager ? username : creator!.ManagerUsername!);
+                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(managerCode);
                         targetUser = linkedUsers.FirstOrDefault(u => u.Id == targetUserId);
                     }
 

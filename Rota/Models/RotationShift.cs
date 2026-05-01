@@ -28,8 +28,11 @@ namespace Rota.Models
         [BsonElement("color")]
         public string? Color { get; set; }
 
+        /// <summary>
+        /// The name of the worker type required (manager-defined string).
+        /// </summary>
         [BsonElement("workerType")]
-        public WorkerType WorkerType { get; set; } = WorkerType.General;
+        public string WorkerType { get; set; } = "General";
 
         [BsonElement("assignedToUserId")]
         public string? AssignedToUserId { get; set; }

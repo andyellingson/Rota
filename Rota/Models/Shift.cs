@@ -76,10 +76,10 @@ namespace Rota.Models
         public string? ScheduleId { get; set; }
 
         /// <summary>
-        /// The type of worker required for the shift.
+        /// The name of the worker type required for this shift (manager-defined string).
         /// </summary>
         [BsonElement("workerType")]
-        public WorkerType WorkerType { get; set; } = WorkerType.General;
+        public string WorkerType { get; set; } = "General";
 
             /// <summary>
             /// Optional identifier linking shifts that belong to the same recurring series.

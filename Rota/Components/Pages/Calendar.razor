@@ -12,6 +12,7 @@
 @inject IUserService UserService
 @inject ISchedulesService SchedulesService
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
+@inject IWorkerTypesService WorkerTypesService
 
 
 <div class="calendar-card card shadow-sm my-4">
@@ -403,6 +404,7 @@
                    Employees="employees"
                    LinkedUsers="linkedUsers"
                    ColorChoices="ColorChoices"
+                   WorkerTypes="workerTypeNames"
                    OnClose="CloseModal"
                    OnSaveReminder="SaveReminder"
                    OnUpdateReminder="UpdateReminder"
@@ -486,14 +488,14 @@
     private TimeOnly editShiftEndTime { get => modalState.EditShiftEndTime; set => modalState.EditShiftEndTime = value; }
     private string editShiftTitle { get => modalState.EditShiftTitle; set => modalState.EditShiftTitle = value; }
     private string? editShiftNotes { get => modalState.EditShiftNotes; set => modalState.EditShiftNotes = value; }
-    private WorkerType editShiftWorkerType { get => modalState.EditShiftWorkerType; set => modalState.EditShiftWorkerType = value; }
+    private string editShiftWorkerType { get => modalState.EditShiftWorkerType; set => modalState.EditShiftWorkerType = value; }
 
     private TimeOnly newShiftStartTime { get => modalState.NewShiftStartTime; set => modalState.NewShiftStartTime = value; }
     private TimeOnly newShiftEndTime { get => modalState.NewShiftEndTime; set => modalState.NewShiftEndTime = value; }
     private string newShiftTitle { get => modalState.NewShiftTitle; set => modalState.NewShiftTitle = value; }
     private string? newShiftNotes { get => modalState.NewShiftNotes; set => modalState.NewShiftNotes = value; }
     private string newShiftColor { get => modalState.NewShiftColor; set => modalState.NewShiftColor = value; }
-    private WorkerType newShiftWorkerType { get => modalState.NewShiftWorkerType; set => modalState.NewShiftWorkerType = value; }
+    private string newShiftWorkerType { get => modalState.NewShiftWorkerType; set => modalState.NewShiftWorkerType = value; }
     private ShiftRecurrence newShiftRecurrence { get => modalState.NewShiftRecurrence; set => modalState.NewShiftRecurrence = value; }
     private string newShiftAssignedTo { get => modalState.NewShiftAssignedTo; set => modalState.NewShiftAssignedTo = value; }
     private string editShiftAssignedTo { get => modalState.EditShiftAssignedTo; set => modalState.EditShiftAssignedTo = value; }
@@ -532,6 +534,9 @@
     private bool newAbsenceIsApproved { get => modalState.NewAbsenceApprovalState == AbsenceApprovalState.Approved; set => modalState.NewAbsenceApprovalState = value ? AbsenceApprovalState.Approved : AbsenceApprovalState.Pending; }
     private bool editAbsenceIsApproved { get => modalState.EditAbsenceApprovalState == AbsenceApprovalState.Approved; set => modalState.EditAbsenceApprovalState = value ? AbsenceApprovalState.Approved : AbsenceApprovalState.Pending; }
 
+    // Worker type names loaded for the current manager
+    private List<string> workerTypeNames = new();
+
     // Preset palette: red, green, blue, orange, gray
     private readonly string[] ColorChoices = new[] { "#ff4d4f", "#52c41a", "#1890ff", "#fa8c16", "#d3d3d3" };
 
@@ -565,19 +570,17 @@
                 _managerCode = caller?.ManagerCode;
                 employees = await UserService.GetUsersByRoleAsync(Roles.Employee);
             }
-            else if (user.IsInRole(Roles.Employee) && !string.IsNullOrEmpty(caller?.ManagerUsername))
+            else if (user.IsInRole(Roles.Employee) && !string.IsNullOrEmpty(caller?.ManagerCode))
             {
-                var manager = await UserService.GetByUsernameAsync(caller.ManagerUsername);
-                _managerCode = manager?.ManagerCode;
+                // Employee documents store the manager's ManagerCode when linked
+                _managerCode = caller?.ManagerCode;
             }
 
-            var managerUsernameForLinkedUsers = canManageShifts
-                ? caller?.Username
-                : caller?.ManagerUsername;
+            var managerCodeForLinkedUsers = caller?.ManagerCode;
 
-            if (!string.IsNullOrEmpty(managerUsernameForLinkedUsers))
+            if (!string.IsNullOrEmpty(managerCodeForLinkedUsers))
             {
-                linkedUsers = await UserService.GetLinkedUsersForManagerAsync(managerUsernameForLinkedUsers);
+                linkedUsers = await UserService.GetLinkedUsersForManagerAsync(managerCodeForLinkedUsers);
             }
 
             if (caller is not null && !linkedUsers.Any(u => u.Username == caller.Username))
@@ -596,6 +599,13 @@
             if (!string.IsNullOrEmpty(_userId))
             {
                 await LoadSchedules();
+
+                // Load worker types for the resolved manager
+                if (canManageShifts)
+                {
+                    var workerTypes = await WorkerTypesService.GetByOwnerAsync(_userId);
+                    workerTypeNames = workerTypes.Select(w => w.Name).ToList();
+                }
             }
         }
 
@@ -863,7 +873,7 @@
         newShiftNotes = null;
         newShiftStartTime = new(9, 0);
         newShiftEndTime = new(17, 0);
-        newShiftWorkerType = WorkerType.General;
+        newShiftWorkerType = workerTypeNames.FirstOrDefault() ?? "General";
         newShiftRecurrence = ShiftRecurrence.None;
         newShiftColor = "#1890ff";
         newShiftAssignedTo = string.Empty;

@@ -8,7 +8,7 @@ namespace Rota.Services
         System.Threading.Tasks.Task<Shift> CreateShiftAsync(Shift shift);
         System.Threading.Tasks.Task<bool> DeleteShiftAsync(string id, string username);
         System.Threading.Tasks.Task<int> DeleteShiftsBySeriesIdAsync(Guid seriesId, string username);
-        System.Threading.Tasks.Task<Shift?> UpdateShiftAsync(string id, string username, DateTime startUtc, DateTime endUtc, string? title, string? notes, WorkerType workerType, string? color, string? assignedToUserId);
+        System.Threading.Tasks.Task<Shift?> UpdateShiftAsync(string id, string username, DateTime startUtc, DateTime endUtc, string? title, string? notes, string workerType, string? color, string? assignedToUserId);
         /// <summary>
         /// Returns the distinct ScheduleIds of every shift the given user is assigned to.
         /// </summary>

@@ -139,7 +139,7 @@ namespace Rota.Services
             }
         }
 
-        public async System.Threading.Tasks.Task<Shift?> UpdateShiftAsync(string id, string username, DateTime startUtc, DateTime endUtc, string? title, string? notes, WorkerType workerType, string? color, string? assignedToUserId)
+        public async System.Threading.Tasks.Task<Shift?> UpdateShiftAsync(string id, string username, DateTime startUtc, DateTime endUtc, string? title, string? notes, string workerType, string? color, string? assignedToUserId)
         {
             try
             {

@@ -36,7 +36,7 @@ namespace Rota.Services
         /// Updates the occupation for the specified user.
         /// Returns true when the document was modified.
         /// </summary>
-        System.Threading.Tasks.Task<bool> UpdateOccupationAsync(string username, Rota.Models.WorkerType occupation);
+        System.Threading.Tasks.Task<bool> UpdateOccupationAsync(string username, string occupation);
 
         /// <summary>
         /// Verifies <paramref name="currentPassword"/> then replaces the stored hash with a
@@ -58,9 +58,10 @@ namespace Rota.Services
         System.Threading.Tasks.Task<bool> LinkToManagerAsync(string employeeUsername, string managerCode);
 
         /// <summary>
-        /// Returns the manager and all linked users for the specified manager username.
+        /// Returns the manager and all linked users for the specified manager code.
+        /// ManagerCode is the GUID-like code owned by managers and stored on linked users.
         /// </summary>
-        System.Threading.Tasks.Task<List<User>> GetLinkedUsersForManagerAsync(string managerUsername);
+        System.Threading.Tasks.Task<List<User>> GetLinkedUsersForManagerAsync(string managerCode);
 
         /// <summary>
         /// Replaces the user's embedded availability array with the supplied list.

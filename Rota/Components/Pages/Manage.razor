@@ -4,7 +4,7 @@
 @using System.Globalization
 @using Rota.Services
 @using Rota.Components
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Manager,Admin")]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "manager,admin")]
 @inject ISchedulesService SchedulesService
 @inject IShiftsService ShiftsService
 @inject IUserService UserService
@@ -12,6 +12,7 @@
 @inject NavigationManager Navigation
 @inject Microsoft.Extensions.Logging.ILogger<Manage> Logger
 @inject IAbsencesService AbsencesService
+@inject IWorkerTypesService WorkerTypesService
 
 <div class="container my-4">
     <div class="card shadow-sm">
@@ -19,7 +20,7 @@
             <div class="d-flex align-items-center mb-4">
                 <div class="me-auto">
                     <h4 class="mb-0">Manage Schedules</h4>
-                    <small class="text-muted">Create and manage your work schedules</small>
+                    <small class="manage-subtitle">Create and manage your work schedules</small>
                 </div>
                 <button class="btn btn-primary" @onclick="OpenCreateModal">
                     <span class="me-1">+</span> New Schedule
@@ -296,12 +297,63 @@
     </div>
 }
 
+@* ── Worker Types ─────────────────────────────────────── *@
+<div class="container my-4">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="mb-1">🏷️ Worker Types</h5>
+            <p class="manage-subtitle small mb-3">Define the roles used when creating shifts for your team. Only you can see and manage these.</p>
+
+            @if (workerTypes.Count == 0)
+            {
+                <div class="alert alert-info mb-3">No worker types defined yet. Add one below.</div>
+            }
+            else
+            {
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    @foreach (var wt in workerTypes)
+                    {
+                        <span class="badge bg-secondary d-flex align-items-center gap-1 fs-6 px-3 py-2">
+                            @wt.Name
+                            <button type="button" class="btn-close btn-close-white ms-1"
+                                    style="font-size: 0.6rem;"
+                                    aria-label="Remove @wt.Name"
+                                    @onclick="(() => RemoveWorkerType(wt))"
+                                    disabled="@isBusy">
+                            </button>
+                        </span>
+                    }
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(workerTypeError))
+            {
+                <div class="alert alert-danger py-2">@workerTypeError</div>
+            }
+
+            <div class="d-flex gap-2">
+                <input class="form-control form-control-sm"
+                       style="max-width: 240px;"
+                       placeholder="New worker type name"
+                       @bind="newWorkerTypeName"
+                       @bind:event="oninput"
+                       @onkeydown="OnWorkerTypeKeyDown" />
+                <button class="btn btn-sm btn-primary"
+                        @onclick="AddWorkerType"
+                        disabled="@(isBusy || string.IsNullOrWhiteSpace(newWorkerTypeName))">
+                    Add
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @* ── Team Members (managers only) ────────────────────────── *@
 <div class="container my-4">
     <div class="card shadow-sm">
         <div class="card-body">
             <h5 class="mb-1">👥 Team Members</h5>
-            <p class="text-muted small mb-3">Employees currently linked to your team.</p>
+            <p class="manage-subtitle small mb-3">Employees currently linked to your team.</p>
 
             @if (linkedUsers.Count == 0)
             {
@@ -343,9 +395,15 @@
                                     <label class="team-detail-label">Occupation</label>
                                     <div class="d-flex gap-2 align-items-start mt-1">
                                         <select class="form-select form-select-sm" @bind="selectedMemberOccupation">
-                                            @foreach (var wt in Enum.GetValues<WorkerType>())
+                                            @foreach (var wt in workerTypes)
                                             {
-                                                <option value="@wt">@wt</option>
+                                                <option value="@wt.Name">@wt.Name</option>
+                                            }
+                                            @* Keep the current value selectable even if the type was removed *@
+                                            @if (!string.IsNullOrEmpty(selectedMemberOccupation) &&
+                                                 !workerTypes.Any(w => w.Name == selectedMemberOccupation))
+                                            {
+                                                <option value="@selectedMemberOccupation">@selectedMemberOccupation (removed)</option>
                                             }
                                         </select>
                                         <button class="btn btn-sm btn-primary text-nowrap"
@@ -459,6 +517,7 @@
                    Employees="employees"
                    LinkedUsers="new List<User>()"
                    ColorChoices="ColorChoices"
+                   WorkerTypes="workerTypeNames"
                    OnClose="CloseRotationShiftModal"
                    OnSaveReminder="@(() => Task.CompletedTask)"
                    OnUpdateReminder="@(() => Task.CompletedTask)"
@@ -477,6 +536,7 @@
                    Employees="employees"
                    LinkedUsers="linkedUsers"
                    ColorChoices="ColorChoices"
+                   WorkerTypes="workerTypeNames"
                    OnClose="CloseAbsenceModal"
                    OnSaveReminder="@(() => Task.CompletedTask)"
                    OnUpdateReminder="@(() => Task.CompletedTask)"
@@ -537,13 +597,19 @@
 
     // Currently selected team member in the master/detail panel
     private User? selectedMember = null;
-    private WorkerType selectedMemberOccupation = WorkerType.General;
+    private string selectedMemberOccupation = "General";
     private string? memberOccupationMessage;
     private bool memberOccupationError;
 
     /// <summary>True when the occupation dropdown differs from the selected member's saved value.</summary>
     private bool HasMemberOccupationChanged =>
         selectedMember is not null && selectedMemberOccupation != selectedMember.Occupation;
+
+    // Worker type management state
+    private List<WorkerType> workerTypes = new();
+    private List<string> workerTypeNames => workerTypes.Select(w => w.Name).ToList();
+    private string newWorkerTypeName = string.Empty;
+    private string? workerTypeError;
 
     // Change tracking for Rotation
     private string originalRotationName = string.Empty;
@@ -569,7 +635,7 @@
         rotationModalState.NewShiftTitle = string.Empty;
         rotationModalState.NewShiftColor = "#1890ff";
         rotationModalState.NewShiftNotes = null;
-        rotationModalState.NewShiftWorkerType = WorkerType.General;
+        rotationModalState.NewShiftWorkerType = workerTypeNames.FirstOrDefault() ?? "General";
         rotationModalState.NewShiftAssignedTo = string.Empty;
         rotationModalState.NewShiftRecurrence = ShiftRecurrence.None;
         rotationModalState.ModalError = null;
@@ -1260,11 +1326,91 @@
             employees = await UserService.GetUsersByRoleAsync(Roles.Employee);
 
             // Load employees linked to this manager (exclude the manager themselves)
-            var allLinked = await UserService.GetLinkedUsersForManagerAsync(_username);
-            linkedUsers = allLinked.Where(u => u.Username != _username).ToList();
+            if (!string.IsNullOrEmpty(_managerCode))
+            {
+                var allLinked = await UserService.GetLinkedUsersForManagerAsync(_managerCode);
+                linkedUsers = allLinked.Where(u => u.Username != _username).ToList();
+            }
         }
 
         await LoadSchedules();
+        await LoadWorkerTypesAsync();
+    }
+
+    /// <summary>
+    /// Loads worker types owned by the current manager.
+    /// </summary>
+    private async Task LoadWorkerTypesAsync()
+    {
+        if (string.IsNullOrEmpty(_userId)) return;
+        workerTypes = await WorkerTypesService.GetByOwnerAsync(_userId);
+    }
+
+    /// <summary>
+    /// Adds a new worker type for the current manager.
+    /// </summary>
+    private async Task AddWorkerType()
+    {
+        var name = newWorkerTypeName.Trim();
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(_userId)) return;
+
+        // Prevent duplicates (case-insensitive)
+        if (workerTypes.Any(w => w.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        {
+            workerTypeError = $"'{name}' already exists.";
+            return;
+        }
+
+        try
+        {
+            isBusy = true;
+            workerTypeError = null;
+            await WorkerTypesService.CreateAsync(new WorkerType { Name = name, OwnerId = _userId });
+            newWorkerTypeName = string.Empty;
+            await LoadWorkerTypesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error adding worker type");
+            workerTypeError = "Failed to add worker type. Please try again.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Removes a worker type scoped to the current manager.
+    /// </summary>
+    private async Task RemoveWorkerType(WorkerType wt)
+    {
+        if (string.IsNullOrEmpty(wt.Id) || string.IsNullOrEmpty(_userId)) return;
+
+        try
+        {
+            isBusy = true;
+            workerTypeError = null;
+            await WorkerTypesService.DeleteAsync(wt.Id, _userId);
+            await LoadWorkerTypesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing worker type {Id}", wt.Id);
+            workerTypeError = "Failed to remove worker type. Please try again.";
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Allows pressing Enter to submit a new worker type name.
+    /// </summary>
+    private async Task OnWorkerTypeKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await AddWorkerType();
     }
 
     private async Task LoadSchedules()

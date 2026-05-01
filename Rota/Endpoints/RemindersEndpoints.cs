@@ -61,11 +61,7 @@ namespace Rota.Endpoints
                     else if (context.User.IsInRole(Roles.Employee))
                     {
                         // Employees fetch manager's reminders by ManagerCode plus their own by OwnerId
-                        if (!string.IsNullOrEmpty(caller?.ManagerUsername))
-                        {
-                            var manager = await users.GetByUsernameAsync(caller.ManagerUsername);
-                            queryManagerCode = manager?.ManagerCode;
-                        }
+                        queryManagerCode = caller?.ManagerCode;
                     }
 
                     var startDate = string.IsNullOrEmpty(start) ? DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)) : DateOnly.Parse(start);
@@ -99,27 +95,14 @@ namespace Rota.Endpoints
 
                     var creator = await users.GetByUsernameAsync(username);
                     var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
-                    string? managerUsername = null;
-                    string? managerCode = null;
-
-                    if (isManager)
-                    {
-                        managerUsername = username;
-                        managerCode = creator?.ManagerCode;
-                    }
-                    else if (!string.IsNullOrEmpty(creator?.ManagerUsername))
-                    {
-                        managerUsername = creator.ManagerUsername;
-                        var manager = await users.GetByUsernameAsync(creator.ManagerUsername);
-                        managerCode = manager?.ManagerCode;
-                    }
+                    string? managerCode = isManager ? creator?.ManagerCode : creator?.ManagerCode;
 
                     var targetUsername = string.IsNullOrWhiteSpace(dto.ForUsername) ? username : dto.ForUsername;
                     User? targetUser = null;
 
-                    if (!string.IsNullOrEmpty(managerUsername))
+                    if (!string.IsNullOrEmpty(managerCode))
                     {
-                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(managerUsername);
+                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(managerCode);
                         targetUser = linkedUsers.FirstOrDefault(u => u.Username == targetUsername);
                     }
 
@@ -189,27 +172,14 @@ namespace Rota.Endpoints
 
                     var creator = await users.GetByUsernameAsync(username);
                     var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
-                    string? managerUsername = null;
-                    string? managerCode = null;
-
-                    if (isManager)
-                    {
-                        managerUsername = username;
-                        managerCode = creator?.ManagerCode;
-                    }
-                    else if (!string.IsNullOrEmpty(creator?.ManagerUsername))
-                    {
-                        managerUsername = creator.ManagerUsername;
-                        var manager = await users.GetByUsernameAsync(creator.ManagerUsername);
-                        managerCode = manager?.ManagerCode;
-                    }
+                    string? managerCode = isManager ? creator?.ManagerCode : creator?.ManagerCode;
 
                     var targetUsername = string.IsNullOrWhiteSpace(dto.ForUsername) ? username : dto.ForUsername;
                     User? targetUser = null;
 
-                    if (!string.IsNullOrEmpty(managerUsername))
+                    if (!string.IsNullOrEmpty(managerCode))
                     {
-                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(managerUsername);
+                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(managerCode);
                         targetUser = linkedUsers.FirstOrDefault(u => u.Username == targetUsername);
                     }
 

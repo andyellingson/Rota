@@ -46,7 +46,8 @@ namespace Rota.Components
         public TimeOnly EditShiftEndTime { get; set; } = new(17, 0);
         public string EditShiftTitle { get; set; } = string.Empty;
         public string? EditShiftNotes { get; set; }
-        public WorkerType EditShiftWorkerType { get; set; } = WorkerType.General;
+        /// <summary>Worker type name for the shift being edited.</summary>
+        public string EditShiftWorkerType { get; set; } = "General";
         public string EditShiftColor { get; set; } = "#1890ff";
         public string EditShiftAssignedTo { get; set; } = string.Empty;
         public TimeOnly NewShiftStartTime { get; set; } = new(9, 0);
@@ -54,7 +55,8 @@ namespace Rota.Components
         public string NewShiftTitle { get; set; } = string.Empty;
         public string? NewShiftNotes { get; set; }
         public string NewShiftColor { get; set; } = "#1890ff";
-        public WorkerType NewShiftWorkerType { get; set; } = WorkerType.General;
+        /// <summary>Worker type name for the shift being created.</summary>
+        public string NewShiftWorkerType { get; set; } = "General";
         public ShiftRecurrence NewShiftRecurrence { get; set; } = ShiftRecurrence.None;
         public string NewShiftAssignedTo { get; set; } = string.Empty;
 

@@ -84,10 +84,17 @@ namespace Rota.Endpoints
 
                     var isManager = dto.Role?.Trim().ToLowerInvariant() == "manager";
 
+                    // Auto-derive display name from first/last name when not explicitly provided
+                    var derivedDisplayName = string.IsNullOrWhiteSpace(dto.DisplayName)
+                        ? BuildDisplayName(dto.FirstName, dto.LastName)
+                        : dto.DisplayName.Trim();
+
                     var newUser = new Rota.Models.User
                     {
                         Username = dto.Username,
-                        DisplayName = string.IsNullOrWhiteSpace(dto.DisplayName) ? null : dto.DisplayName.Trim(),
+                        FirstName = string.IsNullOrWhiteSpace(dto.FirstName) ? null : dto.FirstName.Trim(),
+                        LastName = string.IsNullOrWhiteSpace(dto.LastName) ? null : dto.LastName.Trim(),
+                        DisplayName = string.IsNullOrWhiteSpace(derivedDisplayName) ? null : derivedDisplayName,
                         Roles = string.IsNullOrWhiteSpace(dto.Role)
                             ? System.Array.Empty<string>()
                             : new[] { dto.Role.Trim().ToLowerInvariant() },
@@ -156,6 +163,17 @@ namespace Rota.Endpoints
             });
 
             return app;
+        }
+
+        /// <summary>
+        /// Builds a display name from first and last name parts, returning null when both are empty.
+        /// </summary>
+        private static string? BuildDisplayName(string? firstName, string? lastName)
+        {
+            var parts = new[] { firstName?.Trim(), lastName?.Trim() }
+                .Where(p => !string.IsNullOrEmpty(p));
+            var result = string.Join(" ", parts);
+            return string.IsNullOrEmpty(result) ? null : result;
         }
 
         // NOTE: DTOs are defined in the Rota.DTOs namespace (separate files).

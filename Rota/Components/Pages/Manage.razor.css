@@ -11,6 +11,19 @@
     color: var(--color-text-primary);
 }
 
+/* Subtitle text beneath section headings — readable in both light and dark mode */
+.manage-subtitle {
+    color: var(--color-text-secondary);
+}
+
+/* "Select a team member…" placeholder text */
+.team-detail-empty {
+    color: var(--color-text-secondary);
+    font-style: italic;
+    font-size: 0.88rem;
+    margin-top: 0.5rem;
+}
+
 /* ── Schedule list cards ─────────────────────────────────── */
 
 .schedule-list {

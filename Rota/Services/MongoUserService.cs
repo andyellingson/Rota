@@ -137,7 +137,7 @@ namespace Rota.Services
         /// <summary>
         /// Updates the occupation for the specified user.
         /// </summary>
-        public async System.Threading.Tasks.Task<bool> UpdateOccupationAsync(string username, Rota.Models.WorkerType occupation)
+        public async System.Threading.Tasks.Task<bool> UpdateOccupationAsync(string username, string occupation)
         {
             try
             {
@@ -177,6 +177,8 @@ namespace Rota.Services
             }
         }
 
+
+
         /// <summary>
         /// Finds the manager whose ManagerCode matches the supplied value.
         /// </summary>
@@ -184,7 +186,11 @@ namespace Rota.Services
         {
             try
             {
-                var filter = Builders<User>.Filter.Eq(u => u.ManagerCode, code);
+                // Ensure the user with the matching ManagerCode also has the 'manager' role
+                var filter = Builders<User>.Filter.And(
+                    Builders<User>.Filter.Eq(u => u.ManagerCode, code),
+                    Builders<User>.Filter.AnyEq(u => u.Roles, "manager")
+                );
                 return await _users.Find(filter).FirstOrDefaultAsync();
             }
             catch (System.Exception ex)
@@ -195,8 +201,8 @@ namespace Rota.Services
         }
 
         /// <summary>
-        /// Sets the employee's ManagerUsername to the manager identified by
-        /// <paramref name="managerCode"/>. Returns false when the code is not found.
+        /// Links an employee to the manager identified by <paramref name="managerCode"/>.
+        /// Stores the manager's ManagerCode on the employee document. Returns false when the code is not found.
         /// </summary>
         public async System.Threading.Tasks.Task<bool> LinkToManagerAsync(string employeeUsername, string managerCode)
         {
@@ -207,7 +213,6 @@ namespace Rota.Services
 
                 var filter = Builders<User>.Filter.Eq(u => u.Username, employeeUsername);
                 var update = Builders<User>.Update
-                    .Set(u => u.ManagerUsername, manager.Username)
                     .Set(u => u.ManagerCode, manager.ManagerCode);
                 await _users.UpdateOneAsync(filter, update);
                 return true;
@@ -219,13 +224,19 @@ namespace Rota.Services
             }
         }
 
-        public async System.Threading.Tasks.Task<List<User>> GetLinkedUsersForManagerAsync(string managerUsername)
+        public async System.Threading.Tasks.Task<List<User>> GetLinkedUsersForManagerAsync(string managerCode)
         {
             try
             {
+                if (string.IsNullOrEmpty(managerCode)) return new List<User>();
+
+                // Find the manager document for the provided managerCode
+                var manager = await GetByManagerCodeAsync(managerCode);
+                if (manager is null) return new List<User>();
+
                 var filter = Builders<User>.Filter.Or(
-                    Builders<User>.Filter.Eq(u => u.Username, managerUsername),
-                    Builders<User>.Filter.Eq(u => u.ManagerUsername, managerUsername)
+                    Builders<User>.Filter.Eq(u => u.Id, manager.Id),
+                    Builders<User>.Filter.Eq(u => u.ManagerCode, manager.ManagerCode)
                 );
 
                 var users = await _users.Find(filter).ToListAsync();
@@ -236,7 +247,7 @@ namespace Rota.Services
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving linked users for manager {Manager}", managerUsername);
+                _logger.LogError(ex, "Error retrieving linked users for manager with code {ManagerCode}", managerCode);
                 return new List<User>();
             }
         }

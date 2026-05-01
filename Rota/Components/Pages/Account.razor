@@ -6,6 +6,7 @@
 @using System.Globalization
 
 @inject IUserService UserService
+@inject IWorkerTypesService WorkerTypesService
 @inject IJSRuntime JS
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
 
@@ -57,9 +58,14 @@
                 {
                     <div class="d-flex gap-2 align-items-start">
                         <select class="form-select" @bind="occupationInput">
-                            @foreach (var wt in Enum.GetValues(typeof(WorkerType)).Cast<WorkerType>())
+                            @foreach (var name in occupationChoices)
                             {
-                                <option value="@wt">@wt</option>
+                                <option value="@name">@name</option>
+                            }
+                            @* Keep current value selectable even if it was removed from the list *@
+                            @if (!string.IsNullOrEmpty(occupationInput) && !occupationChoices.Contains(occupationInput))
+                            {
+                                <option value="@occupationInput">@occupationInput (removed)</option>
                             }
                         </select>
                         <button class="btn btn-primary text-nowrap" @onclick="SaveOccupation" disabled="@(!HasOccupationChanged || isBusy)">Save</button>
@@ -72,7 +78,7 @@
                 else
                 {
                     <div class="account-field-value">@user.Occupation</div>
-                    <div class="account-field-hint mt-1">Your occupation is managed by your manager.</div>
+                    <div class="account-field-hint mt-1">Your occupation is controlled by your manager.</div>
                 }
             </div>
         </div>
@@ -98,12 +104,12 @@
             <div class="account-section">
                 <h5 class="account-section-title">🔗 Manager Link</h5>
                 <div class="account-card">
-                    @if (!string.IsNullOrEmpty(user.ManagerUsername))
+                    @if (!string.IsNullOrEmpty(user.ManagerCode))
                     {
                         <div class="account-field">
                             <span class="account-field-label">Linked Manager</span>
-                            <span class="account-field-value">@(linkedManagerDisplayName ?? user.ManagerUsername)</span>
-                        </div>
+                            <span class="account-field-value">@(linkedManagerDisplayName ?? user.ManagerCode)</span>
+                            </div>
                         @if (!showLinkForm)
                         {
                             <button class="btn btn-sm btn-outline-secondary mt-2" @onclick="(() => showLinkForm = true)">Change Manager</button>
@@ -114,7 +120,7 @@
                         <p class="account-field-hint">You are not linked to a manager yet. Enter your manager's code below.</p>
                     }
 
-                    @if (showLinkForm || string.IsNullOrEmpty(user.ManagerUsername))
+                    @if (showLinkForm || string.IsNullOrEmpty(user.ManagerCode))
                     {
                         <div class="mt-2 d-flex gap-2 align-items-start">
                             <input class="form-control" @bind="managerCodeInput" placeholder="Paste manager code here" />
@@ -269,7 +275,8 @@
     private string? displayNameMessage;
     private bool displayNameError;
 
-    private WorkerType occupationInput = WorkerType.General;
+    private string occupationInput = "General";
+    private List<string> occupationChoices = new();
     private string? occupationMessage;
     private bool occupationError;
 
@@ -318,7 +325,7 @@
 
     /// <summary>True when the occupation dropdown differs from the saved value.</summary>
     private bool HasOccupationChanged =>
-        occupationInput != (user?.Occupation ?? WorkerType.General);
+        occupationInput != (user?.Occupation ?? "General");
 
     /// <summary>True when all three password fields contain text.</summary>
     private bool HasPasswordInput =>
@@ -333,8 +340,15 @@
         {
             user = await UserService.GetByUsernameAsync(username);
             displayNameInput = user?.DisplayName ?? string.Empty;
-            occupationInput = user?.Occupation ?? WorkerType.General;
+            occupationInput = user?.Occupation ?? "General";
             themeInput = user?.Theme ?? "light";
+
+            // Load the manager's own worker types for the occupation dropdown
+            if (user is not null && user.Roles.Contains(Roles.Manager) && !string.IsNullOrEmpty(user.Id))
+            {
+                var wts = await WorkerTypesService.GetByOwnerAsync(user.Id);
+                occupationChoices = wts.Select(w => w.Name).ToList();
+            }
 
             // Load the user's saved availability into the working copy
             availability = user?.Availability.Select(a => new UserAvailability
@@ -345,10 +359,10 @@
                 EndTime = a.EndTime
             }).ToList() ?? new();
 
-            if (user?.ManagerUsername is not null)
+            if (!string.IsNullOrEmpty(user?.ManagerCode))
             {
-                var mgr = await UserService.GetByUsernameAsync(user.ManagerUsername);
-                linkedManagerDisplayName = mgr?.DisplayName ?? user.ManagerUsername;
+                var mgr = await UserService.GetByManagerCodeAsync(user.ManagerCode);
+                linkedManagerDisplayName = mgr?.DisplayName ?? mgr?.Username ?? user.ManagerCode;
             }
         }
         isLoading = false;
@@ -388,10 +402,10 @@
             if (ok)
             {
                 user = await UserService.GetByUsernameAsync(user.Username) ?? user;
-                if (user.ManagerUsername is not null)
+                if (!string.IsNullOrEmpty(user.ManagerCode))
                 {
-                    var mgr = await UserService.GetByUsernameAsync(user.ManagerUsername);
-                    linkedManagerDisplayName = mgr?.DisplayName ?? user.ManagerUsername;
+                    var mgr = await UserService.GetByManagerCodeAsync(user.ManagerCode);
+                    linkedManagerDisplayName = mgr?.DisplayName ?? mgr?.Username ?? user.ManagerCode;
                 }
                 managerCodeInput = string.Empty;
                 showLinkForm = false;

@@ -40,9 +40,9 @@ namespace Rota.Endpoints
                     else if (context.User.IsInRole(Roles.Employee))
                     {
                         // Employees query their linked manager's roster
-                        if (!string.IsNullOrEmpty(caller?.ManagerUsername))
+                        if (!string.IsNullOrEmpty(caller?.ManagerCode))
                         {
-                            var manager = await users.GetByUsernameAsync(caller.ManagerUsername);
+                            var manager = await users.GetByManagerCodeAsync(caller.ManagerCode);
                             queryManagerCode = manager?.ManagerCode;
                         }
                     }
@@ -74,9 +74,6 @@ namespace Rota.Endpoints
                     if (endUtc <= startUtc)
                         return Results.Json(new { ok = false, message = "End must be after start", code = 400 }, statusCode: 400);
 
-                    if (!Enum.TryParse<WorkerType>(dto.WorkerType ?? string.Empty, true, out var wt))
-                        wt = WorkerType.General;
-
                     var creator = await users.GetByUsernameAsync(username);
 
                     var shift = new Shift
@@ -86,7 +83,7 @@ namespace Rota.Endpoints
                         End = endUtc,
                         Title = dto.Title,
                         Notes = dto.Notes,
-                        WorkerType = wt,
+                        WorkerType = string.IsNullOrWhiteSpace(dto.WorkerType) ? "General" : dto.WorkerType,
                         Color = dto.Color,
                         AssignedToUserId = string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? null : dto.AssignedToUserId,
                         ManagerCode = creator?.ManagerCode,
@@ -138,10 +135,9 @@ namespace Rota.Endpoints
                     if (endUtc <= startUtc)
                         return Results.Json(new { ok = false, message = "End must be after start", code = 400 }, statusCode: 400);
 
-                    if (!Enum.TryParse<WorkerType>(dto.WorkerType ?? string.Empty, true, out var wt))
-                        wt = WorkerType.General;
+                    var workerTypeName = string.IsNullOrWhiteSpace(dto.WorkerType) ? "General" : dto.WorkerType;
 
-                    var updated = await shifts.UpdateShiftAsync(id, username, startUtc, endUtc, dto.Title, dto.Notes, wt, dto.Color, string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? null : dto.AssignedToUserId);
+                    var updated = await shifts.UpdateShiftAsync(id, username, startUtc, endUtc, dto.Title, dto.Notes, workerTypeName, dto.Color, string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? null : dto.AssignedToUserId);
                     if (updated is null)
                         return Results.Json(new { ok = false, message = "Shift not found or access denied", code = 404 }, statusCode: 404);
 
