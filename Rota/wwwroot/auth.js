@@ -130,11 +130,13 @@ window.printSchedule = function (elementId) {
     /* ── Multi-period sections ── */
     .print-period-section { margin-bottom: 1rem; }
     .print-period-header  { font-size: 1rem; font-weight: 700; color: #222; margin-bottom: 0.5rem; padding-bottom: 0.25rem; border-bottom: 1px solid #dee2e6; }
+    /* Subtle gap between the first and second week sharing a page */
+    .print-period-section--pair-top { border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 0.75rem; }
 
     @media print {
       body { padding: 0.5cm; }
       .print-day-cell, .print-week-col { break-inside: avoid; }
-      /* Each period (week/month) starts on a new page except the last */
+      /* Page break after every 2nd week (pair), except the last */
       .print-period-section--break { page-break-after: always; break-after: page; }
     }
   </style>

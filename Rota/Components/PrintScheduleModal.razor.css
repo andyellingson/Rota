@@ -256,12 +256,18 @@
     margin-bottom: 1.5rem;
 }
 
-/* Adds a visible separator between periods in the on-screen preview.
-   In the print window this class maps to page-break-after: always via the
-   self-contained CSS written by printSchedule() in auth.js. */
+/* Page-break separator: shown between every 2nd week pair in the preview.
+   In the print window this maps to page-break-after:always (via auth.js CSS). */
 .print-period-section--break {
     border-bottom: 2px dashed #cbd5e1;
     padding-bottom: 1.5rem;
+}
+
+/* Visual gap between the first and second week of a pair (no page break). */
+.print-period-section--pair-top {
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
 }
 
 .print-period-header {
