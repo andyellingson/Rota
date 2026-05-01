@@ -1,7 +1,5 @@
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
-using BCrypt.Net;
 using Rota.Models;
 
 namespace Rota.Services
@@ -176,8 +174,6 @@ namespace Rota.Services
                 return false;
             }
         }
-
-
 
         /// <summary>
         /// Finds the manager whose ManagerCode matches the supplied value.

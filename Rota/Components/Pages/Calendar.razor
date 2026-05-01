@@ -13,6 +13,7 @@
 @inject ISchedulesService SchedulesService
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
 @inject IWorkerTypesService WorkerTypesService
+@inject IJSRuntime JS
 
 
 <div class="calendar-card card shadow-sm my-4">
@@ -55,6 +56,10 @@
                 <button class="btn btn-light" @onclick="Prev">‹</button>
                 <button class="btn btn-light" @onclick="Next">›</button>
             </div>
+
+            <button class="btn btn-outline-secondary ms-2" title="Print schedule" @onclick="OpenPrintModal">
+                🖨️
+            </button>
         </div>
 
         @if (view == ViewMode.Month)
@@ -399,6 +404,18 @@
         </div>
     </div>
 }
+<PrintScheduleModal IsVisible="showPrintModal"
+                    OnClose="@(() => showPrintModal = false)"
+                    ViewMode="@(view == ViewMode.Month ? PrintScheduleModal.PrintViewMode.Month : PrintScheduleModal.PrintViewMode.Week)"
+                    CurrentDate="current"
+                    ScheduleName="@(availableSchedules.FirstOrDefault(s => s.Id == selectedScheduleId)?.Name ?? "Schedule")"
+                    ShiftsForDay="GetShiftsForDay"
+                    AbsencesForDay="GetAbsencesForDay"
+                    RemindersForDay="GetRemindersForDay"
+                    GetEmployeeDisplayName="GetEmployeeDisplayNameById"
+                    GetShiftTitle="GetShiftDisplayTitle"
+                    LoadRangeData="LoadDataForDateRange" />
+
 <CalendarEditModal State="modalState"
                    CanManageShifts="canManageShifts"
                    Employees="employees"
@@ -472,6 +489,9 @@
     private string newReminderForUsername { get => modalState.NewReminderForUsername; set => modalState.NewReminderForUsername = value; }
     private string? modalError { get => modalState.ModalError; set => modalState.ModalError = value; }
     private bool isBusy { get => modalState.IsBusy; set => modalState.IsBusy = value; }
+
+    // Print modal state
+    private bool showPrintModal = false;
 
     // Day detail modal state
     private bool showDayModal = false;
@@ -912,6 +932,38 @@
         dayModalSelectedWorkWeekId = null;
         dayModalWorkWeekError = null;
         showDayModal = true;
+    }
+
+    /// <summary>
+    /// Opens the print schedule dialog.
+    /// </summary>
+    private void OpenPrintModal()
+    {
+        showPrintModal = true;
+    }
+
+    /// <summary>
+    /// Loads shifts, absences, and reminders for an explicit date range.
+    /// Called by PrintScheduleModal when the user increases the period count so that
+    /// the delegate functions (ShiftsForDay, AbsencesForDay, RemindersForDay) return
+    /// data for the additional weeks or months shown in the preview.
+    /// </summary>
+    private async Task LoadDataForDateRange(DateOnly start, DateOnly end)
+    {
+        try
+        {
+            // Pad the query by one day on each side to avoid UTC boundary gaps.
+            var queryStart = start.AddDays(-1);
+            var queryEnd = end.AddDays(1);
+            reminders = await RemindersService.GetCalendarRemindersAsync(_managerCode, _userId, queryStart, queryEnd);
+            shifts = await ShiftService.GetShiftsAsync(_username, _userId, _managerCode, queryStart, queryEnd);
+            await LoadAbsences(queryStart, queryEnd);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading data for print range {Start}–{End}", start, end);
+        }
     }
 
     /// <summary>

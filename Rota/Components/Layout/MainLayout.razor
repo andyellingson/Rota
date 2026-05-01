@@ -13,11 +13,16 @@
 
     <main>
         <div class="top-row px-4 d-flex justify-content-between align-items-center">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            @* Top-left area intentionally left blank (nav contains primary links) *@
+            <div></div>
             <AuthorizeView>
                 <Authorized>
-                    <a href="/account" class="me-2 text-decoration-none">Hello, @(context.User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value ?? context.User.Identity?.Name)</a>
-                    <button type="button" class="btn btn-link p-0" @onclick="OnLogout">Logout</button>
+                    <div class="d-flex align-items-center">
+                        <button type="button" class="btn btn-link p-0" @onclick="OnLogout">Logout</button>
+                        <a href="/account" class="ms-2 text-decoration-none" title="Settings">
+                            <span class="bi bi-account-nav-menu" aria-hidden="true"></span>
+                        </a>
+                    </div>
                 </Authorized>
                 <NotAuthorized>
                     <button type="button" class="btn btn-link p-0" @onclick="OnLogin">Login</button>
