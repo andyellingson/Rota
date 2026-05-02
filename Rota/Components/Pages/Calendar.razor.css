@@ -208,7 +208,8 @@
         position: fixed;
         /* Anchor to the navigation sidebar so it feels like a sub-menu */
         left: 250px; /* matches sidebar width */
-        top: 6.25rem; /* visually aligns the panel with the Schedules nav item */
+        /* Move panel up to align its top with the Schedules nav item */
+        top: 4.5rem;
         width: 20rem;
         max-height: calc(100vh - 8rem);
         overflow-y: auto;
@@ -244,6 +245,21 @@
         border-top-right-radius: 2px;
         border-bottom-right-radius: 2px;
         pointer-events: none;
+    }
+}
+
+/* Reduce width of shift filter dropdowns by 25% to give more room to the panel content.
+   Keep this adjustment scoped to large screens where the panel is fixed. */
+@media (min-width: 1200px) {
+    .schedule-options-panel .schedule-options-dropdown {
+        width: 95%;
+        min-width: unset;
+    }
+
+    /* Ensure the dropdown toggle still stretches the button to the new width */
+    .schedule-options-panel .calendar-filter-dropdown-toggle {
+        width: 100%;
+        min-width: unset;
     }
 }
 

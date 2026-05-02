@@ -110,20 +110,7 @@
             </div>
         </div>
 
-        @* ── Manager Code (managers only) ─────────────────── *@
-        @if (user.Roles.Contains(Roles.Manager))
-        {
-            <div class="account-section">
-                <h5 class="account-section-title">🏷️ Team Code</h5>
-                <div class="account-card">
-                    <p class="account-field-hint">Share this code with employees so they can link to your schedule.</p>
-                    <div class="d-flex gap-2 align-items-center">
-                        <input class="form-control manager-code-input" value="@user.ManagerCode" readonly onclick="this.select()" />
-                        <button class="btn btn-outline-secondary text-nowrap" @onclick="CopyManagerCode" disabled="@codeCopied">@(codeCopied ? "Copied!" : "Copy")</button>
-                    </div>
-                </div>
-            </div>
-        }
+        @* Manager code moved to the Manage page *@
 
         @* ── Manager Link (employees only) ────────────────── *@
         @if (user.Roles.Contains(Roles.Employee))
@@ -328,7 +315,6 @@
     private bool themeError;
 
     // Manager code
-    private bool codeCopied = false;
 
     // Employee manager-link
     private string? linkedManagerDisplayName;
@@ -414,22 +400,7 @@
         isLoading = false;
     }
 
-    private async Task CopyManagerCode()
-    {
-        if (string.IsNullOrEmpty(user?.ManagerCode)) return;
-        try
-        {
-            await JS.InvokeVoidAsync("navigator.clipboard.writeText", user.ManagerCode);
-            codeCopied = true;
-            StateHasChanged();
-            await Task.Delay(2000);
-            codeCopied = false;
-        }
-        catch
-        {
-            // Clipboard API unavailable — the readonly input lets users copy manually
-        }
-    }
+    // Manager code copy functionality moved to the Manage page
 
     private async Task LinkToManager()
     {
