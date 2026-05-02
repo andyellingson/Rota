@@ -38,10 +38,8 @@
 
                         @* ── Period count ── *@
                         <div class="d-flex align-items-center gap-2">
-                            <label class="form-label mb-0 small fw-semibold">
-                                @(ViewMode == PrintViewMode.Week ? "Weeks to print:" : "Months to print:")
-                            </label>
-                            <div class="btn-group btn-group-sm" role="group" aria-label="Number of periods to print">
+                            <label class="form-label mb-0 small fw-semibold">Weeks to print:</label>
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Number of weeks to print">
                                 @foreach (var n in new[] { 1, 2, 3, 4 })
                                 {
                                     <input type="radio" class="btn-check" name="print-period-count"
@@ -51,11 +49,6 @@
                                     <label class="btn btn-outline-primary" for="ppc-@n">@n</label>
                                 }
                             </div>
-                            @* Badge shown when multi-month auto-switches to week-based rendering *@
-                            @if (ViewMode == PrintViewMode.Month && periodCount > 1)
-                            {
-                                <span class="badge bg-secondary ms-1" title="Month view with multiple periods prints as individual week grids">→ as weeks</span>
-                            }
                         </div>
                     </div>
                 </div>
@@ -71,121 +64,68 @@
                             <div class="print-doc-meta">Printed @DateTime.Now.ToString("f", CultureInfo.CurrentCulture)</div>
                         </div>
 
-                        @if (!UseWeekRendering)
+                        @* ── Always render as week grids – one week per page ── *@
+                        @for (int p = 0; p < periodCount; p++)
                         {
-                            @* ── Month view preview (single month – fits one page) ────── *@
-                            <div class="print-period-section">
-                                <div class="print-month-grid">
-                                    @foreach (var name in DayNames)
-                                    {
-                                        <div class="print-month-header">@name</div>
-                                    }
-                                    @{
-                                        var singleMonth = new DateOnly(CurrentDate.Year, CurrentDate.Month, 1);
-                                    }
-                                    @foreach (var week in GetMonthMatrix(singleMonth))
-                                    {
-                                        @foreach (var day in week)
-                                        {
-                                            var isOther = day.Month != singleMonth.Month;
-                                            var isToday = day == DateOnly.FromDateTime(DateTime.Today);
-                                            var dayShifts = ShiftsForDay(day).OrderBy(s => s.Start).ToList();
-                                            var dayAbsences = AbsencesForDay(day).OrderBy(a => a.StartDate).ToList();
-                                            var dayReminders = RemindersForDay(day).OrderBy(r => r.ReminderDateTime).ToList();
+                            var weekStart = StartOfWeek(CurrentDate).AddDays(p * 7);
+                            var isLastPeriod = p == periodCount - 1;
 
-                                            <div class="print-day-cell @(isOther ? "print-day-other" : "") @(isToday ? "print-day-today" : "")">
-                                                <div class="print-day-number">@day.Day</div>
-                                                @foreach (var s in dayShifts)
-                                                {
-                                                    <div class="print-event print-event-shift" style="border-left-color:@(s.Color ?? "#1890ff");">
-                                                        <span class="print-event-time">@s.Start.ToLocalTime().ToString("t", CultureInfo.CurrentCulture)–@s.End.ToLocalTime().ToString("t", CultureInfo.CurrentCulture)</span>
-                                                        <span class="print-event-label">@GetShiftTitle(s)</span>
-                                                        @if (!string.IsNullOrEmpty(s.AssignedToUserId))
-                                                        {
-                                                            <span class="print-event-person">@GetEmployeeDisplayName(s.AssignedToUserId)</span>
-                                                        }
-                                                    </div>
-                                                }
-                                                @foreach (var a in dayAbsences)
-                                                {
-                                                    <div class="print-event print-event-absence" style="border-left-color:@(a.Color ?? "#fa8c16");">
-                                                        <span class="print-event-label">@a.Title</span>
-                                                        <span class="print-event-person">@GetEmployeeDisplayName(a.AssignedToUserId)</span>
-                                                    </div>
-                                                }
-                                                @foreach (var r in dayReminders)
-                                                {
-                                                    <div class="print-event print-event-reminder" style="border-left-color:@(r.Color ?? "#ffeb3b");">
-                                                        <span class="print-event-time">@r.ReminderDateTime.ToLocalTime().ToString("t", CultureInfo.CurrentCulture)</span>
-                                                        <span class="print-event-label">@r.Title</span>
-                                                    </div>
-                                                }
+                            @* Page break after every week except the last *@
+                            <div class="print-period-section @(!isLastPeriod ? "print-period-section--break" : "")">
+                                <div class="print-period-header">Week of @weekStart.ToString("d", CultureInfo.CurrentCulture)</div>
+                                <div class="print-week-grid">
+                                    @foreach (var day in Enumerable.Range(0, 7).Select(i => weekStart.AddDays(i)))
+                                    {
+                                        var isToday = day == DateOnly.FromDateTime(DateTime.Today);
+                                        var dayShifts = ShiftsForDay(day).OrderBy(s => s.Start).ToList();
+                                        var dayAbsences = AbsencesForDay(day).OrderBy(a => a.StartDate).ToList();
+                                        var dayReminders = RemindersForDay(day).OrderBy(r => r.ReminderDateTime).ToList();
+
+                                        <div class="print-week-col @(isToday ? "print-day-today" : "")">
+                                            <div class="print-week-day-header">
+                                                <div class="fw-bold">@day.ToString("ddd", CultureInfo.CurrentCulture)</div>
+                                                <div class="print-week-day-date">@day.ToString("d", CultureInfo.CurrentCulture)</div>
                                             </div>
-                                        }
+                                            @foreach (var s in dayShifts)
+                                            {
+                                                <div class="print-event print-event-shift" style="border-left-color:@(s.Color ?? "#1890ff");">
+                                                    <div class="print-event-header">
+                                                        <div class="print-event-worker">@s.WorkerType</div>
+                                                        <div class="print-event-time">@CompactTime(s.Start.ToLocalTime()) – @CompactTime(s.End.ToLocalTime())</div>
+                                                    </div>
+                                                    @if (!string.IsNullOrEmpty(s.AssignedToUserId))
+                                                    {
+                                                        var fn = GetEmployeeFirstName(s.AssignedToUserId)?.Trim() ?? string.Empty;
+                                                        var ln = GetEmployeeLastName(s.AssignedToUserId)?.Trim() ?? string.Empty;
+                                                        var assignedFull = (!string.IsNullOrEmpty(fn) || !string.IsNullOrEmpty(ln))
+                                                            ? $"{fn} {ln}".Trim()
+                                                            : GetEmployeeDisplayName(s.AssignedToUserId);
+                                                        <div class="print-event-person">@assignedFull</div>
+                                                    }
+                                                </div>
+                                            }
+                                            @foreach (var a in dayAbsences)
+                                            {
+                                                <div class="print-event print-event-absence" style="border-left-color:@(a.Color ?? "#fa8c16");">
+                                                    <span class="print-event-label">@a.Title</span>
+                                                    <span class="print-event-person">@GetEmployeeDisplayName(a.AssignedToUserId)</span>
+                                                </div>
+                                            }
+                                            @foreach (var r in dayReminders)
+                                            {
+                                                <div class="print-event print-event-reminder" style="border-left-color:@(r.Color ?? "#ffeb3b");">
+                                                    <span class="print-event-time">@CompactTime(r.ReminderDateTime.ToLocalTime())</span>
+                                                    <span class="print-event-label">@r.Title</span>
+                                                </div>
+                                            }
+                                            @if (!dayShifts.Any() && !dayAbsences.Any() && !dayReminders.Any())
+                                            {
+                                                <div class="print-week-empty">—</div>
+                                            }
+                                        </div>
                                     }
                                 </div>
                             </div>
-                        }
-                        else
-                        {
-                            @* ── Week-based rendering (week view, OR multi-month auto-switched) ── *@
-                            @for (int p = 0; p < GetWeekRenderParams().WeekCount; p++)
-                            {
-                                var weekStart = GetWeekRenderParams().Start.AddDays(p * 7);
-                                var isLastPeriod = p == GetWeekRenderParams().WeekCount - 1;
-                                // Page break after every 2nd week (pairs of 2 per page), except after the last
-                                var needsPageBreak = !isLastPeriod && (p % 2 == 1);
-                                var isSecondInPair = p % 2 == 1;
-
-                                <div class="print-period-section @(needsPageBreak ? "print-period-section--break" : "") @(isSecondInPair ? "" : "print-period-section--pair-top")">
-                                    <div class="print-period-header">Week of @weekStart.ToString("d", CultureInfo.CurrentCulture)</div>
-                                    <div class="print-week-grid">
-                                        @foreach (var day in Enumerable.Range(0, 7).Select(i => weekStart.AddDays(i)))
-                                        {
-                                            var isToday = day == DateOnly.FromDateTime(DateTime.Today);
-                                            var dayShifts = ShiftsForDay(day).OrderBy(s => s.Start).ToList();
-                                            var dayAbsences = AbsencesForDay(day).OrderBy(a => a.StartDate).ToList();
-                                            var dayReminders = RemindersForDay(day).OrderBy(r => r.ReminderDateTime).ToList();
-
-                                            <div class="print-week-col @(isToday ? "print-day-today" : "")">
-                                                <div class="print-week-day-header">
-                                                    <div class="fw-bold">@day.ToString("ddd", CultureInfo.CurrentCulture)</div>
-                                                    <div class="print-week-day-date">@day.ToString("d", CultureInfo.CurrentCulture)</div>
-                                                </div>
-                                                @foreach (var s in dayShifts)
-                                                {
-                                                    <div class="print-event print-event-shift" style="border-left-color:@(s.Color ?? "#1890ff");">
-                                                        <span class="print-event-time">@s.Start.ToLocalTime().ToString("t", CultureInfo.CurrentCulture)–@s.End.ToLocalTime().ToString("t", CultureInfo.CurrentCulture)</span>
-                                                        <span class="print-event-label">@GetShiftTitle(s)</span>
-                                                        @if (!string.IsNullOrEmpty(s.AssignedToUserId))
-                                                        {
-                                                            <span class="print-event-person">@GetEmployeeDisplayName(s.AssignedToUserId)</span>
-                                                        }
-                                                    </div>
-                                                }
-                                                @foreach (var a in dayAbsences)
-                                                {
-                                                    <div class="print-event print-event-absence" style="border-left-color:@(a.Color ?? "#fa8c16");">
-                                                        <span class="print-event-label">@a.Title</span>
-                                                        <span class="print-event-person">@GetEmployeeDisplayName(a.AssignedToUserId)</span>
-                                                    </div>
-                                                }
-                                                @foreach (var r in dayReminders)
-                                                {
-                                                    <div class="print-event print-event-reminder" style="border-left-color:@(r.Color ?? "#ffeb3b");">
-                                                        <span class="print-event-time">@r.ReminderDateTime.ToLocalTime().ToString("t", CultureInfo.CurrentCulture)</span>
-                                                        <span class="print-event-label">@r.Title</span>
-                                                    </div>
-                                                }
-                                                @if (!dayShifts.Any() && !dayAbsences.Any() && !dayReminders.Any())
-                                                {
-                                                    <div class="print-week-empty">—</div>
-                                                }
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            }
                         }
                     </div>
                 </div>
@@ -239,6 +179,12 @@
     /// <summary>Resolves a user display name from a userId (Calendar's own method).</summary>
     [Parameter] public Func<string?, string> GetEmployeeDisplayName { get; set; } = _ => string.Empty;
 
+    /// <summary>Resolves a user's first name from a userId (Calendar's own method).</summary>
+    [Parameter] public Func<string?, string> GetEmployeeFirstName { get; set; } = _ => string.Empty;
+
+    /// <summary>Resolves a user's last name from a userId (Calendar's own method).</summary>
+    [Parameter] public Func<string?, string> GetEmployeeLastName { get; set; } = _ => string.Empty;
+
     /// <summary>Resolves the display title for a shift (Calendar's own method).</summary>
     [Parameter] public Func<Shift, string> GetShiftTitle { get; set; } = s =>
         string.IsNullOrWhiteSpace(s.Title) ? s.WorkerType.ToString() : $"{s.Title} - {s.WorkerType}";
@@ -272,8 +218,8 @@
         if (IsVisible && !_wasVisible)
         {
             customTitle = ScheduleName;
-            // Week view defaults to 2 periods; month view to 1 (fits one page).
-            periodCount = ViewMode == PrintViewMode.Week ? 2 : 1;
+            // Always default to 2 weeks (one week per printed page).
+            periodCount = 2;
         }
         _wasVisible = IsVisible;
     }
@@ -293,77 +239,15 @@
         return date.AddDays(-diff);
     }
 
-    private List<List<DateOnly>> GetMonthMatrix(DateOnly forDate)
-    {
-        var result = new List<List<DateOnly>>();
-        var firstOfMonth = new DateOnly(forDate.Year, forDate.Month, 1);
-        var start = StartOfWeek(firstOfMonth);
-        for (int week = 0; week < 6; week++)
-        {
-            var row = new List<DateOnly>();
-            for (int d = 0; d < 7; d++)
-                row.Add(start.AddDays(week * 7 + d));
-            result.Add(row);
-        }
-        return result;
-    }
-
     /// <summary>
-    /// True when the preview should use week-based rendering.
-    /// Month view with a single period renders as a month grid (one page).
-    /// Month view with more than one period auto-switches to week grids so
-    /// each page stays manageable and no month grid overflows a page.
-    /// </summary>
-    private bool UseWeekRendering => ViewMode != PrintViewMode.Month || periodCount > 1;
-
-    /// <summary>
-    /// Returns the week start date and total week count to use for week-based rendering.
-    /// For month view with periodCount > 1 this computes the exact number of calendar
-    /// weeks that span the entire selected month range.
-    /// </summary>
-    private (DateOnly Start, int WeekCount) GetWeekRenderParams()
-    {
-        if (ViewMode == PrintViewMode.Month && periodCount > 1)
-        {
-            // Start at the week that contains the 1st of the current month
-            var monthStart = new DateOnly(CurrentDate.Year, CurrentDate.Month, 1);
-            var weekStart = StartOfWeek(monthStart);
-            // Find the week that contains the last day of the last selected month
-            var lastDay = monthStart.AddMonths(periodCount).AddDays(-1);
-            var lastWeekStart = StartOfWeek(lastDay);
-            var weekCount = (lastWeekStart.DayNumber - weekStart.DayNumber) / 7 + 1;
-            return (weekStart, weekCount);
-        }
-        return (StartOfWeek(CurrentDate), periodCount);
-    }
-
-    /// <summary>
-    /// Updates the period count and triggers a data load for the full print range.
+    /// Updates the period count and triggers a data load for the full week range.
     /// </summary>
     private async Task SetPeriodCount(int count)
     {
         periodCount = count;
         if (LoadRangeData is null) return;
-
-        DateOnly start, end;
-        if (ViewMode == PrintViewMode.Month && count > 1)
-        {
-            // Auto-switching to week rendering: load the full week-based range
-            var (weekStart, weekCount) = GetWeekRenderParams();
-            start = weekStart;
-            end = weekStart.AddDays(weekCount * 7 - 1);
-        }
-        else if (ViewMode == PrintViewMode.Week)
-        {
-            start = StartOfWeek(CurrentDate);
-            end = start.AddDays(count * 7 - 1);
-        }
-        else
-        {
-            // Month view, count == 1
-            start = new DateOnly(CurrentDate.Year, CurrentDate.Month, 1);
-            end = start.AddMonths(1).AddDays(-1);
-        }
+        var start = StartOfWeek(CurrentDate);
+        var end = start.AddDays(count * 7 - 1);
         await LoadRangeData(start, end);
     }
 
@@ -372,24 +256,20 @@
     /// </summary>
     private string GetPrintSubtitle()
     {
-        if (ViewMode == PrintViewMode.Week)
-        {
-            var weekStart = StartOfWeek(CurrentDate);
-            if (periodCount == 1)
-                return $"Week of {weekStart.ToString("d", CultureInfo.CurrentCulture)}";
-            var weekEnd = weekStart.AddDays(periodCount * 7 - 1);
-            return $"{weekStart.ToString("d", CultureInfo.CurrentCulture)} \u2013 {weekEnd.ToString("d", CultureInfo.CurrentCulture)} ({periodCount} weeks)";
-        }
-        else
-        {
-            var monthStart = new DateOnly(CurrentDate.Year, CurrentDate.Month, 1);
-            if (periodCount == 1)
-                return monthStart.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
-            var monthEnd = monthStart.AddMonths(periodCount - 1);
-            // Multi-month auto-switches to week rendering; reflect that in the subtitle
-            return $"{monthStart.ToString("MMMM yyyy", CultureInfo.CurrentCulture)} \u2013 {monthEnd.ToString("MMMM yyyy", CultureInfo.CurrentCulture)} ({periodCount} months, shown as weeks)";
-        }
+        var weekStart = StartOfWeek(CurrentDate);
+        if (periodCount == 1)
+            return $"Week of {weekStart.ToString("d", CultureInfo.CurrentCulture)}";
+        var weekEnd = weekStart.AddDays(periodCount * 7 - 1);
+        return $"{weekStart.ToString("d", CultureInfo.CurrentCulture)} \u2013 {weekEnd.ToString("d", CultureInfo.CurrentCulture)} ({periodCount} weeks)";
     }
+
+    /// <summary>
+    /// Returns a compact time string: omits minutes when zero so "7:00 AM" becomes "7 AM".
+    /// </summary>
+    private static string CompactTime(DateTime dt)
+        => dt.Minute == 0
+            ? dt.ToString("h tt", CultureInfo.CurrentCulture)
+            : dt.ToString("h:mm tt", CultureInfo.CurrentCulture);
 
     private async Task Print()
     {

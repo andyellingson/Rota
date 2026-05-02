@@ -91,6 +91,8 @@
                                         {
                                             <ShiftItem Shift="s"
                                                        AssignedToDisplayName="@GetEmployeeDisplayNameById(s.AssignedToUserId)"
+                                                       AssignedToFirstName="@GetEmployeeFirstNameById(s.AssignedToUserId)"
+                                                       AssignedToLastName="@GetEmployeeLastNameById(s.AssignedToUserId)"
                                                        OnEdit="@(canManageShifts ? EventCallback.Factory.Create<Shift>(this, OpenEditShiftModal) : default)" />
                                         }
                                         else if (item.Absence is { } ab)
@@ -143,6 +145,8 @@
                                         {
                                             <ShiftItem Shift="s"
                                                        AssignedToDisplayName="@GetEmployeeDisplayNameById(s.AssignedToUserId)"
+                                                       AssignedToFirstName="@GetEmployeeFirstNameById(s.AssignedToUserId)"
+                                                       AssignedToLastName="@GetEmployeeLastNameById(s.AssignedToUserId)"
                                                        OnEdit="@(canManageShifts ? EventCallback.Factory.Create<Shift>(this, OpenEditShiftModal) : default)" />
                                         }
                                         else if (item.Absence is { } ab)
@@ -413,6 +417,8 @@
                     AbsencesForDay="GetAbsencesForDay"
                     RemindersForDay="GetRemindersForDay"
                     GetEmployeeDisplayName="GetEmployeeDisplayNameById"
+                    GetEmployeeFirstName="GetEmployeeFirstNameById"
+                    GetEmployeeLastName="GetEmployeeLastNameById"
                     GetShiftTitle="GetShiftDisplayTitle"
                     LoadRangeData="LoadDataForDateRange" />
 
@@ -1049,6 +1055,27 @@
         var emp = employees.FirstOrDefault(e => e.Id == userId)
                   ?? linkedUsers.FirstOrDefault(u => u.Id == userId);
         return emp?.DisplayName ?? emp?.Username ?? userId;
+    }
+
+    private string GetEmployeeFirstNameById(string? userId)
+    {
+        if (string.IsNullOrEmpty(userId)) return string.Empty;
+        // Try to find by id first, then by username as some records may store the username
+        var emp = employees.FirstOrDefault(e => e.Id == userId)
+                  ?? linkedUsers.FirstOrDefault(u => u.Id == userId)
+                  ?? employees.FirstOrDefault(e => e.Username == userId)
+                  ?? linkedUsers.FirstOrDefault(u => u.Username == userId);
+        return emp?.FirstName ?? string.Empty;
+    }
+
+    private string GetEmployeeLastNameById(string? userId)
+    {
+        if (string.IsNullOrEmpty(userId)) return string.Empty;
+        var emp = employees.FirstOrDefault(e => e.Id == userId)
+                  ?? linkedUsers.FirstOrDefault(u => u.Id == userId)
+                  ?? employees.FirstOrDefault(e => e.Username == userId)
+                  ?? linkedUsers.FirstOrDefault(u => u.Username == userId);
+        return emp?.LastName ?? string.Empty;
     }
 
     private User? GetLinkedUser(string? username)

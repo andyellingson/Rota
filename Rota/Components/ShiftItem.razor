@@ -1,12 +1,16 @@
+@using System.Globalization
 @using Rota.Models
 
 <div class="shift-item mb-1" style="border-left-color: @(Shift.Color ?? "#1890ff");"
      @onclick:stopPropagation="true" @onclick="HandleEdit">
-    <div class="shift-worker-type" style="color: @(Shift.Color ?? "#1890ff");">@DisplayTitle</div>
-    <div class="shift-time">@Shift.Start.ToLocalTime().ToString("t") – @Shift.End.ToLocalTime().ToString("t")</div>
-    @if (!string.IsNullOrEmpty(AssignedToDisplayName))
+    <div class="shift-header">
+        <div class="shift-worker-type" style="color: @(Shift.Color ?? "#1890ff");">@Shift.WorkerType</div>
+        <div class="shift-time-inline">@CompactTime(Shift.Start.ToLocalTime()) – @CompactTime(Shift.End.ToLocalTime())</div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(AssignedFullName))
     {
-        <div class="shift-assigned">@AssignedToDisplayName</div>
+        <div class="shift-assigned">@AssignedFullName</div>
     }
 </div>
 
@@ -19,15 +23,51 @@
     [Parameter]
     public string AssignedToDisplayName { get; set; } = string.Empty;
 
+    /// <summary>Assigned user's first name (preferred over display name when provided).</summary>
+    [Parameter]
+    public string AssignedToFirstName { get; set; } = string.Empty;
+
+    /// <summary>Assigned user's last name (preferred over display name when provided).</summary>
+    [Parameter]
+    public string AssignedToLastName { get; set; } = string.Empty;
+
     /// <summary>Callback invoked when the item is clicked for editing.</summary>
     [Parameter]
     public EventCallback<Shift> OnEdit { get; set; }
 
-    // Show "Title - WorkerType" when a title exists, otherwise just the worker type
-    private string DisplayTitle => string.IsNullOrWhiteSpace(Shift.Title)
-        ? Shift.WorkerType.ToString()
-        : $"{Shift.Title} - {Shift.WorkerType}";
+    /// <summary>Full name composed from first/last name when available, otherwise falls back to display name.</summary>
+    private string AssignedFullName
+    {
+        get
+        {
+            var fn = (AssignedToFirstName ?? string.Empty).Trim();
+            var ln = (AssignedToLastName ?? string.Empty).Trim();
+            if (!string.IsNullOrEmpty(fn) || !string.IsNullOrEmpty(ln))
+                return $"{fn} {ln}".Trim();
+            // If first/last are not provided, but the display name looks like a full name, use it.
+            var display = (AssignedToDisplayName ?? string.Empty).Trim();
+            if (!string.IsNullOrEmpty(display))
+            {
+                // If display contains at least one space, assume it's First Last and return it.
+                if (display.Contains(' ')) return display;
+                // Otherwise return display as-is (username or single name)
+                return display;
+            }
+            return string.Empty;
+        }
+    }
 
     private Task HandleEdit()
         => OnEdit.HasDelegate ? OnEdit.InvokeAsync(Shift) : Task.CompletedTask;
+
+    /// <summary>
+    /// Returns a compact time string: omits the minutes when they are zero
+    /// so "7:00 AM" becomes "7 AM" and "7:30 AM" stays "7:30 AM".
+    /// </summary>
+    private static string CompactTime(DateTime dt)
+    {
+        return dt.Minute == 0
+            ? dt.ToString("h tt", CultureInfo.CurrentCulture)
+            : dt.ToString("h:mm tt", CultureInfo.CurrentCulture);
+    }
 }

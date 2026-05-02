@@ -1,39 +1,73 @@
 /* Compact shift chip displayed in calendar grid cells and week view cards */
 .shift-item {
-    background: rgba(24, 144, 255, 0.08);
+    background: rgba(24, 144, 255, 0.06);
     border-left: 4px solid rgba(24, 144, 255, 0.6);
-    padding: 0.25rem 0.5rem;
+    padding: 0.28rem 0.5rem;
     border-radius: 6px;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     cursor: pointer;
     width: 100%;
     box-sizing: border-box;
     min-width: 0;
 }
 
-/* Worker type / title label — color overridden inline via accent colour */
+/* Header row: worker type (left) and title (right) */
+.shift-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    width: 100%;
+}
+
 .shift-worker-type {
-    font-weight: 700;
-    font-size: 0.78rem;
-    color: #1890ff;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--color-text-medium, #1890ff);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 100%;
+    /* allow the worker type to shrink so the time can remain visible */
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: left;
+}
+
+
+.shift-time-inline {
+    font-size: 0.72rem;
+    /* Use theme-aware color: black in light mode, white in dark mode */
+    color: var(--color-time-text, var(--color-text-secondary));
+    /* keep time fully visible by preventing shrinking and allowing it to sit at the right */
+    flex: 0 0 auto;
+    margin-left: 0.5rem;
+    text-align: right;
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+    font-weight: 500;
+}
+
+.shift-time {
+    font-size: 0.72rem;
+    color: var(--color-time-text, var(--color-text-secondary));
 }
 
 /* Time range row */
 .shift-time {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     color: var(--color-text-secondary);
+    margin-top: 0.15rem;
 }
 
-/* Assigned-to name row */
+/* Assigned-to name row — make more prominent */
 .shift-assigned {
-    font-size: 0.68rem;
-    color: var(--color-text-secondary);
+    font-size: 0.72rem;
+    color: var(--color-text-primary);
+    font-weight: 700;
+    margin-top: 0.12rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

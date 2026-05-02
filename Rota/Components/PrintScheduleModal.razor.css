@@ -5,6 +5,7 @@
 
 .print-schedule-modal {
     z-index: 1060;
+    min-width: fit-content;
 }
 
 .print-schedule-dialog {
@@ -71,6 +72,11 @@
     padding: 1.25rem 1.5rem;
     box-shadow: 0 2px 12px rgba(0,0,0,0.10);
     min-height: 400px;
+    min-width: fit-content;
+    /* Scale the preview to 90% so content has more horizontal room inside the modal */
+    transform-origin: top center;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* ── Printed document header – single compact row ───────────────────────── */
@@ -211,6 +217,39 @@
     flex-direction: column;
     gap: 1px;
     background: #f5f9ff;
+}
+
+/* Header row inside an event: worker type left, time right */
+.print-event-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.print-event-worker {
+    font-weight: 700;
+    font-size: 0.78rem;
+    color: #1890ff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.print-event-time {
+    font-size: 0.72rem;
+    color: var(--color-time-text, #555);
+    white-space: nowrap;
+}
+
+.print-event-person {
+    font-size: 0.78rem;
+    color: #111;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .print-event-absence {

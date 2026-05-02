@@ -93,8 +93,23 @@ window.printSchedule = function (elementId) {
   <meta charset="utf-8" />
   <title>Print Schedule</title>
   <style>
+    /* Reset */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #fff; color: #111; padding: 1cm; }
+    html, body { height: 100%; }
+    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #fff; color: #111; padding: 0; margin: 0; }
+
+    /* Make the preview container match the modal preview: scaled to 90% and no surrounding margins */
+    .print-preview-container {
+      background: #fff;
+      color: #111;
+      border-radius: 6px;
+      padding: 1.25rem 1.5rem;
+      min-height: 400px;
+      transform: scale(0.9);
+      transform-origin: top center;
+      margin: 0 auto;
+      width: 100%;
+    }
 
     /* ── Document header ── */
     .print-doc-header  { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.6rem; padding-bottom: 0.4rem; border-bottom: 1px solid #dee2e6; }
@@ -123,20 +138,21 @@ window.printSchedule = function (elementId) {
     .print-event         { border-left: 3px solid #1890ff; border-radius: 2px; padding: 2px 5px; display: flex; flex-direction: column; gap: 1px; background: #f5f9ff; }
     .print-event-absence { background: #fff8f0; border-left-color: #fa8c16; }
     .print-event-reminder{ background: #fffde7; border-left-color: #f0c000; }
-    .print-event-time    { font-size: 0.65rem; color: #555; }
-    .print-event-label   { font-size: 0.72rem; font-weight: 600; color: #111; }
-    .print-event-person  { font-size: 0.65rem; color: #444; }
+    .print-event-header  { display:flex; align-items:center; justify-content:space-between; gap:0.5rem; }
+    .print-event-worker  { font-weight:700; font-size:0.78rem; color:#1890ff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+    .print-event-time    { font-size:0.72rem; color:#555; white-space:nowrap; }
+    .print-event-person  { font-size:0.78rem; color:#111; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
     /* ── Multi-period sections ── */
     .print-period-section { margin-bottom: 1rem; }
     .print-period-header  { font-size: 1rem; font-weight: 700; color: #222; margin-bottom: 0.5rem; padding-bottom: 0.25rem; border-bottom: 1px solid #dee2e6; }
-    /* Subtle gap between the first and second week sharing a page */
     .print-period-section--pair-top { border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 0.75rem; }
 
     @media print {
-      body { padding: 0.5cm; }
+      /* Remove margins when printing so content uses full page width */
+      html, body { margin: 0; padding: 0; }
+      .print-preview-container { transform: none; width: 100%; padding: 0.5cm; }
       .print-day-cell, .print-week-col { break-inside: avoid; }
-      /* Page break after every 2nd week (pair), except the last */
       .print-period-section--break { page-break-after: always; break-after: page; }
     }
   </style>
