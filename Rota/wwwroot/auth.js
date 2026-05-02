@@ -98,17 +98,14 @@ window.printSchedule = function (elementId) {
     html, body { height: 100%; }
     body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #fff; color: #111; padding: 0; margin: 0; }
 
-    /* Make the preview container match the modal preview: scaled to 90% and no surrounding margins */
+    /* Make the preview container fill the page cleanly */
     .print-preview-container {
       background: #fff;
       color: #111;
-      border-radius: 6px;
       padding: 1.25rem 1.5rem;
       min-height: 400px;
-      transform: scale(0.9);
-      transform-origin: top center;
-      margin: 0 auto;
       width: 100%;
+      margin: 0 auto;
     }
 
     /* ── Document header ── */
@@ -127,21 +124,21 @@ window.printSchedule = function (elementId) {
     .print-day-other .print-day-number { color: #bbb; }
 
     /* ── Week grid ── */
-    .print-week-grid   { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
-    .print-week-col    { border: 1px solid #e0e0e0; border-radius: 4px; padding: 0.4rem 0.35rem; background: #fff; min-height: 180px; display: flex; flex-direction: column; gap: 4px; }
+    .print-week-grid   { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+    .print-week-col    { border: 1px solid #e0e0e0; border-radius: 4px; padding: 0.3rem 0.25rem; background: #fff; min-height: 180px; display: flex; flex-direction: column; gap: 2px; font-size: 0.68rem; }
     .print-week-col.print-day-today { border-color: #1890ff; background: #e8f4ff; }
-    .print-week-day-header { text-align: center; padding-bottom: 0.4rem; border-bottom: 1px solid #e9ecef; margin-bottom: 0.3rem; font-size: 0.8rem; font-weight: 700; color: #333; }
-    .print-week-day-date   { font-size: 0.7rem; font-weight: 400; color: #666; }
-    .print-week-empty      { color: #bbb; font-size: 0.75rem; text-align: center; margin-top: 0.5rem; }
+    .print-week-day-header { text-align: center; padding-bottom: 0.25rem; border-bottom: 1px solid #e9ecef; margin-bottom: 0.2rem; font-size: 0.72rem; font-weight: 700; color: #333; }
+    .print-week-day-date   { font-size: 0.65rem; font-weight: 400; color: #666; }
+    .print-week-empty      { color: #bbb; font-size: 0.7rem; text-align: center; margin-top: 0.5rem; }
 
     /* ── Event chips ── */
-    .print-event         { border-left: 3px solid #1890ff; border-radius: 2px; padding: 2px 5px; display: flex; flex-direction: column; gap: 1px; background: #f5f9ff; }
-    .print-event-absence { background: #fff8f0; border-left-color: #fa8c16; }
-    .print-event-reminder{ background: #fffde7; border-left-color: #f0c000; }
-    .print-event-header  { display:flex; align-items:center; justify-content:space-between; gap:0.5rem; }
-    .print-event-worker  { font-weight:700; font-size:0.78rem; color:#1890ff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-    .print-event-time    { font-size:0.72rem; color:#555; white-space:nowrap; }
-    .print-event-person  { font-size:0.78rem; color:#111; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .print-event         { border-left: 3px solid #1890ff; border-bottom: 1px solid #c8d8f0; border-radius: 2px; padding: 2px 4px; display: flex; flex-direction: column; gap: 1px; background: #f5f9ff; margin-bottom: 2px; }
+    .print-event-absence { background: #fff8f0; border-left-color: #fa8c16; border-bottom-color: #f5d5a8; }
+    .print-event-reminder{ background: #fffde7; border-left-color: #f0c000; border-bottom-color: #e8d800; }
+    .print-event-header  { display:flex; align-items:center; justify-content:space-between; gap:0.25rem; flex-wrap: wrap; }
+    .print-event-worker  { font-weight:700; font-size:0.7rem; color:#1890ff; white-space:normal; word-break:break-word; min-width:0; }
+    .print-event-time    { font-size:0.67rem; color:#555; white-space:nowrap; flex-shrink:0; }
+    .print-event-person  { font-size:0.7rem; color:#111; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
     /* ── Multi-period sections ── */
     .print-period-section { margin-bottom: 1rem; }

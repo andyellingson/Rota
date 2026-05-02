@@ -37,9 +37,8 @@
 
 .day-cell {
     min-height: 170px;
-    max-height: 340px;
     min-width: 0;
-    overflow-x: hidden;
+    overflow: visible;
     background: var(--color-bg-card);
     border: 1px solid var(--color-border-muted);
     border-radius: 6px;
@@ -72,8 +71,7 @@
     flex-direction: column;
     gap: 0.3rem;
     flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: visible;
 }
 
 /* ── Day detail modal – shift cards ──────────────────────────────────── */
@@ -131,8 +129,7 @@
 .day-detail-absence-name { max-width: 35%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
 
 .events-overlay {
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: visible;
 }
 
 .other-month {

@@ -9,7 +9,8 @@
 }
 
 .print-schedule-dialog {
-    max-width: 1100px;
+    max-width: min(95vw, 1375px);
+    width: min(95vw, 1375px);
 }
 
 .print-schedule-content {
@@ -172,12 +173,13 @@
 .print-week-col {
     border: 1px solid #e0e0e0;
     border-radius: 4px;
-    padding: 0.4rem 0.35rem;
+    padding: 0.3rem 0.25rem;
     background: #fff;
     min-height: 180px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
+    font-size: 0.68rem;
 }
 
 .print-week-col.print-day-today {
@@ -187,10 +189,10 @@
 
 .print-week-day-header {
     text-align: center;
-    padding-bottom: 0.4rem;
+    padding-bottom: 0.25rem;
     border-bottom: 1px solid #e9ecef;
-    margin-bottom: 0.3rem;
-    font-size: 0.78rem;
+    margin-bottom: 0.2rem;
+    font-size: 0.72rem;
     font-weight: 700;
     color: #333;
 }
@@ -211,12 +213,14 @@
 /* ── Event chips ─────────────────────────────────────────────────────────── */
 .print-event {
     border-left: 3px solid #1890ff;
+    border-bottom: 1px solid #c8d8f0;
     border-radius: 2px;
-    padding: 2px 5px;
+    padding: 2px 4px;
     display: flex;
     flex-direction: column;
     gap: 1px;
     background: #f5f9ff;
+    margin-bottom: 2px;
 }
 
 /* Header row inside an event: worker type left, time right */
@@ -229,18 +233,18 @@
 
 .print-event-worker {
     font-weight: 700;
-    font-size: 0.78rem;
+    font-size: 0.7rem;
     color: #1890ff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
     min-width: 0;
 }
 
 .print-event-time {
-    font-size: 0.72rem;
+    font-size: 0.67rem;
     color: var(--color-time-text, #555);
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .print-event-person {
@@ -255,11 +259,13 @@
 .print-event-absence {
     background: #fff8f0;
     border-left-color: #fa8c16;
+    border-bottom-color: #f5d5a8;
 }
 
 .print-event-reminder {
     background: #fffde7;
     border-left-color: #ffeb3b;
+    border-bottom-color: #e8d800;
 }
 
 .print-event-time {
