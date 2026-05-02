@@ -26,22 +26,85 @@
             @if (availableSchedules.Count > 0)
             {
                 <div class="me-2 d-flex align-items-center">
-                    <select class="form-select form-select-sm" @bind="selectedScheduleId" @bind:after="OnScheduleChanged">
+                    <select class="form-select form-select-sm"
+                            title="Choose which schedule to view in the calendar"
+                            @bind="selectedScheduleId" @bind:after="OnScheduleChanged">
                         @foreach (var schedule in availableSchedules)
                         {
                             <option value="@schedule.Id">@schedule.Name</option>
                         }
                     </select>
 
-                    @* Worker type filters - only show types present in the currently loaded shifts. Placed to the right of the schedule selector. *@
+                    @* Worker type filters – dropdown multi-select. Only shown when types are present in the loaded shifts. *@
                     @if (workerTypeVisibility?.Count > 0)
                     {
-                        <div class="btn-group ms-2" role="group" aria-label="Worker type filters">
-                            @foreach (var wt in workerTypeVisibility.Keys.OrderBy(k => k))
+                        var allVisible = workerTypeVisibility.Values.All(v => v);
+                        var dropdownLabel = allVisible ? "Worker Types" : $"Worker Types ({workerTypeVisibility.Values.Count(v => v)}/{workerTypeVisibility.Count})";
+                        <div class="dropdown ms-2" @onclick:stopPropagation="true">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle calendar-filter-dropdown-toggle @(!allVisible ? "active" : "")"
+                                    type="button"
+                                    title="Filter visible shifts by worker type"
+                                    @onclick="ToggleWorkerTypeDropdown"
+                                    aria-expanded="@showWorkerTypeDropdown.ToString().ToLowerInvariant()">
+                                @dropdownLabel
+                            </button>
+                            @if (showWorkerTypeDropdown)
                             {
-                                var safeId = $"filter-wt-{wt.Replace(" ", "-").Replace("/","-")}";
-                                <input type="checkbox" class="btn-check" id="@safeId" checked="@IsWorkerTypeVisible(wt)" @onchange="(() => ToggleWorkerType(wt))" autocomplete="off">
-                                <label class="btn btn-outline-secondary btn-sm" for="@safeId">@wt</label>
+                                <div class="dropdown-menu show p-2 worker-type-dropdown-menu calendar-filter-dropdown-menu">
+                                    @* Select all / clear all shortcuts *@
+                                    <div class="d-flex gap-2 mb-2 border-bottom pb-2">
+                                        <button class="btn btn-link btn-sm p-0 text-decoration-none" @onclick="SelectAllWorkerTypes">All</button>
+                                        <button class="btn btn-link btn-sm p-0 text-decoration-none" @onclick="ClearAllWorkerTypes">None</button>
+                                    </div>
+                                    @foreach (var wt in workerTypeVisibility.Keys.OrderBy(k => k))
+                                    {
+                                        var capturedWt = wt;
+                                        var safeId = $"filter-wt-dd-{wt.Replace(" ", "-").Replace("/", "-")}";
+                                        <div class="form-check mb-1">
+                                            <input class="form-check-input" type="checkbox" id="@safeId"
+                                                   checked="@IsWorkerTypeVisible(capturedWt)"
+                                                   @onchange="(() => ToggleWorkerType(capturedWt))" />
+                                            <label class="form-check-label" for="@safeId">@capturedWt</label>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @* Employee filters – dropdown multi-select. Only shown when assigned employees are present in the loaded shifts. *@
+                    @if (employeeVisibility?.Count > 0)
+                    {
+                        var allEmpVisible = employeeVisibility.Values.All(v => v);
+                        var empDropdownLabel = allEmpVisible ? "Employees" : $"Employees ({employeeVisibility.Values.Count(v => v)}/{employeeVisibility.Count})";
+                        <div class="dropdown ms-2" @onclick:stopPropagation="true">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle calendar-filter-dropdown-toggle @(!allEmpVisible ? "active" : "")"
+                                    type="button"
+                                    title="Filter visible shifts by assigned employee"
+                                    @onclick="ToggleEmployeeDropdown"
+                                    aria-expanded="@showEmployeeDropdown.ToString().ToLowerInvariant()">
+                                @empDropdownLabel
+                            </button>
+                            @if (showEmployeeDropdown)
+                            {
+                                <div class="dropdown-menu show p-2 worker-type-dropdown-menu calendar-filter-dropdown-menu">
+                                    @* Select all / clear all shortcuts *@
+                                    <div class="d-flex gap-2 mb-2 border-bottom pb-2">
+                                        <button class="btn btn-link btn-sm p-0 text-decoration-none" @onclick="SelectAllEmployees">All</button>
+                                        <button class="btn btn-link btn-sm p-0 text-decoration-none" @onclick="ClearAllEmployees">None</button>
+                                    </div>
+                                    @foreach (var empId in employeeVisibility.Keys.OrderBy(k => GetEmployeeDisplayNameForFilter(k)))
+                                    {
+                                        var capturedId = empId;
+                                        var safeId = $"filter-emp-dd-{empId.Replace(" ", "-")}";
+                                        <div class="form-check mb-1">
+                                            <input class="form-check-input" type="checkbox" id="@safeId"
+                                                   checked="@IsEmployeeVisible(capturedId)"
+                                                   @onchange="(() => ToggleEmployee(capturedId))" />
+                                            <label class="form-check-label" for="@safeId">@GetEmployeeDisplayNameForFilter(capturedId)</label>
+                                        </div>
+                                    }
+                                </div>
                             }
                         </div>
                     }
@@ -50,26 +113,26 @@
 
             <div class="btn-group me-2" role="group" aria-label="Event filters">
                 <input type="checkbox" class="btn-check" id="filter-shifts" @bind="showShifts" @bind:after="FilterChanged" autocomplete="off" >
-                <label class="btn btn-outline-primary btn-sm" for="filter-shifts">Shifts</label>
+                <label class="btn btn-outline-primary btn-sm" for="filter-shifts" title="Show or hide shifts on the calendar">Shifts</label>
 
                 <input type="checkbox" class="btn-check" id="filter-absences" @bind="showAbsences" @bind:after="FilterChanged" autocomplete="off" >
-                <label class="btn btn-outline-warning btn-sm" for="filter-absences">Absences</label>
+                <label class="btn btn-outline-warning btn-sm" for="filter-absences" title="Show or hide absences on the calendar">Absences</label>
 
                 <input type="checkbox" class="btn-check" id="filter-reminders" @bind="showReminders" @bind:after="FilterChanged" autocomplete="off" >
-                <label class="btn btn-outline-info btn-sm" for="filter-reminders">Reminders</label>
+                <label class="btn btn-outline-info btn-sm" for="filter-reminders" title="Show or hide reminders on the calendar">Reminders</label>
             </div>
 
             <div class="btn-group me-2" role="group" aria-label="View mode">
-                <button class="btn btn-outline-primary" @onclick="(() => SetView(ViewMode.Week))" aria-pressed="@(view == ViewMode.Week)">Week</button>
-                <button class="btn btn-outline-primary" @onclick="(() => SetView(ViewMode.Month))" aria-pressed="@(view == ViewMode.Month)">Month</button>
+                <button class="btn btn-outline-primary" title="Switch to weekly calendar view" @onclick="(() => SetView(ViewMode.Week))" aria-pressed="@(view == ViewMode.Week)">Week</button>
+                <button class="btn btn-outline-primary" title="Switch to monthly calendar view" @onclick="(() => SetView(ViewMode.Month))" aria-pressed="@(view == ViewMode.Month)">Month</button>
             </div>
 
             <div class="btn-group" role="group" aria-label="Navigation">
-                <button class="btn btn-light" @onclick="Prev">‹</button>
-                <button class="btn btn-light" @onclick="Next">›</button>
+                <button class="btn btn-light" title="Go to the previous week or month" @onclick="Prev">‹</button>
+                <button class="btn btn-light" title="Go to the next week or month" @onclick="Next">›</button>
             </div>
 
-            <button class="btn btn-outline-secondary ms-2" title="Print schedule" @onclick="OpenPrintModal">
+            <button class="btn btn-outline-secondary ms-2" title="Open the print preview for this schedule" @onclick="OpenPrintModal">
                 🖨️
             </button>
         </div>
@@ -499,6 +562,17 @@
     // values indicate whether that type should be shown. This map is populated from the
     // distinct WorkerType values present in the currently loaded `shifts` list.
     private Dictionary<string, bool> workerTypeVisibility = new();
+
+    // Controls whether the worker-type filter dropdown is open
+    private bool showWorkerTypeDropdown = false;
+
+    // Employee visibility for filtering calendar shifts. Keys are user IDs (or "__unassigned__")
+    // and values indicate whether shifts for that employee should be shown. Populated from the
+    // distinct AssignedToUserId values present in the currently loaded `shifts` list.
+    private Dictionary<string, bool> employeeVisibility = new();
+
+    // Controls whether the employee filter dropdown is open
+    private bool showEmployeeDropdown = false;
 
     // Modal state
     private readonly CalendarEditModalState modalState = new();
@@ -1040,6 +1114,13 @@
                 var wt = string.IsNullOrWhiteSpace(s.WorkerType) ? "General" : s.WorkerType;
                 return workerTypeVisibility.TryGetValue(wt, out var visible) && visible;
             })
+            .Where(s =>
+            {
+                // If no employee filters are present, allow all shifts.
+                if (employeeVisibility == null || employeeVisibility.Count == 0) return true;
+                var empKey = string.IsNullOrWhiteSpace(s.AssignedToUserId) ? "__unassigned__" : s.AssignedToUserId;
+                return employeeVisibility.TryGetValue(empKey, out var visible) && visible;
+            })
             .ToList();
     }
 
@@ -1057,6 +1138,85 @@
         return absences
             .Where(a => a.StartDate < endUtc && a.EndDate > startUtc)
             .ToList();
+    }
+
+    private void ToggleWorkerTypeDropdown()
+    {
+        showWorkerTypeDropdown = !showWorkerTypeDropdown;
+        // Close the other dropdown when opening this one
+        if (showWorkerTypeDropdown) showEmployeeDropdown = false;
+    }
+
+    private void SelectAllWorkerTypes()
+    {
+        if (workerTypeVisibility == null) return;
+        foreach (var key in workerTypeVisibility.Keys.ToList())
+            workerTypeVisibility[key] = true;
+        FilterChanged();
+    }
+
+    private void ClearAllWorkerTypes()
+    {
+        if (workerTypeVisibility == null) return;
+        foreach (var key in workerTypeVisibility.Keys.ToList())
+            workerTypeVisibility[key] = false;
+        FilterChanged();
+    }
+
+    private void ToggleEmployeeDropdown()
+    {
+        showEmployeeDropdown = !showEmployeeDropdown;
+        // Close the other dropdown when opening this one
+        if (showEmployeeDropdown) showWorkerTypeDropdown = false;
+    }
+
+    private void SelectAllEmployees()
+    {
+        if (employeeVisibility == null) return;
+        foreach (var key in employeeVisibility.Keys.ToList())
+            employeeVisibility[key] = true;
+        FilterChanged();
+    }
+
+    private void ClearAllEmployees()
+    {
+        if (employeeVisibility == null) return;
+        foreach (var key in employeeVisibility.Keys.ToList())
+            employeeVisibility[key] = false;
+        FilterChanged();
+    }
+
+    private bool IsEmployeeVisible(string empKey)
+    {
+        if (employeeVisibility == null || employeeVisibility.Count == 0) return true;
+        return employeeVisibility.TryGetValue(empKey, out var visible) && visible;
+    }
+
+    private void ToggleEmployee(string empKey)
+    {
+        if (employeeVisibility == null) return;
+        if (employeeVisibility.ContainsKey(empKey))
+        {
+            employeeVisibility[empKey] = !employeeVisibility[empKey];
+            FilterChanged();
+        }
+    }
+
+    /// <summary>
+    /// Returns the display name for an employee key used in the filter dropdown.
+    /// The special key "__unassigned__" maps to a human-readable label.
+    /// </summary>
+    private string GetEmployeeDisplayNameForFilter(string empKey)
+    {
+        if (empKey == "__unassigned__") return "(Unassigned)";
+
+        var firstName = GetEmployeeFirstNameById(empKey);
+        var lastName = GetEmployeeLastNameById(empKey);
+        var fullName = string.Join(" ", new[] { firstName, lastName }.Where(n => !string.IsNullOrWhiteSpace(n)));
+
+        return !string.IsNullOrWhiteSpace(fullName)
+            ? fullName
+            : GetEmployeeDisplayNameById(empKey);
     }
 
     private bool IsWorkerTypeVisible(string workerType)
@@ -1261,6 +1421,23 @@
                     newMap[t] = true;
             }
             workerTypeVisibility = newMap;
+
+            // Rebuild employee visibility map from distinct AssignedToUserId values in loaded shifts.
+            // Preserve existing visibility choices; default new employees to visible.
+            var empKeys = shifts
+                .Select(s => string.IsNullOrWhiteSpace(s.AssignedToUserId) ? "__unassigned__" : s.AssignedToUserId)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var newEmpMap = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+            foreach (var empKey in empKeys)
+            {
+                if (employeeVisibility.TryGetValue(empKey, out var val))
+                    newEmpMap[empKey] = val;
+                else
+                    newEmpMap[empKey] = true;
+            }
+            employeeVisibility = newEmpMap;
         }
         catch (Exception ex)
         {

@@ -1,3 +1,29 @@
+/* Worker-type filter dropdown – themed for dark mode */
+.worker-type-dropdown-menu {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+    z-index: 1050;
+}
+
+/* Keep filter triggers and menus wide enough that count badges do not resize the controls. */
+.calendar-filter-dropdown-toggle {
+    min-width: 190px;
+}
+
+.calendar-filter-dropdown-menu {
+    min-width: 315px;
+}
+
+.worker-type-dropdown-menu .form-check-label {
+    color: var(--color-text-primary);
+}
+
+.worker-type-dropdown-menu .btn-link {
+    color: var(--color-text-medium, #6c757d);
+    font-size: 0.75rem;
+}
+
 /* Ensure Bootstrap .card inside the Calendar component follows the app theme variables
    so the calendar surface isn't bright white in dark mode. */
 .card {
