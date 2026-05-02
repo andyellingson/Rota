@@ -34,6 +34,7 @@
                     <span class="account-field-label">Username</span>
                     <span class="account-field-value">@user.Username</span>
                 </div>
+                
                 <div class="account-field">
                     <span class="account-field-label">Role</span>
                     <span class="account-role-badge">@(user.Roles.Length > 0 ? user.Roles[0] : "—")</span>
@@ -49,6 +50,18 @@
                 @if (!string.IsNullOrEmpty(displayNameMessage))
                 {
                     <div class="account-message @(displayNameError ? "account-message-error" : "account-message-ok")">@displayNameMessage</div>
+                }
+
+                <hr class="my-3" />
+                <label class="account-field-label mb-1">First name</label>
+                <div class="d-flex gap-2 align-items-start">
+                    <input class="form-control" @bind="firstNameInput" placeholder="First name" maxlength="64" />
+                    <input class="form-control" @bind="lastNameInput" placeholder="Last name" maxlength="64" />
+                    <button class="btn btn-primary text-nowrap" @onclick="SaveNames" disabled="@(!HasNameChanged || isBusy)">Save</button>
+                </div>
+                @if (!string.IsNullOrEmpty(nameMessage))
+                {
+                    <div class="account-message @(nameError ? "account-message-error" : "account-message-ok")">@nameMessage</div>
                 }
 
                 <hr class="my-3" />
@@ -74,11 +87,25 @@
                     {
                         <div class="account-message @(occupationError ? "account-message-error" : "account-message-ok")">@occupationMessage</div>
                     }
+                    <hr class="my-3" />
+                    <label class="account-field-label mb-1">Max hours / week</label>
+                    <div class="d-flex gap-2 align-items-start">
+                        <input type="number" class="form-control" @bind="maxHoursInput" min="0" step="0.5" />
+                        <button class="btn btn-primary text-nowrap" @onclick="SaveMaxHours" disabled="@( (Math.Abs(maxHoursInput - (user?.MaxHours ?? 0.0)) < 0.001) || isBusy)">Save</button>
+                    </div>
+                    <div class="account-field-hint mt-1">Enter 0 for no limit.</div>
+                    @if (!string.IsNullOrEmpty(maxHoursMessage))
+                    {
+                        <div class="account-message @(maxHoursError ? "account-message-error" : "account-message-ok")">@maxHoursMessage</div>
+                    }
                 }
                 else
                 {
                     <div class="account-field-value">@user.Occupation</div>
                     <div class="account-field-hint mt-1">Your occupation is controlled by your manager.</div>
+                    <label class="account-field-label mt-3 mb-1">Max hours / week</label>
+                    <div class="account-field-value">@(user.MaxHours <= 0 ? "No limit" : (user.MaxHours.ToString("0.##") + " hours"))</div>
+                    <div class="account-field-hint mt-1">This value is set by your manager.</div>
                 }
             </div>
         </div>
@@ -279,6 +306,15 @@
     private List<string> occupationChoices = new();
     private string? occupationMessage;
     private bool occupationError;
+    
+    private double maxHoursInput = 0.0;
+    private string? maxHoursMessage;
+    private bool maxHoursError;
+
+    private string firstNameInput = string.Empty;
+    private string lastNameInput = string.Empty;
+    private string? nameMessage;
+    private bool nameError;
 
     private string currentPassword = string.Empty;
     private string newPassword = string.Empty;
@@ -323,6 +359,11 @@
     private bool HasDisplayNameChanged =>
         displayNameInput.Trim() != (user?.DisplayName ?? string.Empty);
 
+    /// <summary>True when first or last name inputs differ from the saved values.</summary>
+    private bool HasNameChanged =>
+        (firstNameInput.Trim() != (user?.FirstName ?? string.Empty)) ||
+        (lastNameInput.Trim() != (user?.LastName ?? string.Empty));
+
     /// <summary>True when the occupation dropdown differs from the saved value.</summary>
     private bool HasOccupationChanged =>
         occupationInput != (user?.Occupation ?? "General");
@@ -342,6 +383,8 @@
             displayNameInput = user?.DisplayName ?? string.Empty;
             occupationInput = user?.Occupation ?? "General";
             themeInput = user?.Theme ?? "light";
+                firstNameInput = user?.FirstName ?? string.Empty;
+                lastNameInput = user?.LastName ?? string.Empty;
 
             // Load the manager's own worker types for the occupation dropdown
             if (user is not null && user.Roles.Contains(Roles.Manager) && !string.IsNullOrEmpty(user.Id))
@@ -349,6 +392,9 @@
                 var wts = await WorkerTypesService.GetByOwnerAsync(user.Id);
                 occupationChoices = wts.Select(w => w.Name).ToList();
             }
+
+            // Load manager-controlled max hours
+            maxHoursInput = user?.MaxHours ?? 0.0;
 
             // Load the user's saved availability into the working copy
             availability = user?.Availability.Select(a => new UserAvailability
@@ -424,6 +470,38 @@
         }
     }
 
+    private async Task SaveNames()
+    {
+        if (user is null) return;
+        nameMessage = null;
+
+        // Normalize empty strings to null for storage
+        var f = string.IsNullOrWhiteSpace(firstNameInput) ? null : firstNameInput.Trim();
+        var l = string.IsNullOrWhiteSpace(lastNameInput) ? null : lastNameInput.Trim();
+
+        isBusy = true;
+        try
+        {
+            var ok = await UserService.UpdateNamesAsync(user.Username, f, l);
+            if (ok)
+            {
+                user.FirstName = f;
+                user.LastName = l;
+                nameMessage = "Name updated.";
+                nameError = false;
+            }
+            else
+            {
+                nameMessage = "Could not update name. Please try again.";
+                nameError = true;
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
     private async Task SaveOccupation()
     {
         if (user is null) return;
@@ -442,6 +520,40 @@
             {
                 occupationMessage = "Could not update occupation. Please try again.";
                 occupationError = true;
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task SaveMaxHours()
+    {
+        if (user is null) return;
+        maxHoursMessage = null;
+
+        if (maxHoursInput < 0)
+        {
+            maxHoursMessage = "Max hours must be zero or greater.";
+            maxHoursError = true;
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            var ok = await UserService.UpdateMaxHoursAsync(user.Username, maxHoursInput);
+            if (ok)
+            {
+                user.MaxHours = maxHoursInput;
+                maxHoursMessage = "Max hours updated.";
+                maxHoursError = false;
+            }
+            else
+            {
+                maxHoursMessage = "Could not update max hours. Please try again.";
+                maxHoursError = true;
             }
         }
         finally

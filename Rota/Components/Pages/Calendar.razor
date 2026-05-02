@@ -23,9 +23,6 @@
                 <h4 class="mb-0">@((availableSchedules.FirstOrDefault(s => s.Id == selectedScheduleId)?.Name) ?? "Calendar")</h4>
                 <small class="text-muted">View and browse your schedule</small>
             </div>
-
-            
-
             @if (availableSchedules.Count > 0)
             {
                 <div class="me-2 d-flex align-items-center">

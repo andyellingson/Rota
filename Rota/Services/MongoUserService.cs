@@ -35,6 +35,27 @@ namespace Rota.Services
         }
 
         /// <summary>
+        /// Updates the user's first and last name fields.
+        /// </summary>
+        public async System.Threading.Tasks.Task<bool> UpdateNamesAsync(string username, string? firstName, string? lastName)
+        {
+            try
+            {
+                var filter = Builders<User>.Filter.Eq(u => u.Username, username);
+                var update = Builders<User>.Update
+                    .Set(u => u.FirstName, firstName)
+                    .Set(u => u.LastName, lastName);
+                var result = await _users.UpdateOneAsync(filter, update);
+                return result.ModifiedCount > 0;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error updating names for user {User}", username);
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Test-friendly constructor that accepts an <see cref="IMongoCollection{User}"/> directly.
         /// This allows unit tests to pass a mocked collection.
         /// </summary>

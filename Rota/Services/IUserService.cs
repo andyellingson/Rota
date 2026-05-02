@@ -39,6 +39,12 @@ namespace Rota.Services
         System.Threading.Tasks.Task<bool> UpdateOccupationAsync(string username, string occupation);
 
         /// <summary>
+        /// Updates the user's first and last name fields.
+        /// Returns true when the document was modified.
+        /// </summary>
+        System.Threading.Tasks.Task<bool> UpdateNamesAsync(string username, string? firstName, string? lastName);
+
+        /// <summary>
         /// Updates the maximum weekly hours for the specified user.
         /// Returns true when the document was modified.
         /// </summary>
