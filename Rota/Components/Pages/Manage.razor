@@ -390,32 +390,45 @@
 
                             <div class="team-detail-info-grid mt-3">
 
-                                @* Occupation editor — row 1, col 2 *@
+                                @* Occupation editor — row 1, col 1 *@
                                 <div class="team-detail-field" style="grid-row: 1; grid-column: 1;">
                                     <label class="team-detail-label">Occupation</label>
-                                    <div class="d-flex gap-2 align-items-start mt-1">
-                                        <select class="form-select form-select-sm" @bind="selectedMemberOccupation">
+                                    <div class="d-flex gap-2 align-items-center mt-1">
+                                        <select class="form-select form-select-sm" style="min-width:220px;" @bind="selectedMemberOccupation">
                                             @foreach (var wt in workerTypes)
                                             {
                                                 <option value="@wt.Name">@wt.Name</option>
                                             }
                                             @* Keep the current value selectable even if the type was removed *@
-                                            @if (!string.IsNullOrEmpty(selectedMemberOccupation) &&
-                                                 !workerTypes.Any(w => w.Name == selectedMemberOccupation))
+                                            @if (!string.IsNullOrEmpty(selectedMemberOccupation) && !workerTypes.Any(w => w.Name == selectedMemberOccupation))
                                             {
                                                 <option value="@selectedMemberOccupation">@selectedMemberOccupation (removed)</option>
                                             }
                                         </select>
-                                        <button class="btn btn-sm btn-primary text-nowrap"
-                                                @onclick="SaveMemberOccupation"
-                                                disabled="@(!HasMemberOccupationChanged || isBusy)">
-                                            Save
-                                        </button>
+
+                                        <button class="btn btn-sm btn-primary" @onclick="SaveOccupationOnly" disabled="@(!HasOccupationChanged || isBusy)">Save</button>
+
+                                        @* Inline success/error message for occupation changes *@
+                                        @if (!string.IsNullOrEmpty(memberOccupationMessage))
+                                        {
+                                            <div class="team-detail-message @(memberOccupationError ? "team-detail-message-error" : "team-detail-message-ok") ms-3">
+                                                @memberOccupationMessage
+                                            </div>
+                                        }
                                     </div>
-                                    @if (!string.IsNullOrEmpty(memberOccupationMessage))
+                                </div>
+
+                                @* MaxHours editor — row 1, col 2 (label left-justified; input + save on next line) *@
+                                <div class="team-detail-field" style="grid-row: 1; grid-column: 2;">
+                                    <label class="team-detail-label small mb-1">Max hours / week</label>
+                                    <div class="d-flex gap-2 mt-1">
+                                        <input type="number" step="0.5" min="0" class="form-control form-control-sm" style="width:120px;" @bind="selectedMemberMaxHours" />
+                                        <button class="btn btn-sm btn-primary" @onclick="SaveMaxHoursOnly" disabled="@(!HasMaxHoursChanged || isBusy)">Save</button>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(selectedMemberMaxHoursMessage))
                                     {
-                                        <div class="team-detail-message @(memberOccupationError ? "team-detail-message-error" : "team-detail-message-ok")">
-                                            @memberOccupationMessage
+                                        <div class="team-detail-message @(selectedMemberMaxHoursError ? "team-detail-message-error" : "team-detail-message-ok") mt-2">
+                                            @selectedMemberMaxHoursMessage
                                         </div>
                                     }
                                 </div>
@@ -475,10 +488,10 @@
                                                      title="Click to edit absence">
                                                     <div>
                                                         <div class="fw-bold">@a.Title</div>
-                                                        <div class="text-muted small">@a.StartDate.ToLocalTime().ToString("d") – @a.EndDate.AddDays(-1).ToLocalTime().ToString("d")</div>
+                                                        <div class="team-absence-date small">@a.StartDate.ToLocalTime().ToString("d") – @a.EndDate.AddDays(-1).ToLocalTime().ToString("d")</div>
                                                         @if (!string.IsNullOrEmpty(a.Notes))
                                                         {
-                                                            <div class="text-muted small">@a.Notes</div>
+                                                            <div class="team-absence-notes small">@a.Notes</div>
                                                         }
                                                     </div>
                                                     <div class="text-end ms-3 flex-shrink-0">
@@ -598,12 +611,20 @@
     // Currently selected team member in the master/detail panel
     private User? selectedMember = null;
     private string selectedMemberOccupation = "General";
+    // Local edit buffer for the selected member's MaxHours value
+    private double selectedMemberMaxHours = 0.0;
     private string? memberOccupationMessage;
     private bool memberOccupationError;
+    private string? selectedMemberMaxHoursMessage;
+    private bool selectedMemberMaxHoursError;
 
-    /// <summary>True when the occupation dropdown differs from the selected member's saved value.</summary>
-    private bool HasMemberOccupationChanged =>
-        selectedMember is not null && selectedMemberOccupation != selectedMember.Occupation;
+    /// <summary>True when any of the member editable fields differ from the selected member's saved values.</summary>
+    private bool HasMemberChanges =>
+        selectedMember is not null && (selectedMemberOccupation != selectedMember.Occupation || selectedMemberMaxHours != (selectedMember?.MaxHours ?? 0.0));
+
+    private bool HasOccupationChanged => selectedMember is not null && selectedMemberOccupation != selectedMember.Occupation;
+
+    private bool HasMaxHoursChanged => selectedMember is not null && selectedMemberMaxHours != (selectedMember?.MaxHours ?? 0.0);
 
     // Worker type management state
     private List<WorkerType> workerTypes = new();
@@ -1093,6 +1114,9 @@
         memberOccupationMessage = null;
         memberOccupationError = false;
 
+        // Populate editable MaxHours buffer
+        selectedMemberMaxHours = member.MaxHours;
+
         // Load upcoming absences for this member (next 30 days)
         await LoadUpcomingAbsencesForMember(member);
     }
@@ -1290,10 +1314,70 @@
         isBusy = true;
         try
         {
+            // Only call updates for fields that actually changed. Treat unchanged fields as successful.
+            var occOk = true;
+            var maxOk = true;
+
+            var occChanged = selectedMemberOccupation != selectedMember.Occupation;
+            var maxChanged = selectedMemberMaxHours != (selectedMember.MaxHours);
+
+            if (occChanged)
+            {
+                occOk = await UserService.UpdateOccupationAsync(selectedMember.Username, selectedMemberOccupation);
+            }
+
+            if (maxChanged)
+            {
+                maxOk = await UserService.UpdateMaxHoursAsync(selectedMember.Username, selectedMemberMaxHours);
+            }
+
+            // Consider operation successful if all attempted updates returned true.
+            if ((occChanged ? occOk : true) && (maxChanged ? maxOk : true))
+            {
+                // Keep the in-memory list in sync so the list badge updates immediately
+                selectedMember.Occupation = selectedMemberOccupation;
+                selectedMember.MaxHours = selectedMemberMaxHours;
+                memberOccupationMessage = "Member updated.";
+                memberOccupationError = false;
+            }
+            else
+            {
+                // Partial or full failure. If DB was updated but the Update call returned false
+                // (ModifiedCount == 0) treat that as success — query DB is the source of truth.
+                // However, we can't call DB here; instead provide a clearer guidance message.
+                memberOccupationMessage = "Could not update all member values. Please try again.";
+                memberOccupationError = true;
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Saves the member settings (occupation and max hours). This is invoked by the controls' Save button.
+    /// Delegates to the same logic as SaveMemberOccupation for consistency.
+    /// </summary>
+    private Task SaveMemberDetails() => SaveMemberOccupation();
+
+    private async Task SaveOccupationOnly()
+    {
+        if (selectedMember is null) return;
+        memberOccupationMessage = null;
+        isBusy = true;
+        try
+        {
+            if (selectedMemberOccupation == selectedMember.Occupation)
+            {
+                memberOccupationMessage = "No changes.";
+                memberOccupationError = false;
+                return;
+            }
+
             var ok = await UserService.UpdateOccupationAsync(selectedMember.Username, selectedMemberOccupation);
             if (ok)
             {
-                // Keep the in-memory list in sync so the list badge updates immediately
                 selectedMember.Occupation = selectedMemberOccupation;
                 memberOccupationMessage = "Occupation updated.";
                 memberOccupationError = false;
@@ -1302,6 +1386,39 @@
             {
                 memberOccupationMessage = "Could not update occupation. Please try again.";
                 memberOccupationError = true;
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task SaveMaxHoursOnly()
+    {
+        if (selectedMember is null) return;
+        selectedMemberMaxHoursMessage = null;
+        isBusy = true;
+        try
+        {
+            if (selectedMemberMaxHours == (selectedMember.MaxHours))
+            {
+                selectedMemberMaxHoursMessage = "No changes.";
+                selectedMemberMaxHoursError = false;
+                return;
+            }
+
+            var ok = await UserService.UpdateMaxHoursAsync(selectedMember.Username, selectedMemberMaxHours);
+            if (ok)
+            {
+                selectedMember.MaxHours = selectedMemberMaxHours;
+                selectedMemberMaxHoursMessage = "Max hours updated.";
+                selectedMemberMaxHoursError = false;
+            }
+            else
+            {
+                selectedMemberMaxHoursMessage = "Could not update max hours. Please try again.";
+                selectedMemberMaxHoursError = true;
             }
         }
         finally

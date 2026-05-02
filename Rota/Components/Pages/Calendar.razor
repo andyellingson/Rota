@@ -20,19 +20,34 @@
     <div class="card-body">
         <div class="d-flex align-items-center mb-3">
             <div class="me-auto">
-                <h4 class="mb-0">Calendar</h4>
+                <h4 class="mb-0">@((availableSchedules.FirstOrDefault(s => s.Id == selectedScheduleId)?.Name) ?? "Calendar")</h4>
                 <small class="text-muted">View and browse your schedule</small>
             </div>
 
+            
+
             @if (availableSchedules.Count > 0)
             {
-                <div class="me-2">
+                <div class="me-2 d-flex align-items-center">
                     <select class="form-select form-select-sm" @bind="selectedScheduleId" @bind:after="OnScheduleChanged">
                         @foreach (var schedule in availableSchedules)
                         {
                             <option value="@schedule.Id">@schedule.Name</option>
                         }
                     </select>
+
+                    @* Worker type filters - only show types present in the currently loaded shifts. Placed to the right of the schedule selector. *@
+                    @if (workerTypeVisibility?.Count > 0)
+                    {
+                        <div class="btn-group ms-2" role="group" aria-label="Worker type filters">
+                            @foreach (var wt in workerTypeVisibility.Keys.OrderBy(k => k))
+                            {
+                                var safeId = $"filter-wt-{wt.Replace(" ", "-").Replace("/","-")}";
+                                <input type="checkbox" class="btn-check" id="@safeId" checked="@IsWorkerTypeVisible(wt)" @onchange="(() => ToggleWorkerType(wt))" autocomplete="off">
+                                <label class="btn btn-outline-secondary btn-sm" for="@safeId">@wt</label>
+                            }
+                        </div>
+                    }
                 </div>
             }
 
@@ -482,6 +497,11 @@
     private bool showShifts = true;
     private bool showAbsences = true;
     private bool showReminders = true;
+
+    // Worker type visibility for filtering calendar shifts. Keys are worker type names and
+    // values indicate whether that type should be shown. This map is populated from the
+    // distinct WorkerType values present in the currently loaded `shifts` list.
+    private Dictionary<string, bool> workerTypeVisibility = new();
 
     // Modal state
     private readonly CalendarEditModalState modalState = new();
@@ -1016,6 +1036,13 @@
         return shifts
             .Where(s => s.Start < endUtc && s.End > startUtc)
             .Where(s => string.IsNullOrEmpty(selectedScheduleId) || s.ScheduleId == selectedScheduleId)
+            .Where(s =>
+            {
+                // If no worker-type filters are present, allow all shifts. Use a fallback name for null/empty types.
+                if (workerTypeVisibility == null || workerTypeVisibility.Count == 0) return true;
+                var wt = string.IsNullOrWhiteSpace(s.WorkerType) ? "General" : s.WorkerType;
+                return workerTypeVisibility.TryGetValue(wt, out var visible) && visible;
+            })
             .ToList();
     }
 
@@ -1033,6 +1060,24 @@
         return absences
             .Where(a => a.StartDate < endUtc && a.EndDate > startUtc)
             .ToList();
+    }
+
+    private bool IsWorkerTypeVisible(string workerType)
+    {
+        if (workerTypeVisibility == null || workerTypeVisibility.Count == 0) return true;
+        var wt = string.IsNullOrWhiteSpace(workerType) ? "General" : workerType;
+        return workerTypeVisibility.TryGetValue(wt, out var visible) && visible;
+    }
+
+    private void ToggleWorkerType(string workerType)
+    {
+        if (workerTypeVisibility == null) return;
+        var wt = string.IsNullOrWhiteSpace(workerType) ? "General" : workerType;
+        if (workerTypeVisibility.ContainsKey(wt))
+        {
+            workerTypeVisibility[wt] = !workerTypeVisibility[wt];
+            FilterChanged();
+        }
     }
 
     private async Task LoadAbsences(DateOnly queryStart, DateOnly queryEnd)
@@ -1200,6 +1245,25 @@
         {
             shifts = await ShiftService.GetShiftsAsync(_username, _userId, _managerCode, queryStart, queryEnd);
             Logger.LogInformation("Loaded {Count} Shifts", shifts.Count);
+
+            // Determine which worker types are present in the loaded shifts and
+            // initialise the visibility map. Preserve existing visibility choices
+            // when possible; default new types to visible.
+            var types = shifts
+                .Select(s => string.IsNullOrWhiteSpace(s.WorkerType) ? "General" : s.WorkerType)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(t => t)
+                .ToList();
+
+            var newMap = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+            foreach (var t in types)
+            {
+                if (workerTypeVisibility.TryGetValue(t, out var val))
+                    newMap[t] = val;
+                else
+                    newMap[t] = true;
+            }
+            workerTypeVisibility = newMap;
         }
         catch (Exception ex)
         {

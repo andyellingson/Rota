@@ -27,7 +27,7 @@ namespace Rota.Services
                 var db = client.GetDatabase(opts.DatabaseName);
                 _users = db.GetCollection<User>(opts.UsersCollectionName);
             }
-            catch (System.Exception ex)
+           catch (System.Exception ex)
             {
                 _logger.LogError(ex, "Error initializing MongoUserService with connection string {Conn}", opts.ConnectionString);
                 throw;
@@ -42,6 +42,25 @@ namespace Rota.Services
         {
             _users = usersCollection;
             _logger = logger;
+        }
+
+        /// <summary>
+        /// Updates the maximum weekly hours for the specified user.
+        /// </summary>
+        public async System.Threading.Tasks.Task<bool> UpdateMaxHoursAsync(string username, double maxHours)
+        {
+            try
+            {
+                var filter = Builders<User>.Filter.Eq(u => u.Username, username);
+                var update = Builders<User>.Update.Set(u => u.MaxHours, maxHours);
+                var result = await _users.UpdateOneAsync(filter, update);
+                return result.ModifiedCount > 0;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error updating MaxHours for user {User}", username);
+                return false;
+            }
         }
 
         /// <summary>

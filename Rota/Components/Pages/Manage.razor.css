@@ -293,6 +293,16 @@
     color: var(--color-text-medium);
 }
 
+/* Upcoming absence date and notes should use theme-aware colors */
+.team-absence-date {
+    color: var(--color-text-medium);
+}
+
+.team-absence-notes {
+    color: var(--color-text-secondary);
+    margin-top: 0.25rem;
+}
+
 /* Responsive: stack on small screens */
 @media (max-width: 540px) {
     .team-master-detail {

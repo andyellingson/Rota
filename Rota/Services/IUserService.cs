@@ -39,6 +39,12 @@ namespace Rota.Services
         System.Threading.Tasks.Task<bool> UpdateOccupationAsync(string username, string occupation);
 
         /// <summary>
+        /// Updates the maximum weekly hours for the specified user.
+        /// Returns true when the document was modified.
+        /// </summary>
+        System.Threading.Tasks.Task<bool> UpdateMaxHoursAsync(string username, double maxHours);
+
+        /// <summary>
         /// Verifies <paramref name="currentPassword"/> then replaces the stored hash with a
         /// hash of <paramref name="newPassword"/>.
         /// Returns true on success, false when the current password is wrong.

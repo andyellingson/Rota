@@ -80,5 +80,12 @@ namespace Rota.Models
         /// </summary>
         [BsonElement("theme")]
         public string Theme { get; set; } = "light";
+
+        /// <summary>
+        /// The maximum number of hours the user may be scheduled for in a given week.
+        /// This is set by the user's manager. A value of 0 means "no limit".
+        /// </summary>
+        [BsonElement("maxHours")]
+        public double MaxHours { get; set; } = 0.0;
     }
 }
