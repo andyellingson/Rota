@@ -8,11 +8,13 @@
 
 /* Keep filter triggers and menus wide enough that count badges do not resize the controls. */
 .calendar-filter-dropdown-toggle {
-    min-width: 190px;
+    min-width: 100%;
+    width: 100%;
 }
 
 .calendar-filter-dropdown-menu {
-    min-width: 315px;
+    min-width: 100%;
+    width: 100%;
 }
 
 .worker-type-dropdown-menu .form-check-label {
@@ -44,12 +46,205 @@
 }
 
 /* Layout container */
-.calendar-card { max-width: 1600px; margin-left: auto; margin-right: auto; }
+.schedule-page {
+    position: relative;
+}
+
+.calendar-card {
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.schedule-options-panel {
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+    border-color: var(--color-border);
+}
+
+.schedule-options-header {
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.schedule-options-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.schedule-options-subtitle {
+    font-size: 0.85rem;
+}
+
+.schedule-options-section + .schedule-options-section {
+    margin-top: 1rem;
+}
+
+.schedule-options-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--color-text-medium);
+}
+
+.schedule-options-input,
+.schedule-options-dropdown {
+    width: 100%;
+}
+
+.schedule-options-toggle-list {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.schedule-options-toggle-list .btn {
+    width: 100%;
+}
+
+/* Custom colors for Calendar Items (Shifts, Absences, Reminders)
+   Provide distinct, accessible colors for both light and dark themes.
+   Use higher-specificity selectors so Bootstrap outline styles are overridden
+   only within the schedule options panel. */
+.schedule-options-toggle-list .btn-outline-primary {
+    background-color: #1e88e5 !important; /* blue */
+    border-color: #1e88e5 !important;
+    color: #ffffff !important;
+}
+.schedule-options-toggle-list .btn-outline-primary:hover {
+    background-color: #1669b8 !important;
+    border-color: #1669b8 !important;
+}
+
+.schedule-options-toggle-list .btn-outline-warning {
+    background-color: #f6a623 !important; /* warm amber/orange */
+    border-color: #f6a623 !important;
+    color: #111827 !important; /* dark text for contrast */
+}
+.schedule-options-toggle-list .btn-outline-warning:hover {
+    background-color: #d98f14 !important;
+    border-color: #d98f14 !important;
+}
+
+.schedule-options-toggle-list .btn-outline-info {
+    background-color: #06b6d4 !important; /* teal/cyan */
+    border-color: #06b6d4 !important;
+    color: #08203a !important;
+}
+.schedule-options-toggle-list .btn-outline-info:hover {
+    background-color: #0497a8 !important;
+    border-color: #0497a8 !important;
+}
+
+/* Dark-mode adjustments: slightly brighter fills and ensure text contrast */
+[data-theme="dark"] .schedule-options-toggle-list .btn-outline-primary {
+    background-color: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #ffffff !important;
+}
+[data-theme="dark"] .schedule-options-toggle-list .btn-outline-primary:hover {
+    background-color: #1e40af !important;
+}
+[data-theme="dark"] .schedule-options-toggle-list .btn-outline-warning {
+    background-color: #f59e0b !important;
+    border-color: #f59e0b !important;
+    color: #0f172a !important;
+}
+[data-theme="dark"] .schedule-options-toggle-list .btn-outline-warning:hover {
+    background-color: #b45309 !important;
+}
+[data-theme="dark"] .schedule-options-toggle-list .btn-outline-info {
+    background-color: #06b6d4 !important;
+    border-color: #06b6d4 !important;
+    color: #042f3a !important;
+}
+[data-theme="dark"] .schedule-options-toggle-list .btn-outline-info:hover {
+    background-color: #0e7490 !important;
+}
+
+.schedule-options-actions-row {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.schedule-options-print-button {
+    width: 100%;
+}
+
+.schedule-options-panel .dropdown-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.schedule-options-panel .dropdown-toggle::after {
+    margin-left: 0.75rem;
+}
+
+.calendar-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
 
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0.5rem;
+}
+
+@media (min-width: 1200px) {
+    .schedule-page {
+        padding-left: 22rem;
+    }
+
+    .schedule-options-panel {
+        position: fixed;
+        /* Anchor to the navigation sidebar so it feels like a sub-menu */
+        left: 250px; /* matches sidebar width */
+        top: 6.25rem; /* visually aligns the panel with the Schedules nav item */
+        width: 20rem;
+        max-height: calc(100vh - 8rem);
+        overflow-y: auto;
+        z-index: 1200;
+        /* Make the panel appear as if it slides out from the nav menu */
+        transition: transform 200ms ease, opacity 200ms ease;
+        transform-origin: left center;
+        transform: translateX(0) translateY(0);
+        opacity: 1;
+        /* Visually attach to the nav by removing left-side rounding */
+        border-top-left-radius: 0.25rem;
+        border-bottom-left-radius: 0.25rem;
+        border-left: 1px solid rgba(255,255,255,0.03);
+    }
+
+    /* When the panel is present but needs to be visually collapsed, this class
+       can be toggled (not currently used) to animate it closed */
+    .schedule-options-panel.collapsed {
+        transform: translateX(-6px) translateY(-4px) scale(.98);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    /* Add a subtle pointer/connector so the panel looks attached to the nav */
+    .schedule-options-panel::before {
+        content: "";
+        position: absolute;
+        left: -8px;
+        top: 0.75rem;
+        width: 8px;
+        height: 2.5rem;
+        background: linear-gradient(180deg, rgba(0,0,0,0.04), transparent);
+        border-top-right-radius: 2px;
+        border-bottom-right-radius: 2px;
+        pointer-events: none;
+    }
 }
 
 .calendar-grid-header {

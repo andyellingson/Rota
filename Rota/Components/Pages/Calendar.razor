@@ -15,18 +15,23 @@
 @inject IWorkerTypesService WorkerTypesService
 @inject IJSRuntime JS
 
-
-<div class="calendar-card card shadow-sm my-4">
-    <div class="card-body">
-        <div class="d-flex align-items-center mb-3">
-            <div class="me-auto">
-                <h4 class="mb-0">@((availableSchedules.FirstOrDefault(s => s.Id == selectedScheduleId)?.Name) ?? "Calendar")</h4>
-                <small class="text-muted">View and browse your schedule</small>
+<div class="schedule-page">
+    <aside class="schedule-options-panel card shadow-sm mt-4 mb-3">
+        <div class="card-body">
+            <div class="schedule-options-header">
+                <div>
+                    <div class="schedule-options-title">Schedule Options</div>
+                    <div class="schedule-options-subtitle text-muted">Adjust what appears in your schedule view</div>
+                </div>
             </div>
+
             @if (availableSchedules.Count > 0)
             {
-                <div class="me-2 d-flex align-items-center">
-                    <select class="form-select form-select-sm"
+                @* Schedule selection remains at the top so users can quickly switch schedule context. *@
+                <div class="schedule-options-section">
+                    <label class="schedule-options-label" for="schedule-selector">Schedule</label>
+                    <select id="schedule-selector"
+                            class="form-select form-select-sm schedule-options-input"
                             title="Choose which schedule to view in the calendar"
                             @bind="selectedScheduleId" @bind:after="OnScheduleChanged">
                         @foreach (var schedule in availableSchedules)
@@ -34,13 +39,20 @@
                             <option value="@schedule.Id">@schedule.Name</option>
                         }
                     </select>
+                </div>
+            }
+
+            @if (workerTypeVisibility?.Count > 0 || employeeVisibility?.Count > 0)
+            {
+                <div class="schedule-options-section">
+                    <div class="schedule-options-label">Shift Filters</div>
 
                     @* Worker type filters – dropdown multi-select. Only shown when types are present in the loaded shifts. *@
                     @if (workerTypeVisibility?.Count > 0)
                     {
                         var allVisible = workerTypeVisibility.Values.All(v => v);
                         var dropdownLabel = allVisible ? "Worker Types" : $"Worker Types ({workerTypeVisibility.Values.Count(v => v)}/{workerTypeVisibility.Count})";
-                        <div class="dropdown ms-2" @onclick:stopPropagation="true">
+                        <div class="dropdown schedule-options-dropdown" @onclick:stopPropagation="true">
                             <button class="btn btn-outline-secondary btn-sm dropdown-toggle calendar-filter-dropdown-toggle @(!allVisible ? "active" : "")"
                                     type="button"
                                     title="Filter visible shifts by worker type"
@@ -77,7 +89,7 @@
                     {
                         var allEmpVisible = employeeVisibility.Values.All(v => v);
                         var empDropdownLabel = allEmpVisible ? "Employees" : $"Employees ({employeeVisibility.Values.Count(v => v)}/{employeeVisibility.Count})";
-                        <div class="dropdown ms-2" @onclick:stopPropagation="true">
+                        <div class="dropdown schedule-options-dropdown" @onclick:stopPropagation="true">
                             <button class="btn btn-outline-secondary btn-sm dropdown-toggle calendar-filter-dropdown-toggle @(!allEmpVisible ? "active" : "")"
                                     type="button"
                                     title="Filter visible shifts by assigned employee"
@@ -111,30 +123,51 @@
                 </div>
             }
 
-            <div class="btn-group me-2" role="group" aria-label="Event filters">
-                <input type="checkbox" class="btn-check" id="filter-shifts" @bind="showShifts" @bind:after="FilterChanged" autocomplete="off" >
-                <label class="btn btn-outline-primary btn-sm" for="filter-shifts" title="Show or hide shifts on the calendar">Shifts</label>
+            <div class="schedule-options-section">
+                <div class="schedule-options-label">Calendar Items</div>
+                <div class="schedule-options-toggle-list">
+                    <input type="checkbox" class="btn-check" id="filter-shifts" @bind="showShifts" @bind:after="FilterChanged" autocomplete="off">
+                    <label class="btn btn-outline-primary btn-sm text-start" for="filter-shifts" title="Show or hide shifts on the calendar">Shifts</label>
 
-                <input type="checkbox" class="btn-check" id="filter-absences" @bind="showAbsences" @bind:after="FilterChanged" autocomplete="off" >
-                <label class="btn btn-outline-warning btn-sm" for="filter-absences" title="Show or hide absences on the calendar">Absences</label>
+                    <input type="checkbox" class="btn-check" id="filter-absences" @bind="showAbsences" @bind:after="FilterChanged" autocomplete="off">
+                    <label class="btn btn-outline-warning btn-sm text-start" for="filter-absences" title="Show or hide absences on the calendar">Absences</label>
 
-                <input type="checkbox" class="btn-check" id="filter-reminders" @bind="showReminders" @bind:after="FilterChanged" autocomplete="off" >
-                <label class="btn btn-outline-info btn-sm" for="filter-reminders" title="Show or hide reminders on the calendar">Reminders</label>
+                    <input type="checkbox" class="btn-check" id="filter-reminders" @bind="showReminders" @bind:after="FilterChanged" autocomplete="off">
+                    <label class="btn btn-outline-info btn-sm text-start" for="filter-reminders" title="Show or hide reminders on the calendar">Reminders</label>
+                </div>
             </div>
 
-            <div class="btn-group me-2" role="group" aria-label="View mode">
-                <button class="btn btn-outline-primary" title="Switch to weekly calendar view" @onclick="(() => SetView(ViewMode.Week))" aria-pressed="@(view == ViewMode.Week)">Week</button>
-                <button class="btn btn-outline-primary" title="Switch to monthly calendar view" @onclick="(() => SetView(ViewMode.Month))" aria-pressed="@(view == ViewMode.Month)">Month</button>
+            <div class="schedule-options-section">
+                <div class="schedule-options-label">View</div>
+                <div class="btn-group w-100" role="group" aria-label="View mode">
+                    <button class="@(view == ViewMode.Week ? "btn btn-primary" : "btn btn-outline-primary")" title="Switch to weekly calendar view" @onclick="(() => SetView(ViewMode.Week))" aria-pressed="@(view == ViewMode.Week)">Week</button>
+                    <button class="@(view == ViewMode.Month ? "btn btn-primary" : "btn btn-outline-primary")" title="Switch to monthly calendar view" @onclick="(() => SetView(ViewMode.Month))" aria-pressed="@(view == ViewMode.Month)">Month</button>
+                </div>
             </div>
 
-            <div class="btn-group" role="group" aria-label="Navigation">
-                <button class="btn btn-light" title="Go to the previous week or month" @onclick="Prev">‹</button>
-                <button class="btn btn-light" title="Go to the next week or month" @onclick="Next">›</button>
-            </div>
+            <div class="schedule-options-section">
+                <div class="schedule-options-label">Navigation</div>
+                <div class="schedule-options-actions-row">
+                    <div class="btn-group" role="group" aria-label="Navigation">
+                        <button class="btn btn-light" title="Go to the previous week or month" @onclick="Prev">‹</button>
+                        <button class="btn btn-light" title="Go to the next week or month" @onclick="Next">›</button>
+                    </div>
 
-            <button class="btn btn-outline-secondary ms-2" title="Open the print preview for this schedule" @onclick="OpenPrintModal">
-                🖨️
-            </button>
+                    <button class="btn btn-outline-secondary schedule-options-print-button" title="Open the print preview for this schedule" @onclick="OpenPrintModal">
+                        🖨️ Print
+                    </button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="calendar-card card shadow-sm my-4">
+    <div class="card-body">
+        <div class="calendar-header mb-3">
+            <div>
+                <h4 class="mb-0">@((availableSchedules.FirstOrDefault(s => s.Id == selectedScheduleId)?.Name) ?? "Calendar")</h4>
+                <small class="text-muted">View and browse your schedule</small>
+            </div>
         </div>
 
         @if (view == ViewMode.Month)
@@ -245,6 +278,7 @@
             </div>
         }
     </div>
+</div>
 </div>
 
 @* Day detail modal – expanded view for a single day *@

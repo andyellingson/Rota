@@ -369,7 +369,7 @@
                         {
                             <button class="team-member-list-item @(selectedMember?.Username == member.Username ? "active" : "")"
                                     @onclick="() => SelectMember(member)">
-                                <span class="team-list-name">@(member.DisplayName ?? member.Username)</span>
+                                <span class="team-list-name">@GetMemberFullName(member)</span>
                                 <span class="team-list-occupation">@member.Occupation</span>
                             </button>
                         }
@@ -384,7 +384,7 @@
                         else
                         {
                             <div class="team-detail-header">
-                                <div class="team-detail-name">@(selectedMember.DisplayName ?? selectedMember.Username)</div>
+                                <div class="team-detail-name">@GetMemberFullName(selectedMember)</div>
                                 <div class="team-detail-username text-muted small">@selectedMember.Username</div>
                             </div>
 
@@ -625,6 +625,20 @@
     private bool HasOccupationChanged => selectedMember is not null && selectedMemberOccupation != selectedMember.Occupation;
 
     private bool HasMaxHoursChanged => selectedMember is not null && selectedMemberMaxHours != (selectedMember?.MaxHours ?? 0.0);
+
+    /// <summary>
+    /// Returns the member's full name (First + Last). Falls back to DisplayName then Username
+    /// when first/last are not set.
+    /// </summary>
+    private string GetMemberFullName(User? member)
+    {
+        if (member == null) return string.Empty;
+        var first = member.FirstName?.Trim() ?? string.Empty;
+        var last = member.LastName?.Trim() ?? string.Empty;
+        var full = (first + " " + last).Trim();
+        if (!string.IsNullOrWhiteSpace(full)) return full;
+        return member.DisplayName ?? member.Username ?? string.Empty;
+    }
 
     // Worker type management state
     private List<WorkerType> workerTypes = new();
