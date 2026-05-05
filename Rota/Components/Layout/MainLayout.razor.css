@@ -42,8 +42,18 @@ main {
     flex: 1;
 }
 
+/* Light mode – neutral sidebar */
 .sidebar {
+    background-image: none;
+    background-color: #dde1e7;
+    border-right: 1px solid #c8cdd5;
+}
+
+/* Dark mode – restore the original gradient */
+[data-theme="dark"] .sidebar {
     background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    background-color: transparent;
+    border-right: none;
 }
 
 .top-row {

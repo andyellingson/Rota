@@ -1,22 +1,22 @@
 /* ── Theme variables ─────────────────────────────────────────────────────── */
 
 :root {
-    --color-bg-page: #ffffff;
-    --color-bg-card: #ffffff;
-    --color-bg-subtle: #f8f9fa;
-    --color-bg-muted: rgba(0, 0, 0, 0.03);
-    --color-border: rgba(0, 0, 0, 0.07);
-    --color-border-muted: rgba(0, 0, 0, 0.06);
-    --color-border-subtle: rgba(0, 0, 0, 0.08);
-    --color-text-primary: #212529;
+    --color-bg-page: #f0f2f5;
+    --color-bg-card: #f7f8fa;
+    --color-bg-subtle: #eef0f3;
+    --color-bg-muted: rgba(0, 0, 0, 0.04);
+    --color-border: rgba(0, 0, 0, 0.10);
+    --color-border-muted: rgba(0, 0, 0, 0.08);
+    --color-border-subtle: rgba(0, 0, 0, 0.10);
+    --color-text-primary: #1a1d23;
     --color-text-secondary: #6c757d;
     --color-text-medium: #495057;
     /* Time range text color: black in light mode, white in dark mode */
     --color-time-text: #000000;
-    --color-toprow-bg: #f7f7f7;
-    --color-toprow-border: #d6d5d5;
-    --color-bg-hover: #e9ecef;
-    --color-bg-active: #e7f1ff;
+    --color-toprow-bg: #e8eaed;
+    --color-toprow-border: #cacdd2;
+    --color-bg-hover: #e2e5ea;
+    --color-bg-active: #dce8fb;
 }
 
 [data-theme="dark"] {
@@ -175,4 +175,17 @@ h1:focus {
 /* Bootstrap close button (×) used in modals */
 [data-theme="dark"] .btn-close {
     filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Ensure Bootstrap modals (print dialog / day details) appear above the
+   fixed schedule options panel (which uses z-index: 1200).
+   NOTE: Modal/backdrop elements are appended to <body>, so overrides must
+   live in a global stylesheet rather than component-scoped CSS.
+*/
+.modal-backdrop {
+    z-index: 1250 !important;
+}
+
+.modal {
+    z-index: 1300 !important;
 }
