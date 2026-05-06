@@ -26,6 +26,16 @@
     background-color: rgba(0, 0, 0, 0.4);
 }
 
+/* Nord: subtle darker overlay on the polar-night sidebar */
+[data-theme="nord"] .top-row {
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
+/* Forest: subtle darker overlay on the deep green sidebar */
+[data-theme="forest"] .top-row {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
 .navbar-brand {
     font-size: 1.1rem;
     /* Light mode: dark brand text */
@@ -52,6 +62,16 @@
     color: #93a1a1 !important;
 }
 
+/* Nord: light eceff4 text on the cool polar-night sidebar */
+[data-theme="nord"] .navbar-brand {
+    color: #eceff4 !important;
+}
+
+/* Forest: soft green-tinted text on the deep green sidebar */
+[data-theme="forest"] .navbar-brand {
+    color: #d4edda !important;
+}
+
 .bi {
     display: inline-block;
     position: relative;
@@ -66,6 +86,16 @@
 
 /* Dark mode: show icons as white (original) */
 [data-theme="dark"] .bi {
+    filter: none;
+}
+
+/* Nord: icons are white SVGs so remove the invert filter */
+[data-theme="nord"] .bi {
+    filter: none;
+}
+
+/* Forest: icons are white SVGs so remove the invert filter */
+[data-theme="forest"] .bi {
     filter: none;
 }
 

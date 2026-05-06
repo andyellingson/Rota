@@ -236,6 +236,10 @@
                             @onclick='() => SelectTheme("sepia")'>📜 Sepia</button>
                     <button class="btn @(themeInput == "solarized-dark" ? "btn-primary" : "btn-outline-secondary")"
                             @onclick='() => SelectTheme("solarized-dark")'>🌌 Solarized Dark</button>
+                    <button class="btn @(themeInput == "nord" ? "btn-primary" : "btn-outline-secondary")"
+                            @onclick='() => SelectTheme("nord")'>❄️ Nord</button>
+                    <button class="btn @(themeInput == "forest" ? "btn-primary" : "btn-outline-secondary")"
+                            @onclick='() => SelectTheme("forest")'>🌿 Forest</button>
                 </div>
                 @if (!string.IsNullOrEmpty(themeMessage))
                 {

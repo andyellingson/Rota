@@ -50,8 +50,9 @@
     [Parameter]
     public EventCallback<Absence> OnEdit { get; set; }
 
-    // Returns a modifier CSS class when the absence is not yet approved
-    private string PendingClass => ShowApprovalState && !Absence.IsApproved
+    // Returns a modifier CSS class when the absence is not yet approved.
+    // Applied regardless of ShowApprovalState so all users see the pending/denied visual style.
+    private string PendingClass => !Absence.IsApproved
         ? (Absence.ApprovalState == AbsenceApprovalState.Denied
             ? "absence-item--denied"
             : "absence-item--pending")

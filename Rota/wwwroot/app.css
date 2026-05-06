@@ -98,6 +98,64 @@
     --color-bg-active: rgba(59,47,42,0.04);
 }
 
+/* Nord: cool arctic blue palette */
+[data-theme="nord"] {
+    --color-bg-page: #2e3440;
+    --color-bg-card: #3b4252;
+    --color-bg-subtle: #353b47;
+    --color-bg-muted: rgba(255,255,255,0.03);
+    --color-border: rgba(216,222,233,0.10);
+    --color-border-muted: rgba(216,222,233,0.07);
+    --color-border-subtle: rgba(216,222,233,0.06);
+    --color-text-primary: #eceff4;
+    --color-text-secondary: #d8dee9;
+    --color-text-medium: #e5e9f0;
+    --color-time-text: #eceff4;
+    --color-toprow-bg: #3b4252;
+    --color-toprow-border: #434c5e;
+    --color-bg-hover: rgba(255,255,255,0.04);
+    --color-bg-active: rgba(136,192,208,0.10);
+    /* Frost blue accent */
+    --color-accent-primary: #88c0d0;
+    --color-accent-primary-hover: #6fa8bb;
+    --color-accent-primary-on: #2e3440;
+    --color-accent-warning: #ebcb8b;
+    --color-accent-warning-hover: #c9a95e;
+    --color-accent-warning-on: #2e3440;
+    --color-accent-info: #8fbcbb;
+    --color-accent-info-hover: #6fa3a2;
+    --color-accent-info-on: #2e3440;
+}
+
+/* Forest: deep green dark theme */
+[data-theme="forest"] {
+    --color-bg-page: #0d1f17;
+    --color-bg-card: #152a1e;
+    --color-bg-subtle: #122318;
+    --color-bg-muted: rgba(255,255,255,0.03);
+    --color-border: rgba(134,188,134,0.10);
+    --color-border-muted: rgba(134,188,134,0.07);
+    --color-border-subtle: rgba(134,188,134,0.05);
+    --color-text-primary: #d4edda;
+    --color-text-secondary: #a3c4a8;
+    --color-text-medium: #b8d9be;
+    --color-time-text: #d4edda;
+    --color-toprow-bg: #152a1e;
+    --color-toprow-border: #1c3627;
+    --color-bg-hover: rgba(134,188,134,0.05);
+    --color-bg-active: rgba(72,160,72,0.10);
+    /* Moss green accent */
+    --color-accent-primary: #4caf72;
+    --color-accent-primary-hover: #389558;
+    --color-accent-primary-on: #0d1f17;
+    --color-accent-warning: #d4a843;
+    --color-accent-warning-hover: #b08a2a;
+    --color-accent-warning-on: #0d1f17;
+    --color-accent-info: #4db8b8;
+    --color-accent-info-hover: #309898;
+    --color-accent-info-on: #0d1f17;
+}
+
 /* Solarized Dark: based on the Solarized palette */
 [data-theme="solarized-dark"] {
     --color-bg-page: #002b36; /* base03 */
