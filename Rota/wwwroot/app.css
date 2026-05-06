@@ -19,6 +19,65 @@
     --color-bg-active: #dce8fb;
 }
 
+/* ── Extra themes ─────────────────────────────────────────────────────── */
+
+/* AMOLED: true black background for OLED displays */
+[data-theme="amoled"] {
+    --color-bg-page: #000000;
+    --color-bg-card: #000000;
+    --color-bg-subtle: #0b0b0d;
+    --color-bg-muted: rgba(255,255,255,0.02);
+    --color-border: rgba(255,255,255,0.06);
+    --color-border-muted: rgba(255,255,255,0.04);
+    --color-border-subtle: rgba(255,255,255,0.04);
+    --color-text-primary: #e6eef8;
+    --color-text-secondary: #9fb0c8;
+    --color-text-medium: #b8c6d6;
+    --color-time-text: #ffffff;
+    --color-toprow-bg: #050508;
+    --color-toprow-border: #0b0b0f;
+    --color-bg-hover: rgba(255,255,255,0.02);
+    --color-bg-active: rgba(96,165,250,0.06);
+}
+
+/* Sepia: warm, paper-like reading theme */
+[data-theme="sepia"] {
+    --color-bg-page: #f4ecd8;
+    --color-bg-card: #fbf7ec;
+    --color-bg-subtle: #f6f1e4;
+    --color-bg-muted: rgba(0,0,0,0.04);
+    --color-border: rgba(0,0,0,0.08);
+    --color-border-muted: rgba(0,0,0,0.06);
+    --color-border-subtle: rgba(0,0,0,0.04);
+    --color-text-primary: #3b2f2a;
+    --color-text-secondary: #6b584f;
+    --color-text-medium: #5a463f;
+    --color-time-text: #3b2f2a;
+    --color-toprow-bg: #efe7d0;
+    --color-toprow-border: #dfcfb5;
+    --color-bg-hover: rgba(0,0,0,0.03);
+    --color-bg-active: rgba(59,47,42,0.04);
+}
+
+/* Solarized Dark: based on the Solarized palette */
+[data-theme="solarized-dark"] {
+    --color-bg-page: #002b36; /* base03 */
+    --color-bg-card: #073642; /* base02 */
+    --color-bg-subtle: #002f34; 
+    --color-bg-muted: rgba(255,255,255,0.02);
+    --color-border: rgba(133,148,150,0.12);
+    --color-border-muted: rgba(133,148,150,0.08);
+    --color-border-subtle: rgba(133,148,150,0.06);
+    --color-text-primary: #93a1a1; /* base0 */
+    --color-text-secondary: #839496; /* base1 */
+    --color-text-medium: #586e75; /* base01 */
+    --color-time-text: #93a1a1;
+    --color-toprow-bg: #073642;
+    --color-toprow-border: #0b3b40;
+    --color-bg-hover: rgba(255,255,255,0.02);
+    --color-bg-active: rgba(38,139,210,0.06); /* blue accent */
+}
+
 [data-theme="dark"] {
     --color-bg-page: #1a1a2e;
     --color-bg-card: #22223b;

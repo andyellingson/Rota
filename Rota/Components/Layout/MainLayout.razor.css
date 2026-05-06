@@ -56,6 +56,27 @@ main {
     border-right: none;
 }
 
+/* AMOLED sidebar: true black with subtle separator */
+[data-theme="amoled"] .sidebar {
+    background-image: none;
+    background-color: #000000;
+    border-right: 1px solid rgba(255,255,255,0.04);
+}
+
+/* Sepia sidebar: warm paper-like tone */
+[data-theme="sepia"] .sidebar {
+    background-image: none;
+    background-color: #efe7cf;
+    border-right: 1px solid rgba(0,0,0,0.06);
+}
+
+/* Solarized Dark sidebar: use solarized background variables */
+[data-theme="solarized-dark"] .sidebar {
+    background-image: none;
+    background-color: var(--color-bg-card);
+    border-right: 1px solid rgba(133,148,150,0.06);
+}
+
 .top-row {
     background-color: var(--color-toprow-bg);
     border-bottom: 1px solid var(--color-toprow-border);

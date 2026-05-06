@@ -69,16 +69,30 @@ window.authPut = async function (url, data) {
 // Applies the given theme by setting the data-theme attribute on <html>.
 // Call with "light" or "dark"; defaults to "light" for any unrecognised value.
 window.setTheme = function (theme) {
-    document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+    // Allow arbitrary theme names (e.g. "amoled", "sepia", "solarized-dark").
+    var applied = (theme === 'dark' || theme === 'light' || typeof theme === 'string') ? theme : 'light';
+    try {
+        localStorage.setItem('rota.theme', applied);
+    } catch (e) {
+        // ignore localStorage failures (e.g. private browsing)
+    }
+    document.documentElement.setAttribute('data-theme', applied === 'dark' ? 'dark' : applied);
 };
 
-// Default to dark theme on initial load. This makes the app dark by default
-// and ensures CSS variables under [data-theme="dark"] are applied.
-// Call after defining setTheme so it can be overridden by other scripts later.
+// Apply persisted theme (or fall back to OS preference / dark)
 try {
-    window.setTheme('dark');
+    var saved = null;
+    try { saved = localStorage.getItem('rota.theme'); } catch (e) { saved = null; }
+    if (saved) {
+        window.setTheme(saved);
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        window.setTheme('dark');
+    } else {
+        // default choice when no preference exists
+        window.setTheme('dark');
+    }
 } catch (e) {
-    // Fail silently if setting theme isn't supported in the environment
+    // ignore errors applying theme
 }
 
 // Opens a new browser window containing only the schedule preview and triggers

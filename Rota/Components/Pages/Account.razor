@@ -225,11 +225,17 @@
             <h5 class="account-section-title">🎨 Appearance</h5>
             <div class="account-card">
                 <label class="account-field-label mb-2">Theme</label>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 flex-wrap">
                     <button class="btn @(themeInput == "light" ? "btn-primary" : "btn-outline-secondary")"
                             @onclick='() => SelectTheme("light")'>☀️ Light</button>
                     <button class="btn @(themeInput == "dark" ? "btn-primary" : "btn-outline-secondary")"
                             @onclick='() => SelectTheme("dark")'>🌙 Dark</button>
+                    <button class="btn @(themeInput == "amoled" ? "btn-primary" : "btn-outline-secondary")"
+                            @onclick='() => SelectTheme("amoled")'>🖤 AMOLED</button>
+                    <button class="btn @(themeInput == "sepia" ? "btn-primary" : "btn-outline-secondary")"
+                            @onclick='() => SelectTheme("sepia")'>📜 Sepia</button>
+                    <button class="btn @(themeInput == "solarized-dark" ? "btn-primary" : "btn-outline-secondary")"
+                            @onclick='() => SelectTheme("solarized-dark")'>🌌 Solarized Dark</button>
                 </div>
                 @if (!string.IsNullOrEmpty(themeMessage))
                 {

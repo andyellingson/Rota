@@ -37,6 +37,21 @@
     color: #ffffff !important;
 }
 
+/* AMOLED: ensure bright brand text on true-black background */
+[data-theme="amoled"] .navbar-brand {
+    color: var(--color-text-primary, #ffffff) !important;
+}
+
+/* Sepia: use a warm dark text color for readable contrast on light sepia sidebar */
+[data-theme="sepia"] .navbar-brand {
+    color: #3b2f2a !important;
+}
+
+/* Solarized Dark: use solarized base0 for good contrast */
+[data-theme="solarized-dark"] .navbar-brand {
+    color: #93a1a1 !important;
+}
+
 .bi {
     display: inline-block;
     position: relative;
@@ -137,6 +152,58 @@
 [data-theme="dark"] .nav-item ::deep .nav-link:hover {
     background-color: rgba(255, 255, 255, 0.1);
     color: white;
+}
+
+/* AMOLED theme: follow dark-style but ensure true-black sidebar and bright highlights */
+[data-theme="amoled"] .top-row {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+[data-theme="amoled"] .nav-item ::deep .nav-link {
+    color: var(--color-text-primary);
+}
+[data-theme="amoled"] .nav-item ::deep a.active {
+    background-color: rgba(255, 255, 255, 0.06);
+    color: var(--color-text-primary);
+}
+[data-theme="amoled"] .nav-item ::deep .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+    color: var(--color-text-primary);
+}
+[data-theme="amoled"] .bi {
+    /* show original (white) icons on black background */
+    filter: none;
+}
+
+/* Sepia theme: warm, paper-like sidebar — use theme variables for text/background */
+[data-theme="sepia"] .top-row {
+    background-color: rgba(0,0,0,0.04);
+}
+[data-theme="sepia"] .nav-item ::deep .nav-link {
+    color: var(--color-text-primary);
+}
+[data-theme="sepia"] .nav-item ::deep a.active {
+    background-color: rgba(0,0,0,0.06);
+    color: var(--color-text-primary);
+}
+[data-theme="sepia"] .nav-item ::deep .nav-link:hover {
+    background-color: rgba(0,0,0,0.04);
+    color: var(--color-text-primary);
+}
+
+/* Solarized Dark: match nav to solarized variables */
+[data-theme="solarized-dark"] .top-row {
+    background-color: rgba(255,255,255,0.03);
+}
+[data-theme="solarized-dark"] .nav-item ::deep .nav-link {
+    color: var(--color-text-primary);
+}
+[data-theme="solarized-dark"] .nav-item ::deep a.active {
+    background-color: rgba(38,139,210,0.12); /* subtle blue accent */
+    color: var(--color-text-primary);
+}
+[data-theme="solarized-dark"] .nav-item ::deep .nav-link:hover {
+    background-color: rgba(255,255,255,0.04);
+    color: var(--color-text-primary);
 }
 
 .nav-scrollable {
