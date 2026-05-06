@@ -72,6 +72,15 @@ window.setTheme = function (theme) {
     document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
 };
 
+// Default to dark theme on initial load. This makes the app dark by default
+// and ensures CSS variables under [data-theme="dark"] are applied.
+// Call after defining setTheme so it can be overridden by other scripts later.
+try {
+    window.setTheme('dark');
+} catch (e) {
+    // Fail silently if setting theme isn't supported in the environment
+}
+
 // Opens a new browser window containing only the schedule preview and triggers
 // the browser's native print dialog. This approach bypasses Blazor CSS isolation
 // (which mangles @media print selectors in scoped .razor.css files) by writing

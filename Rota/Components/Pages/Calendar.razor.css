@@ -176,13 +176,14 @@
 
 .toolbar-toggle-row .btn-outline-warning {
     background-color: transparent !important;
-    border-color: #f6a623 !important;
-    color: #f6a623 !important;
-    opacity: 0.55;
+    /* Darker amber keeps adequate contrast on near-white light-mode surfaces */
+    border-color: #c97f00 !important;
+    color: #c97f00 !important;
+    opacity: 0.85;
 }
 .toolbar-toggle-row .btn-outline-warning:hover {
-    background-color: rgba(246,166,35,0.12) !important;
-    opacity: 0.75;
+    background-color: rgba(201,127,0,0.12) !important;
+    opacity: 1;
 }
 
 .toolbar-toggle-row .btn-outline-info {
@@ -382,6 +383,7 @@
     content: '';
     position: absolute;
     inset: 0;
+    /* Light-mode: subtle dark stripe */
     background: repeating-linear-gradient(
         -45deg,
         rgba(0, 0, 0, 0.08) 0px,
@@ -390,6 +392,17 @@
         transparent 9px
     );
     pointer-events: none;
+}
+
+/* Dark mode: use a light stripe so the pattern stays visible on dark card surfaces */
+[data-theme="dark"] .day-detail-absence-card--denied::after {
+    background: repeating-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.07) 0px,
+        rgba(255, 255, 255, 0.07) 3px,
+        transparent 3px,
+        transparent 9px
+    );
 }
 
 .day-detail-absence-name { max-width: 35%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
@@ -403,7 +416,32 @@
 }
 
 .other-month .day-number {
-    color: #adb5bd;
+    /* Sufficient contrast on light-mode subtle cell background */
+    color: #868e96;
+}
+
+[data-theme="dark"] .other-month .day-number {
+    /* Slightly brighter so the number is legible on the dark subtle background */
+    color: #94a3b8;
+}
+
+/* Absence status badge contrast fixes for dark mode
+   Some badges (e.g. Pending Approval) use Bootstrap utilities like
+   `bg-warning text-dark` which render illegible black text on a dark
+   modal surface. Force a readable color pairing inside the absence
+   cards when in dark theme. */
+[data-theme="dark"] .day-detail-absence-card .badge.bg-warning,
+[data-theme="dark"] .day-detail-absence-card .badge.bg-warning.text-dark {
+    /* Ensure the badge background is the expected warm amber and the
+       text is a dark navy that contrasts well with the amber. */
+    background-color: #f59e0b !important; /* amber-500 */
+    color: #0f172a !important;            /* slate-900 / near-black */
+}
+
+/* Denied state: ensure white text on red in dark mode for clarity */
+[data-theme="dark"] .day-detail-absence-card .badge.bg-danger {
+    background-color: #dc2626 !important; /* red-600 */
+    color: #ffffff !important;
 }
 
 .today {
@@ -573,7 +611,13 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #5c6bc0;
+    /* Readable indigo on both light and dark subtle backgrounds */
+    color: #4051b5;
+}
+
+[data-theme="dark"] .day-modal-template-bar-title {
+    /* Lighter indigo-lavender for contrast on dark subtle background */
+    color: #b0bdf9;
 }
 
 .day-modal-template-select {

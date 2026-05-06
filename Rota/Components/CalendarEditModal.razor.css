@@ -36,3 +36,24 @@
 .modal-backdrop {
     background-color: rgba(0,0,0,0.5);
 }
+
+/* Theme the modal so it follows app variables (prevents bright white in dark mode)
+   and ensure plain-text fields (status) are readable in dark theme. */
+.modal-content {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+}
+
+/* Dark-mode overrides for form-plaintext and inline status text inside this modal. */
+[data-theme="dark"] .modal .form-control-plaintext,
+[data-theme="dark"] .modal .form-label,
+[data-theme="dark"] .modal .form-control,
+[data-theme="dark"] .modal .btn {
+    color: var(--color-text-medium) !important;
+}
+
+[data-theme="dark"] .modal .form-control-plaintext {
+    /* Make status text slightly brighter than muted labels so it stands out */
+    color: var(--color-text-primary) !important;
+}

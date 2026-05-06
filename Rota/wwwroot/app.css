@@ -50,6 +50,12 @@ a, .btn-link {
     color: #006bb7;
 }
 
+[data-theme="dark"] a,
+[data-theme="dark"] .btn-link {
+    /* Lighter blue ensures readable contrast on dark page backgrounds */
+    color: #60a5fa;
+}
+
 .btn-primary {
     color: #fff;
     background-color: #1b6ec2;
