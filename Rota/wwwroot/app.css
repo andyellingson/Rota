@@ -17,6 +17,45 @@
     --color-toprow-border: #cacdd2;
     --color-bg-hover: #e2e5ea;
     --color-bg-active: #dce8fb;
+    /* Accent colors used across UI (buttons, toggles, badges) */
+    --color-accent-primary: #1e88e5;
+    --color-accent-primary-hover: #1669b8;
+    --color-accent-primary-on: #ffffff;
+
+    --color-accent-warning: #f6a623;
+    --color-accent-warning-hover: #d98f14;
+    --color-accent-warning-on: #111827;
+
+    --color-accent-info: #06b6d4;
+    --color-accent-info-hover: #0497a8;
+    --color-accent-info-on: #08203a;
+}
+
+/* Override Bootstrap button colors to follow theme accent variables */
+.btn-primary {
+    background-color: var(--color-accent-primary) !important;
+    border-color: var(--color-accent-primary) !important;
+    color: var(--color-accent-primary-on) !important;
+}
+.btn-primary:hover, .btn-primary:focus {
+    background-color: var(--color-accent-primary-hover) !important;
+    border-color: var(--color-accent-primary-hover) !important;
+    color: var(--color-accent-primary-on) !important;
+}
+
+/* Outline secondary/neutral buttons should use theme text color and subtle borders */
+.btn-outline-secondary {
+    background-color: transparent !important;
+    border-color: rgba(0,0,0,0.08) !important;
+    color: var(--color-text-primary) !important;
+}
+.btn-outline-secondary:hover, .btn-outline-secondary:focus {
+    background-color: color-mix(in srgb, var(--color-text-primary) 6%, transparent) !important;
+}
+
+/* Small utility for primary buttons inside darker themes where 'on' color should be dark */
+.btn-primary.btn-on-dark {
+    color: var(--color-accent-primary-on) !important;
 }
 
 /* ── Extra themes ─────────────────────────────────────────────────────── */
@@ -95,6 +134,17 @@
     --color-toprow-border: #3a3a55;
     --color-bg-hover: #2e2e45;
     --color-bg-active: #1e2d4a;
+    --color-accent-primary: #2563eb;
+    --color-accent-primary-hover: #1e40af;
+    --color-accent-primary-on: #ffffff;
+
+    --color-accent-warning: #f59e0b;
+    --color-accent-warning-hover: #b45309;
+    --color-accent-warning-on: #0f172a;
+
+    --color-accent-info: #06b6d4;
+    --color-accent-info-hover: #0e7490;
+    --color-accent-info-on: #042f3a;
 }
 
 /* ── Base ────────────────────────────────────────────────────────────────── */
