@@ -86,6 +86,11 @@
     background: rgba(220, 53, 69, 0.75);
 }
 
+/* Past items — reduced opacity so they visually recede */
+.item--past {
+    opacity: 0.45;
+}
+
 /* Stack layout on narrow screens */
 @media (max-width: 768px) {
     .absence-item {

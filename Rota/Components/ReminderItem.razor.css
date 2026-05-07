@@ -39,6 +39,11 @@
     box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
+/* Past items — reduced opacity so they visually recede */
+.item--past {
+    opacity: 0.45;
+}
+
 .reminder-title {
     flex: 0 0 auto;
     max-width: 100%;

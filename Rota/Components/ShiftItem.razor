@@ -1,7 +1,7 @@
 @using System.Globalization
 @using Rota.Models
 
-<div class="shift-item mb-1" style="border-left-color: @(Shift.Color ?? "#1890ff");"
+<div class="shift-item mb-1 @(IsUnassignedFuture ? "shift-item--unassigned" : "") @(IsPast ? "item--past" : "")" style="border-left-color: @(Shift.Color ?? "#1890ff");"
      @onclick:stopPropagation="true" @onclick="HandleEdit">
     <div class="shift-header">
         <div class="shift-worker-type" style="color: @(Shift.Color ?? "#1890ff");">@Shift.WorkerType</div>
@@ -11,6 +11,10 @@
     @if (!string.IsNullOrEmpty(AssignedFullName))
     {
         <div class="shift-assigned">@AssignedFullName</div>
+    }
+    else if (IsUnassignedFuture)
+    {
+        <div class="shift-unassigned-label">UNASSIGNED</div>
     }
 </div>
 
@@ -56,6 +60,15 @@
             return string.Empty;
         }
     }
+
+    /// <summary>True when the shift has already ended.</summary>
+    private bool IsPast => Shift.End.ToUniversalTime() < DateTime.UtcNow;
+
+    /// <summary>True when the shift is in the future and has no assigned user, visible only to managers (OnEdit delegate present).</summary>
+    private bool IsUnassignedFuture =>
+        OnEdit.HasDelegate &&
+        string.IsNullOrWhiteSpace(Shift.AssignedToUserId) &&
+        Shift.Start.ToUniversalTime() > DateTime.UtcNow;
 
     private Task HandleEdit()
         => OnEdit.HasDelegate ? OnEdit.InvokeAsync(Shift) : Task.CompletedTask;

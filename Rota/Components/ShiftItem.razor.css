@@ -62,6 +62,30 @@
     margin-top: 0.15rem;
 }
 
+/* Unassigned future shift — subtle red left border pulse to draw manager attention */
+.shift-item--unassigned {
+    border-left-color: #ff4d4f !important;
+    animation: shift-unassigned-pulse 2s ease-in-out infinite;
+}
+
+@keyframes shift-unassigned-pulse {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.25); }
+}
+
+/* Muted italic label shown in place of an assigned name */
+.shift-unassigned-label {
+    font-size: 0.7rem;
+    color: #ff4d4f;
+    font-style: italic;
+    margin-top: 0.1rem;
+}
+
+/* Past items — reduced opacity so they visually recede */
+.item--past {
+    opacity: 0.45;
+}
+
 /* Assigned-to name row — make more prominent */
 .shift-assigned {
     font-size: 0.72rem;

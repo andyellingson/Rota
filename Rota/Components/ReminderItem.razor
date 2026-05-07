@@ -1,6 +1,6 @@
 @using Rota.Models
 
-<div class="reminder-item" @onclick:stopPropagation="true" @onclick="HandleEdit" style="background:@(Reminder.Color ?? "#ffeb3b"); color: #111;">
+<div class="reminder-item @(IsPast ? "item--past" : "")" @onclick:stopPropagation="true" @onclick="HandleEdit" style="background:@(Reminder.Color ?? "#ffeb3b"); color: #111;">
     <div class="reminder-top d-flex w-100">
         <div class="reminder-for flex-grow-1 text-start text-truncate">@(Reminder.ForDisplayName ?? Reminder.ForUsername)</div>
         <div class="reminder-title text-end text-truncate">@Reminder.Title</div>
@@ -16,6 +16,9 @@
 
     [Parameter]
     public EventCallback<Reminder> OnEdit { get; set; }
+
+    /// <summary>True when the reminder time has already passed.</summary>
+    private bool IsPast => Reminder.ReminderDateTime.ToUniversalTime() < DateTime.UtcNow;
 
     private Task HandleEdit()
         => OnEdit.HasDelegate ? OnEdit.InvokeAsync(Reminder) : Task.CompletedTask;

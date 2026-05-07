@@ -1,7 +1,7 @@
 @using Rota.Models
 @using System.Globalization
 
-<div class="absence-item mb-1 @PendingClass"
+<div class="absence-item mb-1 @PendingClass @(IsPast ? "item--past" : "")"
      style="background-color: @(Absence.Color ?? "#fa8c16");"
      @onclick:stopPropagation="true" @onclick="HandleEdit">
     <div class="d-flex w-100">
@@ -57,6 +57,9 @@
             ? "absence-item--denied"
             : "absence-item--pending")
         : string.Empty;
+
+    /// <summary>True when the absence has already ended.</summary>
+    private bool IsPast => Absence.EndDate.ToUniversalTime() < DateTime.UtcNow;
 
     private Task HandleEdit()
         => OnEdit.HasDelegate ? OnEdit.InvokeAsync(Absence) : Task.CompletedTask;

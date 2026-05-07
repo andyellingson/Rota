@@ -236,6 +236,32 @@
     color: var(--color-text-primary);
 }
 
+/* Nord: cool polar-night sidebar — light eceff4 text for readable contrast */
+[data-theme="nord"] .nav-item ::deep .nav-link {
+    color: #d8dee9;
+}
+[data-theme="nord"] .nav-item ::deep a.active {
+    background-color: rgba(136,192,208,0.18); /* frost blue tint */
+    color: #eceff4;
+}
+[data-theme="nord"] .nav-item ::deep .nav-link:hover {
+    background-color: rgba(255,255,255,0.06);
+    color: #eceff4;
+}
+
+/* Forest: deep green sidebar — soft green-tinted light text for readable contrast */
+[data-theme="forest"] .nav-item ::deep .nav-link {
+    color: #b8d9be;
+}
+[data-theme="forest"] .nav-item ::deep a.active {
+    background-color: rgba(76,175,114,0.18); /* moss green tint */
+    color: #d4edda;
+}
+[data-theme="forest"] .nav-item ::deep .nav-link:hover {
+    background-color: rgba(134,188,134,0.08);
+    color: #d4edda;
+}
+
 .nav-scrollable {
     display: none;
 }
