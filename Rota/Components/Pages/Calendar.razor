@@ -171,7 +171,29 @@
             @* Separator *@
             <div class="toolbar-sep" aria-hidden="true"></div>
 
-            @* Group 6: Print action *@
+            @* Group 6: Multi-day select mode toggle *@
+            <div class="toolbar-group toolbar-group--multiselect">
+                <div class="toolbar-label">Select Mode</div>
+                <div class="btn-group" role="group" aria-label="Selection mode">
+                    <button class="btn btn-sm @(selectionMode == SelectionMode.Day ? "btn-primary" : "btn-outline-secondary")"
+                            title="@(selectionMode == SelectionMode.Day ? "Exit day selection mode" : "Click individual days to select them")"
+                            @onclick="@(() => SetSelectionMode(SelectionMode.Day))"
+                            aria-pressed="@(selectionMode == SelectionMode.Day)">
+                        ☑ Days
+                    </button>
+                    <button class="btn btn-sm @(selectionMode == SelectionMode.Week ? "btn-primary" : "btn-outline-secondary")"
+                            title="@(selectionMode == SelectionMode.Week ? "Exit week selection mode" : "Click any day to select its entire week")"
+                            @onclick="@(() => SetSelectionMode(SelectionMode.Week))"
+                            aria-pressed="@(selectionMode == SelectionMode.Week)">
+                        📅 Weeks
+                    </button>
+                </div>
+            </div>
+
+            @* Separator *@
+            <div class="toolbar-sep" aria-hidden="true"></div>
+
+            @* Group 7: Print action *@
             <div class="toolbar-group toolbar-group--print">
                 <button class="btn btn-sm btn-outline-secondary" title="Open the print preview for this schedule" @onclick="OpenPrintModal">
                     🖨️ Print
@@ -203,7 +225,7 @@
                         {
                             var other = day.Month != current.Month;
                             var isToday = day == DateOnly.FromDateTime(DateTime.Today);
-                            <div class="day-cell @(other ? "other-month" : "") @(isToday ? "today" : "")" @onclick="(() => OpenDayModal(day))">
+                            <div class="day-cell @(other ? "other-month" : "") @(isToday ? "today" : "") @(selectedDays.Contains(day) ? "day-selected" : "")" @onclick="(async () => { if (isMultiSelectMode) ToggleDaySelection(day); else await Task.Run(() => OpenDayModal(day)); })">
                                 <div class="day-number">@day.Day</div>
                                 <div class="events events-overlay">
                                     @foreach (var item in GetSortedDayItems(day))
@@ -247,7 +269,7 @@
                     @foreach (var d in Enumerable.Range(0, 7).Select(i => StartOfWeek(current).AddDays(i)))
                     {
                         var isToday = d == DateOnly.FromDateTime(DateTime.Today);
-                        <div class="week-day-card card me-2" @onclick="(() => OpenDayModal(d))">
+                        <div class="week-day-card card me-2 @(selectedDays.Contains(d) ? "day-selected" : "")" @onclick="(async () => { if (isMultiSelectMode) ToggleDaySelection(d); else await Task.Run(() => OpenDayModal(d)); })">
                             <div class="card-body p-2">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
@@ -530,7 +552,77 @@
         </div>
     </div>
 }
-<PrintScheduleModal IsVisible="showPrintModal"
+@* ── Multi-day floating action bar ──────────────────────────────────── *@
+@if (isMultiSelectMode && selectedDays.Count > 0)
+{
+    var totalShifts = GetTotalShiftsInSelectedDays();
+    <div class="multi-day-action-bar">
+        <span class="action-bar-info">
+            @selectedDays.Count day@(selectedDays.Count == 1 ? "" : "s") selected
+        </span>
+        <span class="action-bar-sep" aria-hidden="true"></span>
+        <span class="text-muted">@totalShifts shift@(totalShifts == 1 ? "" : "s")</span>
+        @if (canManageShifts && totalShifts > 0)
+        {
+            <span class="action-bar-sep" aria-hidden="true"></span>
+            <button class="btn btn-sm btn-danger" @onclick="OpenMultiDayDeleteModal"
+                    title="Delete all shifts within the selected days">
+                🗑 Delete Shifts
+            </button>
+        }
+        <span class="action-bar-sep" aria-hidden="true"></span>
+        <button class="btn btn-sm btn-outline-secondary" @onclick="ClearDaySelection"
+                title="Deselect all days">
+            Clear
+        </button>
+    </div>
+}
+
+@* ── Multi-day bulk-delete confirmation modal ─────────────────────── *@
+@if (showMultiDayConfirmModal)
+{
+    var confirmShiftCount = GetTotalShiftsInSelectedDays();
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Shifts</h5>
+                    <button type="button" class="btn-close" @onclick="CloseMultiDayConfirmModal" disabled="@isBulkDeleting" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        This will permanently delete
+                        <strong>@confirmShiftCount shift@(confirmShiftCount == 1 ? "" : "s")</strong>
+                        across
+                        <strong>@selectedDays.Count day@(selectedDays.Count == 1 ? "" : "s")</strong>.
+                        This action cannot be undone.
+                    </p>
+                    @if (!string.IsNullOrEmpty(multiDayActionError))
+                    {
+                        <div class="alert alert-danger py-2 px-3">@multiDayActionError</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseMultiDayConfirmModal" disabled="@isBulkDeleting">Cancel</button>
+                    <button class="btn btn-danger" @onclick="DeleteAllShiftsInSelectedDays" disabled="@isBulkDeleting">
+                        @if (isBulkDeleting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            <span>Deleting…</span>
+                        }
+                        else
+                        {
+                            <span>Delete @confirmShiftCount Shift@(confirmShiftCount == 1 ? "" : "s")</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<PrintScheduleModal
                     OnClose="@(() => showPrintModal = false)"
                     ViewMode="@(view == ViewMode.Month ? PrintScheduleModal.PrintViewMode.Month : PrintScheduleModal.PrintViewMode.Week)"
                     CurrentDate="current"
@@ -636,6 +728,15 @@
 
     // Print modal state
     private bool showPrintModal = false;
+
+    // Multi-day selection state
+    private enum SelectionMode { Off, Day, Week }
+    private SelectionMode selectionMode = SelectionMode.Off;
+    private bool isMultiSelectMode => selectionMode != SelectionMode.Off;
+    private HashSet<DateOnly> selectedDays = new();
+    private bool showMultiDayConfirmModal = false;
+    private bool isBulkDeleting = false;
+    private string? multiDayActionError = null;
 
     // Day detail modal state
     private bool showDayModal = false;
@@ -1059,6 +1160,133 @@
         modalMode = ModalMode.Reminder;
         modalError = null;
         showModal = true;
+    }
+
+    /// <summary>
+    /// Sets the active selection mode. Clicking the already-active mode exits selection;
+    /// switching between modes clears the current selection.
+    /// </summary>
+    private void SetSelectionMode(SelectionMode mode)
+    {
+        if (selectionMode == mode)
+        {
+            // Clicking the active button again exits selection mode
+            selectionMode = SelectionMode.Off;
+            selectedDays.Clear();
+            showMultiDayConfirmModal = false;
+        }
+        else
+        {
+            // Switching modes clears any existing selection
+            selectedDays.Clear();
+            showMultiDayConfirmModal = false;
+            selectionMode = mode;
+        }
+    }
+
+    /// <summary>
+    /// Toggles the selection of a day or the entire week containing it,
+    /// depending on the active selection mode.
+    /// </summary>
+    private void ToggleDaySelection(DateOnly day)
+    {
+        if (selectionMode == SelectionMode.Week)
+        {
+            var weekDays = GetWeekDays(day).ToList();
+            // If every day in the week is already selected, deselect them all; otherwise select all
+            if (weekDays.All(d => selectedDays.Contains(d)))
+                foreach (var d in weekDays) selectedDays.Remove(d);
+            else
+                foreach (var d in weekDays) selectedDays.Add(d);
+        }
+        else
+        {
+            if (!selectedDays.Add(day))
+                selectedDays.Remove(day);
+        }
+    }
+
+    /// <summary>
+    /// Returns the 7 days of the week that contains the given date, respecting the
+    /// current culture's first day of week.
+    /// </summary>
+    private IEnumerable<DateOnly> GetWeekDays(DateOnly day)
+    {
+        var weekStart = StartOfWeek(day);
+        return Enumerable.Range(0, 7).Select(i => weekStart.AddDays(i));
+    }
+
+    /// <summary>
+    /// Deselects all days and closes the multi-day confirm modal.
+    /// </summary>
+    private void ClearDaySelection()
+    {
+        selectedDays.Clear();
+        showMultiDayConfirmModal = false;
+    }
+
+    /// <summary>
+    /// Returns the total number of shifts (after filters) across all selected days.
+    /// </summary>
+    private int GetTotalShiftsInSelectedDays()
+    {
+        return selectedDays.Sum(d => GetShiftsForDay(d).Count);
+    }
+
+    /// <summary>
+    /// Opens the bulk-delete confirmation modal.
+    /// </summary>
+    private void OpenMultiDayDeleteModal()
+    {
+        multiDayActionError = null;
+        showMultiDayConfirmModal = true;
+    }
+
+    /// <summary>
+    /// Closes the bulk-delete confirmation modal without taking action.
+    /// </summary>
+    private void CloseMultiDayConfirmModal()
+    {
+        showMultiDayConfirmModal = false;
+        multiDayActionError = null;
+    }
+
+    /// <summary>
+    /// Deletes all visible shifts across the currently selected days and reloads the calendar.
+    /// </summary>
+    private async Task DeleteAllShiftsInSelectedDays()
+    {
+        isBulkDeleting = true;
+        multiDayActionError = null;
+
+        try
+        {
+            // Collect distinct shift IDs across all selected days respecting active filters
+            var shiftIds = selectedDays
+                .SelectMany(d => GetShiftsForDay(d))
+                .Select(s => s.Id)
+                .Where(id => id is not null)
+                .Distinct()
+                .ToList();
+
+            foreach (var id in shiftIds)
+            {
+                await ShiftService.DeleteShiftAsync(id!, _username);
+            }
+
+            showMultiDayConfirmModal = false;
+            selectedDays.Clear();
+            await LoadReminders();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error bulk-deleting shifts for selected days");
+            multiDayActionError = "An error occurred while deleting shifts. Please try again.";
+        }
+        finally
+        {
+            isBulkDeleting = false;
+        }
     }
 
     /// <summary>

@@ -542,6 +542,77 @@
     .week-day-card { margin-bottom: 0.5rem; }
 }
 
+/* ── Multi-day selection ─────────────────────────────────────────────── */
+
+/* Month view: selected day cell */
+.day-cell.day-selected {
+    background-color: rgba(13, 110, 253, 0.10) !important;
+    border-color: rgba(13, 110, 253, 0.65) !important;
+    border-width: 2px !important;
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.22);
+}
+
+[data-theme="dark"] .day-cell.day-selected {
+    background-color: rgba(37, 99, 235, 0.18) !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.28);
+}
+
+/* Week view: selected day card */
+.week-day-card.day-selected {
+    background-color: rgba(13, 110, 253, 0.10) !important;
+    border-color: rgba(13, 110, 253, 0.65) !important;
+    border-width: 2px !important;
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.22);
+}
+
+[data-theme="dark"] .week-day-card.day-selected {
+    background-color: rgba(37, 99, 235, 0.18) !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.28);
+}
+
+/* Multi-day action bar – floats above the page footer */
+.multi-day-action-bar {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    background: var(--color-bg-card);
+    border: 1.5px solid var(--color-border);
+    border-radius: 999px;
+    padding: 0.55rem 1.25rem;
+    box-shadow: 0 6px 32px rgba(0,0,0,0.22);
+    font-size: 0.88rem;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+}
+
+.multi-day-action-bar .action-bar-info {
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.multi-day-action-bar .action-bar-sep {
+    width: 1px;
+    height: 1.2em;
+    background: var(--color-border);
+    flex-shrink: 0;
+}
+
+/* Active multi-select toolbar button */
+.toolbar-group--multiselect .btn.active-select {
+    background-color: var(--color-accent-primary) !important;
+    border-color: var(--color-accent-primary) !important;
+    color: #fff !important;
+}
+
 /* ── Day detail modal ─────────────────────────────────────────────────── */
 .day-modal-content {
     border: none;
