@@ -476,3 +476,73 @@
     .week-grid { flex-wrap: nowrap; }
     .week-day-card { min-width: 132px; }
 }
+
+/* ── Modal theming ────────────────────────────────────────────────────
+   Bootstrap modals rendered in Manage.razor use hard-coded light
+   colours by default. Override with app theme variables so every
+   modal (rotation, schedule, delete confirm) follows the active theme.  */
+
+.modal-content {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+}
+
+.modal-header {
+    background: var(--color-bg-card);
+    border-bottom-color: var(--color-border);
+    color: var(--color-text-primary);
+}
+
+.modal-footer {
+    background: var(--color-bg-card);
+    border-top-color: var(--color-border);
+}
+
+/* The delete-confirm header keeps its bg-danger styling; don't override it */
+.modal-header.bg-danger {
+    background: #dc3545 !important;
+    border-bottom-color: #b02a37 !important;
+    color: #fff !important;
+}
+
+/* Form controls inside modals */
+.modal .form-control,
+.modal .form-select,
+.modal textarea.form-control {
+    background-color: var(--color-bg-input, var(--color-bg-card));
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+}
+
+.modal .form-control:focus,
+.modal .form-select:focus,
+.modal textarea.form-control:focus {
+    background-color: var(--color-bg-input, var(--color-bg-card));
+    border-color: var(--color-accent-primary, #0d6efd);
+    color: var(--color-text-primary);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.modal .form-label,
+.modal .form-check-label {
+    color: var(--color-text-primary);
+}
+
+/* Dark-mode placeholder text */
+[data-theme="dark"] .modal .form-control::placeholder,
+[data-theme="dark"] .modal textarea.form-control::placeholder {
+    color: var(--color-text-medium, #6c757d);
+    opacity: 1;
+}
+
+/* Checkbox inputs in dark mode */
+[data-theme="dark"] .modal .form-check-input {
+    background-color: var(--color-bg-input, #2a2a2a);
+    border-color: var(--color-border);
+}
+
+/* Muted/secondary text inside modals */
+.modal .text-muted {
+    color: var(--color-text-secondary) !important;
+}

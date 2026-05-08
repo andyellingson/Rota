@@ -203,6 +203,46 @@
         </div>
     </div>
 
+    @* ── Multi-day inline action bar ────────────────────────────────── *@
+    @if (isMultiSelectMode && selectedDays.Count > 0)
+    {
+        var totalShifts = GetTotalShiftsInSelectedDays();
+        var totalAbsences = GetTotalAbsencesInSelectedDays();
+        var totalReminders = GetTotalRemindersInSelectedDays();
+        <div class="multi-day-action-bar">
+            <span class="action-bar-info">
+                @selectedDays.Count day@(selectedDays.Count == 1 ? "" : "s") selected
+            </span>
+            <span class="action-bar-sep" aria-hidden="true"></span>
+            @if (canManageShifts && totalShifts > 0)
+            {
+                <button class="btn btn-sm btn-danger" @onclick="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Shifts))"
+                        title="Delete all shifts within the selected days">
+                    🗑 Delete @totalShifts Shift@(totalShifts == 1 ? "" : "s")
+                </button>
+            }
+            @if (totalAbsences > 0)
+            {
+                <button class="btn btn-sm btn-warning text-dark" @onclick="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Absences))"
+                        title="Delete all absences within the selected days">
+                    🗑 Delete @totalAbsences Absence@(totalAbsences == 1 ? "" : "s")
+                </button>
+            }
+            @if (totalReminders > 0)
+            {
+                <button class="btn btn-sm btn-info text-dark" @onclick="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Reminders))"
+                        title="Delete all reminders within the selected days">
+                    🗑 Delete @totalReminders Reminder@(totalReminders == 1 ? "" : "s")
+                </button>
+            }
+            <span class="action-bar-sep" aria-hidden="true"></span>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearDaySelection"
+                    title="Deselect all days">
+                Clear
+            </button>
+        </div>
+    }
+
     <div class="calendar-card card shadow-sm mt-2 mb-4">
     <div class="card-body">
         @if (view == ViewMode.Month)
@@ -552,48 +592,34 @@
         </div>
     </div>
 }
-@* ── Multi-day floating action bar ──────────────────────────────────── *@
-@if (isMultiSelectMode && selectedDays.Count > 0)
-{
-    var totalShifts = GetTotalShiftsInSelectedDays();
-    <div class="multi-day-action-bar">
-        <span class="action-bar-info">
-            @selectedDays.Count day@(selectedDays.Count == 1 ? "" : "s") selected
-        </span>
-        <span class="action-bar-sep" aria-hidden="true"></span>
-        <span class="text-muted">@totalShifts shift@(totalShifts == 1 ? "" : "s")</span>
-        @if (canManageShifts && totalShifts > 0)
-        {
-            <span class="action-bar-sep" aria-hidden="true"></span>
-            <button class="btn btn-sm btn-danger" @onclick="OpenMultiDayDeleteModal"
-                    title="Delete all shifts within the selected days">
-                🗑 Delete Shifts
-            </button>
-        }
-        <span class="action-bar-sep" aria-hidden="true"></span>
-        <button class="btn btn-sm btn-outline-secondary" @onclick="ClearDaySelection"
-                title="Deselect all days">
-            Clear
-        </button>
-    </div>
-}
 
 @* ── Multi-day bulk-delete confirmation modal ─────────────────────── *@
 @if (showMultiDayConfirmModal)
 {
-    var confirmShiftCount = GetTotalShiftsInSelectedDays();
+    var confirmCount = bulkDeleteType switch
+    {
+        BulkDeleteType.Absences  => GetTotalAbsencesInSelectedDays(),
+        BulkDeleteType.Reminders => GetTotalRemindersInSelectedDays(),
+        _                        => GetTotalShiftsInSelectedDays()
+    };
+    var confirmTypeName = bulkDeleteType switch
+    {
+        BulkDeleteType.Absences  => confirmCount == 1 ? "absence"  : "absences",
+        BulkDeleteType.Reminders => confirmCount == 1 ? "reminder" : "reminders",
+        _                        => confirmCount == 1 ? "shift"    : "shifts"
+    };
     <div class="modal-backdrop fade show"></div>
     <div class="modal fade show d-block" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Delete Shifts</h5>
+                    <h5 class="modal-title">Delete @(System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(confirmTypeName))</h5>
                     <button type="button" class="btn-close" @onclick="CloseMultiDayConfirmModal" disabled="@isBulkDeleting" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <p>
                         This will permanently delete
-                        <strong>@confirmShiftCount shift@(confirmShiftCount == 1 ? "" : "s")</strong>
+                        <strong>@confirmCount @confirmTypeName</strong>
                         across
                         <strong>@selectedDays.Count day@(selectedDays.Count == 1 ? "" : "s")</strong>.
                         This action cannot be undone.
@@ -605,7 +631,7 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" @onclick="CloseMultiDayConfirmModal" disabled="@isBulkDeleting">Cancel</button>
-                    <button class="btn btn-danger" @onclick="DeleteAllShiftsInSelectedDays" disabled="@isBulkDeleting">
+                    <button class="btn btn-danger" @onclick="ExecuteBulkDelete" disabled="@isBulkDeleting">
                         @if (isBulkDeleting)
                         {
                             <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
@@ -613,7 +639,7 @@
                         }
                         else
                         {
-                            <span>Delete @confirmShiftCount Shift@(confirmShiftCount == 1 ? "" : "s")</span>
+                            <span>Delete @confirmCount @confirmTypeName</span>
                         }
                     </button>
                 </div>
@@ -731,12 +757,14 @@
 
     // Multi-day selection state
     private enum SelectionMode { Off, Day, Week }
+    private enum BulkDeleteType { Shifts, Absences, Reminders }
     private SelectionMode selectionMode = SelectionMode.Off;
     private bool isMultiSelectMode => selectionMode != SelectionMode.Off;
     private HashSet<DateOnly> selectedDays = new();
     private bool showMultiDayConfirmModal = false;
     private bool isBulkDeleting = false;
     private string? multiDayActionError = null;
+    private BulkDeleteType bulkDeleteType = BulkDeleteType.Shifts;
 
     // Day detail modal state
     private bool showDayModal = false;
@@ -1234,10 +1262,37 @@
     }
 
     /// <summary>
-    /// Opens the bulk-delete confirmation modal.
+    /// Returns the total number of absences across all selected days.
     /// </summary>
-    private void OpenMultiDayDeleteModal()
+    private int GetTotalAbsencesInSelectedDays()
     {
+        return selectedDays
+            .SelectMany(d => GetAbsencesForDay(d))
+            .Select(a => a.Id)
+            .Where(id => id is not null)
+            .Distinct()
+            .Count();
+    }
+
+    /// <summary>
+    /// Returns the total number of reminders across all selected days.
+    /// </summary>
+    private int GetTotalRemindersInSelectedDays()
+    {
+        return selectedDays
+            .SelectMany(d => GetRemindersForDay(d))
+            .Select(r => r.Id)
+            .Where(id => id is not null)
+            .Distinct()
+            .Count();
+    }
+
+    /// <summary>
+    /// Opens the bulk-delete confirmation modal for the specified item type.
+    /// </summary>
+    private void OpenMultiDayDeleteModal(BulkDeleteType type)
+    {
+        bulkDeleteType = type;
         multiDayActionError = null;
         showMultiDayConfirmModal = true;
     }
@@ -1249,6 +1304,25 @@
     {
         showMultiDayConfirmModal = false;
         multiDayActionError = null;
+    }
+
+    /// <summary>
+    /// Dispatches to the correct bulk-delete method based on the active BulkDeleteType.
+    /// </summary>
+    private async Task ExecuteBulkDelete()
+    {
+        switch (bulkDeleteType)
+        {
+            case BulkDeleteType.Absences:
+                await DeleteAllAbsencesInSelectedDays();
+                break;
+            case BulkDeleteType.Reminders:
+                await DeleteAllRemindersInSelectedDays();
+                break;
+            default:
+                await DeleteAllShiftsInSelectedDays();
+                break;
+        }
     }
 
     /// <summary>
@@ -1282,6 +1356,87 @@
         {
             Logger.LogError(ex, "Error bulk-deleting shifts for selected days");
             multiDayActionError = "An error occurred while deleting shifts. Please try again.";
+        }
+        finally
+        {
+            isBulkDeleting = false;
+        }
+    }
+
+    /// <summary>
+    /// Deletes all absences across the currently selected days and reloads the calendar.
+    /// </summary>
+    private async Task DeleteAllAbsencesInSelectedDays()
+    {
+        isBulkDeleting = true;
+        multiDayActionError = null;
+
+        try
+        {
+            // Collect distinct absence objects so we can pass each one's own Username to the
+            // delete call — the service filters by both id AND username, so using _username
+            // would silently skip absences whose Username was set to a different user (e.g.
+            // employee-submitted absences).
+            var absencesToDelete = selectedDays
+                .SelectMany(d => GetAbsencesForDay(d))
+                .Where(a => a.Id is not null)
+                .GroupBy(a => a.Id)
+                .Select(g => g.First())
+                .ToList();
+
+            foreach (var absence in absencesToDelete)
+            {
+                await AbsenceService.DeleteAbsenceAsync(absence.Id!, absence.Username ?? _username);
+            }
+
+            showMultiDayConfirmModal = false;
+            selectedDays.Clear();
+            await LoadReminders();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error bulk-deleting absences for selected days");
+            multiDayActionError = "An error occurred while deleting absences. Please try again.";
+        }
+        finally
+        {
+            isBulkDeleting = false;
+        }
+    }
+
+    /// <summary>
+    /// Deletes all reminders across the currently selected days and reloads the calendar.
+    /// </summary>
+    private async Task DeleteAllRemindersInSelectedDays()
+    {
+        isBulkDeleting = true;
+        multiDayActionError = null;
+
+        try
+        {
+            // Collect distinct reminder objects so we can pass each one's own Username to the
+            // delete call — the service filters by both id AND username, so using _username
+            // would silently skip reminders whose Username differs from the current user.
+            var remindersToDelete = selectedDays
+                .SelectMany(d => GetRemindersForDay(d))
+                .Where(r => r.Id is not null)
+                .GroupBy(r => r.Id)
+                .Select(g => g.First())
+                .ToList();
+
+            foreach (var reminder in remindersToDelete)
+            {
+                await RemindersService.DeleteReminderAsync(reminder.Id!, reminder.Username ?? _username);
+            }
+
+            showMultiDayConfirmModal = false;
+            selectedDays.Clear();
+            await LoadReminders();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error bulk-deleting reminders for selected days");
+            multiDayActionError = "An error occurred while deleting reminders. Please try again.";
         }
         finally
         {
