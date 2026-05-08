@@ -619,12 +619,16 @@
     border-radius: 14px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.18);
     overflow: hidden;
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
 }
 
 .day-detail-body {
     max-height: 60vh;
     overflow-y: auto;
     overflow-x: hidden;
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
 }
 
 .day-modal-footer {
@@ -667,6 +671,7 @@
     background: var(--color-bg-subtle);
     border-bottom: 1px solid rgba(13,110,253,0.12);
     padding: 0.75rem 1.25rem;
+    color: var(--color-text-primary);
 }
 
 .day-modal-template-bar-label {
@@ -693,10 +698,158 @@
 .day-modal-template-select {
     min-width: 11rem;
     max-width: 14rem;
+    background-color: var(--color-bg-card);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
 }
 
 .day-modal-date-input {
     width: 9rem;
+    background-color: var(--color-bg-card);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
+}
+
+/* ── Day detail modal – reminder cards ──────────────────────────────── */
+.day-detail-reminder-card {
+    border: 1px solid var(--color-border);
+    border-left: 4px solid #ffeb3b;
+    border-radius: 6px;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    background: var(--color-bg-subtle);
+    color: var(--color-text-primary);
+}
+
+.day-detail-reminder-card:hover { opacity: 0.85; }
+
+/* ── Day detail modal – section headers ─────────────────────────────── */
+.day-detail-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
+    color: var(--color-text-medium);
+}
+
+.day-detail-section-title-text {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-medium);
+}
+
+.day-detail-section-count {
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: var(--color-bg-muted);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-medium);
+    border-radius: 10px;
+    padding: 0 0.45rem;
+    line-height: 1.6;
+}
+
+.day-modal-section-icon {
+    font-size: 0.9rem;
+}
+
+/* ── Day detail modal – card sub-elements ───────────────────────────── */
+.day-detail-card-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.day-detail-time-badge {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--color-text-medium);
+    background: var(--color-bg-muted);
+    border-radius: 4px;
+    padding: 0.05rem 0.4rem;
+    white-space: nowrap;
+}
+
+.day-detail-duration-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-medium);
+}
+
+.day-detail-edit-hint {
+    font-size: 0.72rem;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+.day-detail-worker-badge {
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 0.1rem 0.5rem;
+}
+
+.day-detail-reminder-title-text {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.day-detail-absence-title-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 0.05rem 0.45rem;
+}
+
+.day-detail-assigned {
+    font-size: 0.78rem;
+    color: var(--color-text-medium);
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.day-detail-assigned-icon {
+    font-size: 0.8rem;
+}
+
+.day-detail-item-notes {
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+    margin-top: 0.3rem;
+    font-style: italic;
+}
+
+/* ── Day detail modal – empty state ─────────────────────────────────── */
+.day-detail-empty {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--color-text-secondary);
+}
+
+.day-detail-empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.5;
+}
+
+.day-detail-empty-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-medium);
+    margin-bottom: 0.3rem;
+}
+
+.day-detail-empty-text {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
 }
 
 .list-group-item {

@@ -437,6 +437,57 @@
                     }
                 }
 
+                @* ── Auto Populate Shifts bar (managers only) ─────────────── *@
+                @if (canManageShifts)
+                {
+                    <div class="day-modal-template-bar">
+                        <div class="day-modal-template-bar-label">
+                            <span class="day-modal-section-icon day-modal-section-icon--shift">🤖</span>
+                            <span class="day-modal-template-bar-title">Auto Populate Shifts</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+                            <div class="d-flex align-items-center gap-1">
+                                <input type="date" class="form-control form-control-sm day-modal-date-input"
+                                       @bind="autoPopulateRangeStart" @bind:format="yyyy-MM-dd" />
+                                <span class="text-muted small px-1">→</span>
+                                <input type="date" class="form-control form-control-sm day-modal-date-input"
+                                       @bind="autoPopulateRangeEnd" @bind:format="yyyy-MM-dd" />
+                            </div>
+                            <button class="btn btn-sm btn-success" @onclick="AutoPopulateShifts"
+                                    disabled="@autoPopulateIsRunning"
+                                    title="Automatically assign eligible employees to unassigned shifts in the date range">
+                                @if (autoPopulateIsRunning)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                    <span>Populating…</span>
+                                }
+                                else
+                                {
+                                    <span>Auto Populate</span>
+                                }
+                            </button>
+                        </div>
+                        @if (!string.IsNullOrEmpty(autoPopulateError))
+                        {
+                            <div class="alert alert-danger alert-sm mb-0 mt-2 py-1 px-2">
+                                <small>@autoPopulateError</small>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(autoPopulateWarning))
+                        {
+                            <div class="alert alert-warning alert-sm mb-0 mt-2 py-1 px-2">
+                                <small>@autoPopulateWarning</small>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(autoPopulateSuccess))
+                        {
+                            <div class="alert alert-success alert-sm mb-0 mt-2 py-1 px-2">
+                                <small>@autoPopulateSuccess</small>
+                            </div>
+                        }
+                    </div>
+                }
+
                 @* ── Modal body ────────────────────────────────────────────── *@
                 <div class="modal-body day-detail-body">
 
@@ -773,6 +824,14 @@
     private string? dayModalWorkWeekError;
     private bool dayModalIsApplying = false;
 
+    // Auto-populate shifts state
+    private DateOnly autoPopulateRangeStart;
+    private DateOnly autoPopulateRangeEnd;
+    private string? autoPopulateError;
+    private string? autoPopulateWarning;
+    private string? autoPopulateSuccess;
+    private bool autoPopulateIsRunning = false;
+
     // Shift fields for add/edit
     private Shift? editingShift { get => modalState.EditingShift; set => modalState.EditingShift = value; }
     private string editShiftId { get => modalState.EditShiftId; set => modalState.EditShiftId = value; }
@@ -1059,6 +1118,243 @@
         {
             dayModalIsApplying = false;
         }
+    }
+
+    /// <summary>
+    /// Automatically assigns eligible employees to unassigned shifts in the given date range.
+    /// Matching is based on the shift's WorkerType against each employee's Occupation.
+    /// Employees are skipped for a given shift if adding it would exceed their MaxHours for that week.
+    /// A zero MaxHours value means no limit. Employees are distributed in round-robin order
+    /// per worker type to balance workload.
+    /// </summary>
+    private async Task AutoPopulateShifts()
+    {
+        autoPopulateError = null;
+        autoPopulateWarning = null;
+        autoPopulateSuccess = null;
+
+        if (autoPopulateRangeEnd < autoPopulateRangeStart)
+        {
+            autoPopulateError = "End date must be on or after the start date.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(_managerCode))
+        {
+            autoPopulateError = "Your account does not have a manager code. Please contact support.";
+            return;
+        }
+
+        try
+        {
+            autoPopulateIsRunning = true;
+
+            // Refresh linked users from the database so we have the latest MaxHours values.
+            // This guards against stale in-memory data when the manager updated an employee's
+            // MaxHours on the Manage page after this Calendar page was first loaded.
+            if (!string.IsNullOrEmpty(_managerCode))
+            {
+                linkedUsers = await UserService.GetLinkedUsersForManagerAsync(_managerCode);
+            }
+
+            // Load unassigned shifts for the exact requested range (padded for UTC boundaries)
+            var queryStart = autoPopulateRangeStart.AddDays(-1);
+            var queryEnd = autoPopulateRangeEnd.AddDays(1);
+            var rangeShifts = await ShiftService.GetShiftsAsync(_username, _userId, _managerCode, queryStart, queryEnd);
+
+            // Filter to only unassigned shifts within the exact requested range
+            var unassigned = rangeShifts
+                .Where(s => string.IsNullOrEmpty(s.AssignedToUserId))
+                .Where(s =>
+                {
+                    var shiftDay = DateOnly.FromDateTime(s.Start.ToLocalTime());
+                    return shiftDay >= autoPopulateRangeStart && shiftDay <= autoPopulateRangeEnd;
+                })
+                .OrderBy(s => s.Start)
+                .ToList();
+
+            if (unassigned.Count == 0)
+            {
+                autoPopulateSuccess = "No unassigned shifts found in the selected date range.";
+                return;
+            }
+
+            // To accurately enforce the weekly hour cap we must count ALL assigned shifts
+            // that fall within any calendar week overlapping the auto-populate range — not just
+            // shifts inside the range itself. Weeks run Sunday–Saturday, so expand the query
+            // to cover the full Sun–Sat span of every week that touches the range.
+            var firstWeekSunday = autoPopulateRangeStart.AddDays(-(int)autoPopulateRangeStart.DayOfWeek);
+            var lastWeekSaturday = autoPopulateRangeEnd.AddDays((6 - (int)autoPopulateRangeEnd.DayOfWeek + 7) % 7);
+            var hoursQueryStart = firstWeekSunday.AddDays(-1);
+            var hoursQueryEnd = lastWeekSaturday.AddDays(1);
+            var allWeekShifts = await ShiftService.GetShiftsAsync(_username, _userId, _managerCode, hoursQueryStart, hoursQueryEnd);
+
+            // Build a lookup of eligible employees by occupation (case-insensitive).
+            // Only consider employees linked to this manager.
+            var eligibleByOccupation = linkedUsers
+                .Where(u => u.Id != _userId) // exclude the manager themselves
+                .GroupBy(u => string.IsNullOrWhiteSpace(u.Occupation) ? "General" : u.Occupation, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+            // Pre-populate weekly hours from ALL assigned shifts across the full overlapping weeks
+            // so that hours worked before the auto-populate range (but in the same week) are counted.
+            var weeklyHours = new Dictionary<string, Dictionary<string, double>>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var shift in allWeekShifts.Where(s => !string.IsNullOrEmpty(s.AssignedToUserId)))
+            {
+                var weekKey = GetIsoWeekKey(shift.Start.ToLocalTime());
+                if (!weeklyHours.TryGetValue(shift.AssignedToUserId!, out var empWeeks))
+                {
+                    empWeeks = new Dictionary<string, double>();
+                    weeklyHours[shift.AssignedToUserId!] = empWeeks;
+                }
+                empWeeks.TryGetValue(weekKey, out var existing);
+                empWeeks[weekKey] = existing + (shift.End - shift.Start).TotalHours;
+            }
+
+            // Round-robin index per occupation so workload is spread evenly
+            var roundRobinIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+            // Track per-employee assignments made in this run only (count + hours)
+            // Kept separate from weeklyHours so the display is not polluted by historical data.
+            var assignedThisRun = new Dictionary<string, (int Count, double Hours)>(StringComparer.OrdinalIgnoreCase);
+            var uncappedEmployeeIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            int assignedCount = 0;
+
+            foreach (var shift in unassigned)
+            {
+                var workerType = string.IsNullOrWhiteSpace(shift.WorkerType) ? "General" : shift.WorkerType;
+
+                if (!eligibleByOccupation.TryGetValue(workerType, out var candidates) || candidates.Count == 0)
+                {
+                    // No employees match this worker type – skip
+                    continue;
+                }
+
+                var shiftHours = (shift.End - shift.Start).TotalHours;
+                var weekKey = GetIsoWeekKey(shift.Start.ToLocalTime());
+
+                // Pick the next candidate in round-robin order that has capacity
+                roundRobinIndex.TryGetValue(workerType, out var startIndex);
+                string? chosenId = null;
+
+                for (int attempt = 0; attempt < candidates.Count; attempt++)
+                {
+                    var candidateIndex = (startIndex + attempt) % candidates.Count;
+                    var candidate = candidates[candidateIndex];
+
+                    if (candidate.Id is null) continue;
+
+                    // Check weekly hour cap
+                    if (candidate.MaxHours > 0)
+                    {
+                        weeklyHours.TryGetValue(candidate.Id, out var empWeeks);
+                        double hoursUsed = 0;
+                        empWeeks?.TryGetValue(weekKey, out hoursUsed);
+                        if ((hoursUsed + shiftHours) > candidate.MaxHours)
+                            continue; // Would exceed cap – skip this candidate
+                    }
+
+                    chosenId = candidate.Id;
+                    // Flag employees with no hour cap so we can warn the manager
+                    if (candidate.MaxHours <= 0)
+                        uncappedEmployeeIds.Add(candidate.Id);
+                    // Advance round-robin past this candidate for the next shift of the same type
+                    roundRobinIndex[workerType] = (candidateIndex + 1) % candidates.Count;
+                    break;
+                }
+
+                if (chosenId is null) continue;
+
+                // Assign the shift
+                await ShiftService.UpdateShiftAsync(
+                    shift.Id!,
+                    _username,
+                    shift.Start,
+                    shift.End,
+                    shift.Title,
+                    shift.Notes,
+                    shift.WorkerType,
+                    shift.Color,
+                    chosenId);
+
+                // Update the in-memory weekly hours tracker so subsequent shifts in the same
+                // loop iteration reflect this assignment
+                if (!weeklyHours.TryGetValue(chosenId, out var chosenWeeks))
+                {
+                    chosenWeeks = new Dictionary<string, double>();
+                    weeklyHours[chosenId] = chosenWeeks;
+                }
+                chosenWeeks.TryGetValue(weekKey, out var currentHours);
+                chosenWeeks[weekKey] = currentHours + shiftHours;
+
+                // Track per-employee newly assigned count and hours for the success message
+                assignedThisRun.TryGetValue(chosenId, out var prev);
+                assignedThisRun[chosenId] = (prev.Count + 1, prev.Hours + shiftHours);
+
+                assignedCount++;
+            }
+
+            // Reload calendar so newly assigned shifts appear immediately
+            await LoadReminders();
+
+            if (assignedCount == 0)
+            {
+                autoPopulateSuccess = "No shifts could be assigned. Check that employees with matching occupations exist and have sufficient weekly hours remaining.";
+            }
+            else
+            {
+                // Build a per-employee breakdown using only hours assigned in this run
+                var breakdown = assignedThisRun
+                    .Select(kvp =>
+                    {
+                        var emp = linkedUsers.FirstOrDefault(u => u.Id == kvp.Key);
+                        var name = emp?.DisplayName ?? emp?.Username ?? kvp.Key;
+                        return $"{name}: {kvp.Value.Count} shift{(kvp.Value.Count == 1 ? "" : "s")} ({kvp.Value.Hours:0.#}h assigned)";
+                    })
+                    .ToList();
+
+                autoPopulateSuccess = $"Successfully assigned {assignedCount} shift{(assignedCount == 1 ? "" : "s")}. " +
+                    string.Join(", ", breakdown);
+
+                // Warn if any assigned employee has no hour cap (MaxHours = 0)
+                if (uncappedEmployeeIds.Count > 0)
+                {
+                    var uncappedNames = uncappedEmployeeIds
+                        .Select(id => linkedUsers.FirstOrDefault(u => u.Id == id))
+                        .Where(u => u is not null)
+                        .Select(u => u!.DisplayName ?? u.Username)
+                        .ToList();
+                    autoPopulateWarning = $"⚠️ The following employee(s) have no weekly hour limit set (Max Hours = 0) and were assigned shifts without a cap: {string.Join(", ", uncappedNames)}. " +
+                        "Set their Max Hours in the Manage page to enforce a weekly limit.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during auto-populate shifts for range {Start}–{End}", autoPopulateRangeStart, autoPopulateRangeEnd);
+            autoPopulateError = "An error occurred while auto-populating shifts. Please try again.";
+        }
+        finally
+        {
+            autoPopulateIsRunning = false;
+        }
+    }
+
+    /// <summary>
+    /// Returns a string key identifying the culture-week containing the given local date/time.
+    /// The key is the date of the week's first day (per <see cref="CultureInfo.CurrentCulture"/>)
+    /// in "yyyy-MM-dd" format, matching how the calendar itself renders weekly boundaries.
+    /// Using the culture's FirstDayOfWeek avoids a mismatch where the calendar shows a
+    /// Mon–Sun week but the hour cap splits it across two Sun–Sat windows.
+    /// </summary>
+    private static string GetIsoWeekKey(DateTime localDateTime)
+    {
+        var fdow = (int)CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek;
+        var diff = ((int)localDateTime.DayOfWeek - fdow + 7) % 7;
+        var weekStart = localDateTime.AddDays(-diff);
+        return weekStart.ToString("yyyy-MM-dd");
     }
 
     /// <summary>
@@ -1458,6 +1754,12 @@
         workWeekRangeEnd = date.AddDays(6);
         dayModalSelectedWorkWeekId = null;
         dayModalWorkWeekError = null;
+        // Default auto-populate range to the same week span
+        autoPopulateRangeStart = date;
+        autoPopulateRangeEnd = date.AddDays(6);
+        autoPopulateError = null;
+        autoPopulateWarning = null;
+        autoPopulateSuccess = null;
         showDayModal = true;
     }
 
