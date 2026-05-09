@@ -790,6 +790,13 @@
     // Controls whether the employee filter dropdown is open
     private bool showEmployeeDropdown = false;
 
+    // Pre-bucketed day lookups built after each data load to avoid O(n × 42) full-list scans per render.
+    private Dictionary<DateOnly, List<Shift>> _shiftsByDay = new();
+    private Dictionary<DateOnly, List<Absence>> _absencesByDay = new();
+    private Dictionary<DateOnly, List<Reminder>> _remindersByDay = new();
+    // O(1) user-id lookup rebuilt whenever employees or linkedUsers change.
+    private Dictionary<string, User> _userById = new();
+
     // Modal state
     private readonly CalendarEditModalState modalState = new();
     private bool showModal { get => modalState.ShowModal; set => modalState.ShowModal = value; }
@@ -944,6 +951,7 @@
                     .ToList();
             }
 
+            RebuildUserCache();
             newReminderForUsername = _username;
             newAbsenceForUsername = _userId;
 
@@ -1396,6 +1404,7 @@
             var queryEnd = end.AddDays(1);
 
             reminders = await RemindersService.GetCalendarRemindersAsync(_managerCode, _userId, queryStart, queryEnd);
+            RebuildReminderDayBucket();
             await LoadShifts(queryStart, queryEnd);
             await LoadAbsences(queryStart, queryEnd);
         }
@@ -1418,28 +1427,19 @@
     /// </summary>
     private List<Reminder> GetRemindersForDay(DateOnly day)
     {
-        if (!showReminders)
-        {
+        if (!showReminders) return new List<Reminder>();
+
+        // Use pre-bucketed lookup — O(k) where k is reminders on this day, not O(n) over all reminders.
+        if (!_remindersByDay.TryGetValue(day, out var dayReminders) || dayReminders.Count == 0)
             return new List<Reminder>();
-        }
 
-        var startLocal = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local);
-        var endLocal = day.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Local);
+        // Filter by schedule when one is selected; return the bucket directly when no filter applies.
+        if (string.IsNullOrEmpty(selectedScheduleId))
+            return dayReminders;
 
-        var startUtc = startLocal.ToUniversalTime();
-        var endUtc = endLocal.ToUniversalTime();
-
-        var result = reminders
-            .Where(r => r.ReminderDateTime >= startUtc && r.ReminderDateTime < endUtc)
-            .Where(r => string.IsNullOrEmpty(selectedScheduleId) || r.ScheduleId == selectedScheduleId)
+        return dayReminders
+            .Where(r => r.ScheduleId == selectedScheduleId)
             .ToList();
-
-        if (result.Any())
-        {
-            Logger.LogInformation("Found {Count} reminder(s) for {Day}", result.Count, day);
-        }
-
-        return result;
     }
 
     /// <summary>
@@ -1829,15 +1829,13 @@
     /// </summary>
     private List<Shift> GetShiftsForDay(DateOnly day)
     {
-        if (!showShifts)
-        {
-            return new List<Shift>();
-        }
+        if (!showShifts) return new List<Shift>();
 
-        var startUtc = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
-        var endUtc = day.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
-        return shifts
-            .Where(s => s.Start < endUtc && s.End > startUtc)
+        // Use pre-bucketed lookup — O(k) where k is shifts on this day, not O(n) over all shifts.
+        if (!_shiftsByDay.TryGetValue(day, out var dayShifts) || dayShifts.Count == 0)
+            return new List<Shift>();
+
+        return dayShifts
             .Where(s => string.IsNullOrEmpty(selectedScheduleId) || s.ScheduleId == selectedScheduleId)
             .Where(s =>
             {
@@ -1858,18 +1856,12 @@
 
     private List<Absence> GetAbsencesForDay(DateOnly day)
     {
-        if (!showAbsences)
-        {
-            return new List<Absence>();
-        }
+        if (!showAbsences) return new List<Absence>();
 
-        var startUtc = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
-        var endUtc = day.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
+        // Use pre-bucketed lookup — O(k) where k is absences on this day, not O(n) over all absences.
         // Absences are person-level records and are not filtered by schedule;
         // every absence in the date range is shown regardless of which schedule is selected.
-        return absences
-            .Where(a => a.StartDate < endUtc && a.EndDate > startUtc)
-            .ToList();
+        return _absencesByDay.TryGetValue(day, out var dayAbsences) ? dayAbsences : new List<Absence>();
     }
 
     private void ToggleWorkerTypeDropdown()
@@ -1974,6 +1966,7 @@
         try
         {
             absences = await AbsenceService.GetAbsencesAsync(_managerCode, _userId, queryStart, queryEnd);
+            RebuildAbsenceDayBucket();
         }
         catch (Exception ex)
         {
@@ -1985,31 +1978,30 @@
     private string GetEmployeeDisplayNameById(string? userId)
     {
         if (string.IsNullOrEmpty(userId)) return string.Empty;
-        // Prefer explicit employee list (managers have this populated), but fall back to linked users
-        var emp = employees.FirstOrDefault(e => e.Id == userId)
-                  ?? linkedUsers.FirstOrDefault(u => u.Id == userId);
-        return emp?.DisplayName ?? emp?.Username ?? userId;
+        // O(1) lookup via pre-built dictionary instead of sequential list scan.
+        if (_userById.TryGetValue(userId, out var emp))
+            return emp.DisplayName ?? emp.Username ?? userId;
+        return userId;
     }
 
     private string GetEmployeeFirstNameById(string? userId)
     {
         if (string.IsNullOrEmpty(userId)) return string.Empty;
-        // Try to find by id first, then by username as some records may store the username
-        var emp = employees.FirstOrDefault(e => e.Id == userId)
-                  ?? linkedUsers.FirstOrDefault(u => u.Id == userId)
-                  ?? employees.FirstOrDefault(e => e.Username == userId)
-                  ?? linkedUsers.FirstOrDefault(u => u.Username == userId);
-        return emp?.FirstName ?? string.Empty;
+        // O(1) lookup via pre-built dictionary; fall back to username scan for legacy records.
+        if (_userById.TryGetValue(userId, out var emp)) return emp.FirstName ?? string.Empty;
+        var fallback = employees.FirstOrDefault(e => e.Username == userId)
+                       ?? linkedUsers.FirstOrDefault(u => u.Username == userId);
+        return fallback?.FirstName ?? string.Empty;
     }
 
     private string GetEmployeeLastNameById(string? userId)
     {
         if (string.IsNullOrEmpty(userId)) return string.Empty;
-        var emp = employees.FirstOrDefault(e => e.Id == userId)
-                  ?? linkedUsers.FirstOrDefault(u => u.Id == userId)
-                  ?? employees.FirstOrDefault(e => e.Username == userId)
-                  ?? linkedUsers.FirstOrDefault(u => u.Username == userId);
-        return emp?.LastName ?? string.Empty;
+        // O(1) lookup via pre-built dictionary; fall back to username scan for legacy records.
+        if (_userById.TryGetValue(userId, out var emp)) return emp.LastName ?? string.Empty;
+        var fallback = employees.FirstOrDefault(e => e.Username == userId)
+                       ?? linkedUsers.FirstOrDefault(u => u.Username == userId);
+        return fallback?.LastName ?? string.Empty;
     }
 
     private User? GetLinkedUser(string? username)
@@ -2040,12 +2032,16 @@
 
     private List<DayItem> GetSortedDayItems(DateOnly day)
     {
-        var items = new List<DayItem>();
+        var dayShifts = GetShiftsForDay(day);
+        var dayAbsences = GetAbsencesForDay(day);
+        var dayReminders = GetRemindersForDay(day);
+        // Pre-size to avoid mid-loop re-allocations.
+        var items = new List<DayItem>(dayShifts.Count + dayAbsences.Count + dayReminders.Count);
 
-        foreach (var s in GetShiftsForDay(day))
+        foreach (var s in dayShifts)
             items.Add(new DayItem(s.Start, Shift: s));
 
-        foreach (var a in GetAbsencesForDay(day))
+        foreach (var a in dayAbsences)
         {
             var sortKey = a.StartDate;
             if (a.DayCount == 1 && !string.IsNullOrWhiteSpace(a.StartTime) &&
@@ -2056,7 +2052,7 @@
             items.Add(new DayItem(sortKey, Absence: a));
         }
 
-        foreach (var r in GetRemindersForDay(day))
+        foreach (var r in dayReminders)
             items.Add(new DayItem(r.ReminderDateTime, Reminder: r));
 
         return [.. items.OrderBy(i => i.SortKey)];
@@ -2170,6 +2166,7 @@
                     newEmpMap[empKey] = true;
             }
             employeeVisibility = newEmpMap;
+            RebuildShiftDayBucket();
         }
         catch (Exception ex)
         {
@@ -2740,6 +2737,80 @@
             Logger.LogError(ex, "Error building month matrix for {Date}", forDate);
         }
         return result;
+    }
+
+    /// <summary>
+    /// Buckets loaded shifts by every local calendar day they overlap so that
+    /// <see cref="GetShiftsForDay"/> is O(k) instead of O(n × 42 days).
+    /// </summary>
+    private void RebuildShiftDayBucket()
+    {
+        var newMap = new Dictionary<DateOnly, List<Shift>>();
+        foreach (var s in shifts)
+        {
+            var startDay = DateOnly.FromDateTime(s.Start.ToLocalTime());
+            var endDay = DateOnly.FromDateTime(s.End.AddTicks(-1).ToLocalTime());
+            for (var d = startDay; d <= endDay; d = d.AddDays(1))
+            {
+                if (!newMap.TryGetValue(d, out var list))
+                    newMap[d] = list = new List<Shift>();
+                list.Add(s);
+            }
+        }
+        _shiftsByDay = newMap;
+    }
+
+    /// <summary>
+    /// Buckets loaded absences by every local calendar day they overlap so that
+    /// <see cref="GetAbsencesForDay"/> is O(k) instead of O(n × 42 days).
+    /// </summary>
+    private void RebuildAbsenceDayBucket()
+    {
+        var newMap = new Dictionary<DateOnly, List<Absence>>();
+        foreach (var a in absences)
+        {
+            var startDay = DateOnly.FromDateTime(a.StartDate.ToLocalTime());
+            var endDay = DateOnly.FromDateTime(a.EndDate.AddTicks(-1).ToLocalTime());
+            for (var d = startDay; d <= endDay; d = d.AddDays(1))
+            {
+                if (!newMap.TryGetValue(d, out var list))
+                    newMap[d] = list = new List<Absence>();
+                list.Add(a);
+            }
+        }
+        _absencesByDay = newMap;
+    }
+
+    /// <summary>
+    /// Buckets loaded reminders by their local calendar day so that
+    /// <see cref="GetRemindersForDay"/> is O(1) instead of O(n × 42 days).
+    /// </summary>
+    private void RebuildReminderDayBucket()
+    {
+        var newMap = new Dictionary<DateOnly, List<Reminder>>();
+        foreach (var r in reminders)
+        {
+            var day = DateOnly.FromDateTime(r.ReminderDateTime.ToLocalTime());
+            if (!newMap.TryGetValue(day, out var list))
+                newMap[day] = list = new List<Reminder>();
+            list.Add(r);
+        }
+        _remindersByDay = newMap;
+    }
+
+    /// <summary>
+    /// Builds an O(1) user-id dictionary from the combined employees and linkedUsers lists.
+    /// Must be called whenever either list changes.
+    /// </summary>
+    private void RebuildUserCache()
+    {
+        var newMap = new Dictionary<string, User>(StringComparer.OrdinalIgnoreCase);
+        foreach (var u in linkedUsers)
+            if (u.Id is not null) newMap.TryAdd(u.Id, u);
+        // employees takes priority (managers have the full profile); TryAdd skips duplicates.
+        foreach (var u in employees)
+            if (u.Id is not null) newMap.TryAdd(u.Id, u);
+        _userById = newMap;
     }
 
     }

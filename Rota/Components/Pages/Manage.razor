@@ -181,15 +181,11 @@
                                     <div class="events">
                                         @foreach (var s in newRotationShifts.Where(s => s.WorkDay == dow).OrderBy(s => s.Start))
                                         {
-                                            <div class="shift-item mb-1"
-                                                 style="border-left-color:@(s.Color ?? "#1890ff"); background:@(s.Color ?? "#1890ff")18;"
-                                                 @onclick:stopPropagation="true" @onclick="(() => EditRotationShift(s))">
-                                                <div class="shift-worker-type" style="color:@(s.Color ?? "#1890ff");">
-                                                    @* Match the calendar display format: "Title - WorkerType", or just WorkerType when no title is set *@
-                                                    @(string.IsNullOrWhiteSpace(s.Title) ? s.WorkerType.ToString() : $"{s.Title} - {s.WorkerType}")
-                                                </div>
-                                                <div class="shift-time">@(TimeOnly.FromDateTime(s.Start).ToString("HH:mm")) – @(TimeOnly.FromDateTime(s.End).ToString("HH:mm"))</div>
-                                            </div>
+                                            <ShiftItem Shift="s"
+                                                       AssignedToDisplayName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.DisplayName ?? employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.Username ?? string.Empty)"
+                                                       AssignedToFirstName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.FirstName ?? string.Empty)"
+                                                       AssignedToLastName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.LastName ?? string.Empty)"
+                                                       OnEdit="@(EventCallback.Factory.Create<Shift>(this, EditRotationShift))" />
                                         }
                                     </div>
                                 </div>

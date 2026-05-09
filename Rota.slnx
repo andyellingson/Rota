@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="BenchmarkSuite1/BenchmarkSuite1.csproj" />
   <Project Path="Rota.Tests/Rota.Tests.csproj" />
   <Project Path="Rota/Rota.csproj" />
 </Solution>
