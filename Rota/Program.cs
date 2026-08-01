@@ -1,10 +1,8 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using Rota.Components;
 using Rota.Endpoints;
 using Rota.Services;
-using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 

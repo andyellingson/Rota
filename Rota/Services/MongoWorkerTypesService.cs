@@ -5,15 +5,26 @@ using Rota.Models;
 
 namespace Rota.Services
 {
+    /// <summary>
+    /// MongoDB-backed implementation of <see cref="IWorkerTypesService"/>.
+    /// </summary>
     public class MongoWorkerTypesService : IWorkerTypesService
     {
         private readonly IMongoCollection<WorkerType> _workerTypes;
         private readonly ILogger<MongoWorkerTypesService> _logger;
 
+        /// <summary>
+        /// Creates the service using configured MongoDB options.
+        /// </summary>
         public MongoWorkerTypesService(IOptions<MongoDbOptions> options, ILogger<MongoWorkerTypesService> logger)
         {
             _logger = logger;
-            var opts = options.Value;
+            var opts = options?.Value ?? throw new ArgumentNullException(nameof(options));
+            if (string.IsNullOrWhiteSpace(opts.ConnectionString))
+            {
+                throw new InvalidOperationException("MongoDb:ConnectionString is required.");
+            }
+
             var client = new MongoClient(opts.ConnectionString);
             var db = client.GetDatabase(opts.DatabaseName);
             _workerTypes = db.GetCollection<WorkerType>(opts.WorkerTypesCollectionName);

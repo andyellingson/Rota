@@ -5,20 +5,32 @@ using Rota.Models;
 
 namespace Rota.Services
 {
+    /// <summary>
+    /// MongoDB-backed implementation of <see cref="ISchedulesService"/>.
+    /// </summary>
     public class MongoSchedulesService : ISchedulesService
     {
         private readonly IMongoCollection<Schedule> _schedules;
         private readonly ILogger<MongoSchedulesService> _logger;
 
+        /// <summary>
+        /// Creates the schedules service using configured MongoDB options.
+        /// </summary>
         public MongoSchedulesService(IOptions<MongoDbOptions> options, ILogger<MongoSchedulesService> logger)
         {
             _logger = logger;
-            var opts = options.Value;
+            var opts = options?.Value ?? throw new ArgumentNullException(nameof(options));
+            if (string.IsNullOrWhiteSpace(opts.ConnectionString))
+            {
+                throw new InvalidOperationException("MongoDb:ConnectionString is required.");
+            }
+
             var client = new MongoClient(opts.ConnectionString);
             var db = client.GetDatabase(opts.DatabaseName);
             _schedules = db.GetCollection<Schedule>("schedules");
         }
 
+        /// <inheritdoc />
         public async Task<Rotation> AddRotationAsync(string scheduleId, string managerId, Rotation rotation)
         {
             try
@@ -48,6 +60,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async Task<bool> DeleteRotationAsync(string scheduleId, string managerId, string rotationId)
         {
             try
@@ -68,6 +81,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async Task<List<Schedule>> GetSchedulesForManagerAsync(string managerId)
         {
             try
@@ -84,6 +98,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async Task<Schedule?> GetScheduleByIdAsync(string scheduleId, string managerId)
         {
             try
@@ -101,6 +116,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async Task<Schedule> CreateScheduleAsync(Schedule schedule)
         {
             try
@@ -145,6 +161,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async Task<Schedule?> UpdateScheduleAsync(string scheduleId, string managerId, string name, string? description, bool isDefault)
         {
             try
@@ -196,6 +213,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async Task<bool> DeleteScheduleAsync(string scheduleId, string managerId)
         {
             try
@@ -239,6 +257,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async Task<Schedule> GetOrCreateDefaultScheduleAsync(string managerId, string managerUsername, string? managerCode)
         {
             try
@@ -284,6 +303,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async Task<List<Schedule>> GetSchedulesByIdsAsync(IEnumerable<string> scheduleIds)
         {
             try
@@ -300,6 +320,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async Task<bool> SetDefaultScheduleAsync(string scheduleId, string managerId)
         {
             try

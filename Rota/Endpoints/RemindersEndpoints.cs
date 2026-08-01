@@ -1,7 +1,4 @@
-using System.Security.Claims;
 using System.Globalization;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.Extensions.Logging;
 using Rota.DTOs;
 using Rota.Models;
 using Rota.Services;
@@ -64,8 +61,14 @@ namespace Rota.Endpoints
                         queryManagerCode = caller?.ManagerCode;
                     }
 
-                    var startDate = string.IsNullOrEmpty(start) ? DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)) : DateOnly.Parse(start);
-                    var endDate = string.IsNullOrEmpty(end) ? DateOnly.FromDateTime(DateTime.Today.AddMonths(1)) : DateOnly.Parse(end);
+                    var startDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(-1));
+                    var endDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(1));
+
+                    if (!string.IsNullOrWhiteSpace(start) && !DateOnly.TryParse(start, out startDate))
+                        return Results.Json(new { ok = false, message = "Invalid start date", code = 400 }, statusCode: 400);
+
+                    if (!string.IsNullOrWhiteSpace(end) && !DateOnly.TryParse(end, out endDate))
+                        return Results.Json(new { ok = false, message = "Invalid end date", code = 400 }, statusCode: 400);
 
                     var items = await reminders.GetCalendarRemindersAsync(queryManagerCode, queryOwnerId, startDate, endDate);
                     return Results.Json(new { ok = true, reminders = items, code = 200 }, statusCode: 200);

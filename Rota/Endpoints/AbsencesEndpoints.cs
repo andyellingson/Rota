@@ -5,10 +5,19 @@ using Rota.Services;
 
 namespace Rota.Endpoints
 {
+    /// <summary>
+    /// Registers absence-related minimal API endpoints.
+    /// </summary>
     public static class AbsencesEndpoints
     {
+        /// <summary>
+        /// Maps absence endpoints for querying and editing calendar absences.
+        /// </summary>
         public static WebApplication MapAbsencesEndpoints(this WebApplication app)
         {
+            /// <summary>
+            /// Tries to parse an incoming date string to a UTC <see cref="DateTime"/>.
+            /// </summary>
             static bool TryParseDateUtc(string input, out DateTime dt)
             {
                 dt = default;
@@ -43,8 +52,14 @@ namespace Rota.Endpoints
                         queryManagerCode = caller?.ManagerCode;
                     }
 
-                    var startDate = string.IsNullOrEmpty(start) ? DateOnly.FromDateTime(DateTime.Today.AddMonths(-1)) : DateOnly.Parse(start);
-                    var endDate = string.IsNullOrEmpty(end) ? DateOnly.FromDateTime(DateTime.Today.AddMonths(1)) : DateOnly.Parse(end);
+                    var startDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(-1));
+                    var endDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(1));
+
+                    if (!string.IsNullOrWhiteSpace(start) && !DateOnly.TryParse(start, out startDate))
+                        return Results.Json(new { ok = false, message = "Invalid start date", code = 400 }, statusCode: 400);
+
+                    if (!string.IsNullOrWhiteSpace(end) && !DateOnly.TryParse(end, out endDate))
+                        return Results.Json(new { ok = false, message = "Invalid end date", code = 400 }, statusCode: 400);
 
                     var items = await absences.GetAbsencesAsync(queryManagerCode, queryUserId, startDate, endDate);
                     return Results.Json(new { ok = true, absences = items, code = 200 }, statusCode: 200);

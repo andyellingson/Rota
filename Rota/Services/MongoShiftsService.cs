@@ -5,26 +5,41 @@ using Rota.Models;
 
 namespace Rota.Services
 {
+    /// <summary>
+    /// MongoDB-backed implementation of <see cref="IShiftsService"/>.
+    /// </summary>
     public class MongoShiftsService : IShiftsService
     {
         private readonly IMongoCollection<Shift> _shifts;
         private readonly ILogger<MongoShiftsService> _logger;
 
+        /// <summary>
+        /// Creates the service using configured MongoDB options.
+        /// </summary>
         public MongoShiftsService(IOptions<MongoDbOptions> options, ILogger<MongoShiftsService> logger)
         {
             _logger = logger;
-            var opts = options.Value;
+            var opts = options?.Value ?? throw new ArgumentNullException(nameof(options));
+            if (string.IsNullOrWhiteSpace(opts.ConnectionString))
+            {
+                throw new InvalidOperationException("MongoDb:ConnectionString is required.");
+            }
+
             var client = new MongoClient(opts.ConnectionString);
             var db = client.GetDatabase(opts.DatabaseName);
             _shifts = db.GetCollection<Shift>(opts.ShiftsCollectionName);
         }
 
+        /// <summary>
+        /// Creates the service from an injected collection instance (test-friendly).
+        /// </summary>
         public MongoShiftsService(IMongoCollection<Shift> shiftsCollection, ILogger<MongoShiftsService> logger)
         {
             _shifts = shiftsCollection;
             _logger = logger;
         }
 
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<List<Shift>> GetShiftsAsync(string? username, string? userId, string? managerCode, DateOnly startDate, DateOnly endDate)
         {
             try
@@ -68,6 +83,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<Shift> CreateShiftAsync(Shift shift)
         {
             try
@@ -83,6 +99,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<bool> DeleteShiftAsync(string id, string username)
         {
             try
@@ -102,6 +119,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<int> DeleteShiftsBySeriesIdAsync(Guid seriesId, string username)
         {
             try
@@ -121,6 +139,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<List<string>> GetDistinctScheduleIdsForUserAsync(string userId)
         {
             try
@@ -139,6 +158,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<Shift?> UpdateShiftAsync(string id, string username, DateTime startUtc, DateTime endUtc, string? title, string? notes, string workerType, string? color, string? assignedToUserId)
         {
             try
@@ -168,6 +188,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<List<Shift>> GetRotationTemplateShiftsAsync(string rotationId, string managerCode)
         {
             try
@@ -187,6 +208,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<int> DeleteRotationTemplateShiftsAsync(string rotationId, string managerCode)
         {
             try

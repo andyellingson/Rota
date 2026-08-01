@@ -36,9 +36,15 @@ namespace Rota.Endpoints
 
                     // Load user and construct claims
                     var user = await users.GetByUsernameAsync(dto.Username);
+                    if (user is null)
+                    {
+                        app.Logger.LogWarning("Validated credentials but no user record was found for {User}", dto.Username);
+                        return Results.Json(new { ok = false, message = "Unable to sign in", code = 500 }, statusCode: 500);
+                    }
+
                     var claims = new List<Claim>
                     {
-                        new Claim(ClaimTypes.Name, user!.Username),
+                        new Claim(ClaimTypes.Name, user.Username),
                         new Claim(ClaimTypes.GivenName, user.DisplayName ?? user.Username)
                     };
                     foreach (var role in user.Roles ?? System.Array.Empty<string>())

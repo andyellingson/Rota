@@ -19,7 +19,12 @@ namespace Rota.Services
         public MongoUserService(IOptions<MongoDbOptions> options, ILogger<MongoUserService> logger)
         {
             _logger = logger;
-            var opts = options.Value;
+            var opts = options?.Value ?? throw new ArgumentNullException(nameof(options));
+
+            if (string.IsNullOrWhiteSpace(opts.ConnectionString))
+            {
+                throw new InvalidOperationException("MongoDb:ConnectionString is required.");
+            }
 
             try
             {
@@ -279,6 +284,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<List<User>> GetLinkedUsersForManagerAsync(string managerCode)
         {
             try

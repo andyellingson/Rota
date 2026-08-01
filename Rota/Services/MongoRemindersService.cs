@@ -44,32 +44,6 @@ namespace Rota.Services
         }
 
         /// <summary>
-        /// Gets all reminders for the specified user within a date range (inclusive).
-        /// </summary>
-        public async System.Threading.Tasks.Task<List<Reminder>> GetRemindersAsync(string username, DateOnly startDate, DateOnly endDate)
-        {
-            try
-            {
-                // Convert DateOnly to DateTime for MongoDB query
-                var start = startDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-                var end = endDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
-
-                var filter = Builders<Reminder>.Filter.And(
-                    Builders<Reminder>.Filter.Eq(r => r.Username, username),
-                    Builders<Reminder>.Filter.Gte(r => r.Date, start),
-                    Builders<Reminder>.Filter.Lte(r => r.Date, end)
-                );
-
-                return await _reminders.Find(filter).ToListAsync();
-            }
-            catch (System.Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving reminders for user {User} between {Start} and {End}", username, startDate, endDate);
-                return new List<Reminder>();
-            }
-        }
-
-        /// <summary>
         /// Fetches reminders matching the manager code and/or the personal owner ObjectId.
         /// An OR filter is used so both shared (manager) and personal reminders are returned.
         /// </summary>

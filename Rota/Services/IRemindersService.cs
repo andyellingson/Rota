@@ -8,11 +8,6 @@ namespace Rota.Services
     public interface IRemindersService
     {
         /// <summary>
-        /// Gets all reminders for the specified user within a date range (inclusive).
-        /// </summary>
-        System.Threading.Tasks.Task<List<Reminder>> GetRemindersAsync(string username, DateOnly startDate, DateOnly endDate);
-
-        /// <summary>
         /// Fetches calendar reminders using the manager code (for shared roster reminders)
         /// and/or the owner's ObjectId (for personal reminders). Results are merged.
         /// </summary>

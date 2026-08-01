@@ -5,26 +5,41 @@ using Rota.Models;
 
 namespace Rota.Services
 {
+    /// <summary>
+    /// MongoDB-backed implementation of <see cref="IAbsencesService"/>.
+    /// </summary>
     public class MongoAbsencesService : IAbsencesService
     {
         private readonly IMongoCollection<Absence> _absences;
         private readonly ILogger<MongoAbsencesService> _logger;
 
+        /// <summary>
+        /// Creates the service using configured MongoDB options.
+        /// </summary>
         public MongoAbsencesService(IOptions<MongoDbOptions> options, ILogger<MongoAbsencesService> logger)
         {
             _logger = logger;
-            var opts = options.Value;
+            var opts = options?.Value ?? throw new ArgumentNullException(nameof(options));
+            if (string.IsNullOrWhiteSpace(opts.ConnectionString))
+            {
+                throw new InvalidOperationException("MongoDb:ConnectionString is required.");
+            }
+
             var client = new MongoClient(opts.ConnectionString);
             var db = client.GetDatabase(opts.DatabaseName);
             _absences = db.GetCollection<Absence>(opts.AbsencesCollectionName);
         }
 
+        /// <summary>
+        /// Creates the service from an injected collection instance (test-friendly).
+        /// </summary>
         public MongoAbsencesService(IMongoCollection<Absence> collection, ILogger<MongoAbsencesService> logger)
         {
             _absences = collection;
             _logger = logger;
         }
 
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<List<Absence>> GetAbsencesAsync(string? managerCode, string? userId, DateOnly startDate, DateOnly endDate)
         {
             try
@@ -60,6 +75,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<Absence> CreateAbsenceAsync(Absence absence)
         {
             try
@@ -75,6 +91,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<bool> DeleteAbsenceAsync(string id, string username)
         {
             try
@@ -93,6 +110,7 @@ namespace Rota.Services
             }
         }
 
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<Absence?> UpdateAbsenceAsync(string id, string username, string title, string? notes, DateTime startDateUtc, DateTime endDateUtc, int dayCount, string? color, string? userId, string? assignedToUserId, string? managerCode, string? startTime = null, string? endTime = null, AbsenceApprovalState approvalState = AbsenceApprovalState.Pending)
         {
             try
