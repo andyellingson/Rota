@@ -16,6 +16,11 @@
     {
         <div class="shift-unassigned-label">UNASSIGNED</div>
     }
+
+    @if (OvertimeHours > 0)
+    {
+        <div class="shift-overtime">⚠ Overtime @FormatOvertimeHours(OvertimeHours)</div>
+    }
 </div>
 
 @code {
@@ -38,6 +43,13 @@
     /// <summary>Callback invoked when the item is clicked for editing.</summary>
     [Parameter]
     public EventCallback<Shift> OnEdit { get; set; }
+
+    /// <summary>
+    /// Number of hours this shift contributes beyond the 40-hour weekly limit.
+    /// When greater than zero, an overtime warning badge is shown.
+    /// </summary>
+    [Parameter]
+    public double OvertimeHours { get; set; }
 
     /// <summary>Full name composed from first/last name when available, otherwise falls back to display name.</summary>
     private string AssignedFullName
@@ -82,5 +94,18 @@
         return dt.Minute == 0
             ? dt.ToString("h tt", CultureInfo.CurrentCulture)
             : dt.ToString("h:mm tt", CultureInfo.CurrentCulture);
+    }
+
+    /// <summary>
+    /// Formats the overtime hours value as a friendly string, e.g. "8 Hours" or "1.5 Hours".
+    /// </summary>
+    private static string FormatOvertimeHours(double hours)
+    {
+        // Display as a whole number when there are no fractional minutes, otherwise one decimal place.
+        var rounded = Math.Round(hours, 1);
+        var display = rounded == Math.Floor(rounded)
+            ? ((int)rounded).ToString()
+            : rounded.ToString("0.#", CultureInfo.CurrentCulture);
+        return $"{display} {(rounded == 1 ? "Hour" : "Hours")}";
     }
 }

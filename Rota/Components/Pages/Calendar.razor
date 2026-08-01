@@ -347,6 +347,7 @@
                                                            AssignedToDisplayName="@GetEmployeeDisplayNameById(s.AssignedToUserId)"
                                                            AssignedToFirstName="@GetEmployeeFirstNameById(s.AssignedToUserId)"
                                                            AssignedToLastName="@GetEmployeeLastNameById(s.AssignedToUserId)"
+                                                           OvertimeHours="@GetShiftOvertimeHours(s)"
                                                            OnEdit="@(canManageShifts ? EventCallback.Factory.Create<Shift>(this, OpenEditShiftModal) : default)" />
                                             }
                                             else if (item.Absence is { } ab)
@@ -401,6 +402,7 @@
                                                            AssignedToDisplayName="@GetEmployeeDisplayNameById(s.AssignedToUserId)"
                                                            AssignedToFirstName="@GetEmployeeFirstNameById(s.AssignedToUserId)"
                                                            AssignedToLastName="@GetEmployeeLastNameById(s.AssignedToUserId)"
+                                                           OvertimeHours="@GetShiftOvertimeHours(s)"
                                                            OnEdit="@(canManageShifts ? EventCallback.Factory.Create<Shift>(this, OpenEditShiftModal) : default)" />
                                             }
                                             else if (item.Absence is { } ab)
@@ -2146,6 +2148,52 @@
                 return employeeVisibility.TryGetValue(empKey, out var visible) && visible;
             })
             .ToList();
+    }
+
+    /// <summary>
+    /// Returns the number of hours this shift contributes beyond the 40-hour weekly (Sun–Sat) limit
+    /// for the assigned user. Returns 0 when no overtime is applicable.
+    /// </summary>
+    private double GetShiftOvertimeHours(Shift shift)
+    {
+        if (string.IsNullOrEmpty(shift.AssignedToUserId)) return 0;
+
+        // Determine the Sunday that starts the week containing this shift (UTC).
+        var shiftStartUtc = shift.Start.ToUniversalTime().Date;
+        int daysFromSunday = (int)shiftStartUtc.DayOfWeek; // DayOfWeek.Sunday == 0
+        var weekStart = shiftStartUtc.AddDays(-daysFromSunday);
+        var weekEnd = weekStart.AddDays(7);
+
+        // Collect all assigned shifts for this user in the same week, ordered by start time.
+        var weekShifts = shifts
+            .Where(s => s.AssignedToUserId == shift.AssignedToUserId
+                     && s.Start.ToUniversalTime() >= weekStart
+                     && s.Start.ToUniversalTime() < weekEnd)
+            .OrderBy(s => s.Start)
+            .ToList();
+
+        // Walk through shifts in order, accumulating hours, and find how many hours
+        // of the target shift fall beyond the 40-hour weekly limit.
+        const double weeklyLimit = 40.0;
+        double cumulative = 0;
+
+        foreach (var s in weekShifts)
+        {
+            double shiftHours = (s.End - s.Start).TotalHours;
+            double hoursAfterThisShift = cumulative + shiftHours;
+
+            if (s.Id == shift.Id)
+            {
+                // Return only the portion of this shift that is overtime.
+                if (hoursAfterThisShift > weeklyLimit)
+                    return Math.Round(hoursAfterThisShift - Math.Max(cumulative, weeklyLimit), 1);
+                return 0;
+            }
+
+            cumulative = hoursAfterThisShift;
+        }
+
+        return 0;
     }
 
     private List<Absence> GetAbsencesForDay(DateOnly day)
