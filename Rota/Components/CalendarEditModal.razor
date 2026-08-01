@@ -6,7 +6,7 @@
 {
     <div class="modal-backdrop fade show"></div>
     <div class="modal fade show d-block" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-dialog modal-dialog-centered calendar-edit-modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">@GetModalTitle()</h5>
@@ -17,17 +17,6 @@
                     {
                         <div class="alert alert-danger">@State.ModalError</div>
                     }
-
-                    <div class="mb-2">
-                        <div class="btn-group" role="group" aria-label="Mode">
-                            <button type="button" class="btn btn-sm @(State.ModalMode == ModalMode.Reminder ? "btn-primary" : "btn-outline-secondary")" @onclick="(() => State.ModalMode = ModalMode.Reminder)">Reminder</button>
-                            @if (CanManageShifts)
-                            {
-                                <button type="button" class="btn btn-sm @(State.ModalMode == ModalMode.Shift ? "btn-primary" : "btn-outline-secondary")" @onclick="(() => State.ModalMode = ModalMode.Shift)">Shift</button>
-                            }
-                            <button type="button" class="btn btn-sm @(State.ModalMode == ModalMode.Absence ? "btn-primary" : "btn-outline-secondary")" @onclick="(() => State.ModalMode = ModalMode.Absence)">Absence</button>
-                        </div>
-                    </div>
 
                     @if (State.ModalMode == ModalMode.Reminder)
                     {
@@ -122,117 +111,121 @@
                     {
                         @if (State.EditingShift is null)
                         {
-                            <div class="mb-3">
-                                <label class="form-label">Shift title</label>
-                                <input class="form-control" @bind="State.NewShiftTitle" placeholder="Enter shift title" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Repeat</label>
-                                <div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" id="rec-none" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.None)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.None)" />
-                                        <label class="form-check-label" for="rec-none">None</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" id="rec-daily" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.Daily)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.Daily)" />
-                                        <label class="form-check-label" for="rec-daily">Daily</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" id="rec-workdays" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.Workdays)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.Workdays)" />
-                                        <label class="form-check-label" for="rec-workdays">Work week (Mon–Fri)</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" id="rec-weekends" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.Weekends)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.Weekends)" />
-                                        <label class="form-check-label" for="rec-weekends">Weekends only</label>
+                            <div class="compact-editor-grid compact-editor-grid--shift">
+                                <div class="compact-editor-field compact-editor-field--span-2">
+                                    <label class="form-label">Shift title</label>
+                                    <input class="form-control" @bind="State.NewShiftTitle" placeholder="Enter shift title" />
+                                </div>
+                                <div class="compact-editor-field compact-editor-field--span-2 compact-editor-field--recurrence">
+                                    <label class="form-label">Repeat</label>
+                                    <div class="compact-choice-list">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" id="rec-none" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.None)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.None)" />
+                                            <label class="form-check-label" for="rec-none">None</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" id="rec-daily" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.Daily)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.Daily)" />
+                                            <label class="form-check-label" for="rec-daily">Daily</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" id="rec-workdays" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.Workdays)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.Workdays)" />
+                                            <label class="form-check-label" for="rec-workdays">Work week (Mon–Fri)</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" id="rec-weekends" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.Weekends)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.Weekends)" />
+                                            <label class="form-check-label" for="rec-weekends">Weekends only</label>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Start time</label>
-                                <input type="time" class="form-control" @bind="State.NewShiftStartTime" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">End time</label>
-                                <input type="time" class="form-control" @bind="State.NewShiftEndTime" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Worker type</label>
-                                <select class="form-select" @bind="State.NewShiftWorkerType">
-                                    @foreach (var workerType in WorkerTypes)
-                                    {
-                                        <option value="@workerType">@workerType</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Color</label>
-                                <div class="color-swatch-container">
-                                    @foreach (var color in ColorChoices)
-                                    {
-                                        <button type="button" class="color-swatch @(color == State.NewShiftColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.NewShiftColor = color)" aria-label=$"Select color {color}"></button>
-                                    }
+                                <div class="compact-editor-field">
+                                    <label class="form-label">Start time</label>
+                                    <input type="time" class="form-control" @bind="State.NewShiftStartTime" />
                                 </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Assign to Employee</label>
-                                <select class="form-select" @bind="State.NewShiftAssignedTo">
-                                    <option value="">— Unassigned —</option>
-                                    @foreach (var employee in Employees)
-                                    {
-                                        <option value="@employee.Id">@(employee.DisplayName ?? employee.Username) (@employee.Occupation)</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Notes (optional)</label>
-                                <textarea class="form-control" rows="3" @bind="State.NewShiftNotes" placeholder="Add additional notes"></textarea>
+                                <div class="compact-editor-field">
+                                    <label class="form-label">End time</label>
+                                    <input type="time" class="form-control" @bind="State.NewShiftEndTime" />
+                                </div>
+                                <div class="compact-editor-field">
+                                    <label class="form-label">Worker type</label>
+                                    <select class="form-select" @bind="State.NewShiftWorkerType">
+                                        @foreach (var workerType in WorkerTypes)
+                                        {
+                                            <option value="@workerType">@workerType</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="compact-editor-field">
+                                    <label class="form-label">Assign to employee</label>
+                                    <select class="form-select" @bind="State.NewShiftAssignedTo">
+                                        <option value="">— Unassigned —</option>
+                                        @foreach (var employee in Employees)
+                                        {
+                                            <option value="@employee.Id">@(employee.DisplayName ?? employee.Username) (@employee.Occupation)</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="compact-editor-field compact-editor-field--span-2">
+                                    <label class="form-label">Color</label>
+                                    <div class="color-swatch-container">
+                                        @foreach (var color in ColorChoices)
+                                        {
+                                            <button type="button" class="color-swatch @(color == State.NewShiftColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.NewShiftColor = color)" aria-label=$"Select color {color}"></button>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="compact-editor-field compact-editor-field--span-2">
+                                    <label class="form-label">Notes (optional)</label>
+                                    <textarea class="form-control compact-editor-notes" rows="2" @bind="State.NewShiftNotes" placeholder="Add additional notes"></textarea>
+                                </div>
                             </div>
                         }
                         else
                         {
-                            <div class="mb-3">
-                                <label class="form-label">Start time</label>
-                                <input type="time" class="form-control" @bind="State.EditShiftStartTime" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">End time</label>
-                                <input type="time" class="form-control" @bind="State.EditShiftEndTime" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Worker type</label>
-                                <select class="form-select" @bind="State.EditShiftWorkerType">
-                                    @foreach (var workerType in WorkerTypes)
-                                    {
-                                        <option value="@workerType">@workerType</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Color</label>
-                                <div class="color-swatch-container">
-                                    @foreach (var color in ColorChoices)
-                                    {
-                                        <button type="button" class="color-swatch @(color == State.EditShiftColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.EditShiftColor = color)" aria-label=$"Select color {color}"></button>
-                                    }
+                            <div class="compact-editor-grid compact-editor-grid--shift">
+                                <div class="compact-editor-field compact-editor-field--span-2">
+                                    <label class="form-label">Shift title (optional)</label>
+                                    <input class="form-control" @bind="State.EditShiftTitle" placeholder="Enter shift title" />
                                 </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Shift title (optional)</label>
-                                <input class="form-control" @bind="State.EditShiftTitle" placeholder="Enter shift title" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Assign to Employee</label>
-                                <select class="form-select" @bind="State.EditShiftAssignedTo">
-                                    <option value="">— Unassigned —</option>
-                                    @foreach (var employee in Employees)
-                                    {
-                                        <option value="@employee.Id">@(employee.DisplayName ?? employee.Username) (@employee.Occupation)</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Notes (optional)</label>
-                                <textarea class="form-control" rows="3" @bind="State.EditShiftNotes" placeholder="Add additional notes"></textarea>
+                                <div class="compact-editor-field">
+                                    <label class="form-label">Start time</label>
+                                    <input type="time" class="form-control" @bind="State.EditShiftStartTime" />
+                                </div>
+                                <div class="compact-editor-field">
+                                    <label class="form-label">End time</label>
+                                    <input type="time" class="form-control" @bind="State.EditShiftEndTime" />
+                                </div>
+                                <div class="compact-editor-field">
+                                    <label class="form-label">Worker type</label>
+                                    <select class="form-select" @bind="State.EditShiftWorkerType">
+                                        @foreach (var workerType in WorkerTypes)
+                                        {
+                                            <option value="@workerType">@workerType</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="compact-editor-field">
+                                    <label class="form-label">Assign to employee</label>
+                                    <select class="form-select" @bind="State.EditShiftAssignedTo">
+                                        <option value="">— Unassigned —</option>
+                                        @foreach (var employee in Employees)
+                                        {
+                                            <option value="@employee.Id">@(employee.DisplayName ?? employee.Username) (@employee.Occupation)</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="compact-editor-field compact-editor-field--span-2">
+                                    <label class="form-label">Color</label>
+                                    <div class="color-swatch-container">
+                                        @foreach (var color in ColorChoices)
+                                        {
+                                            <button type="button" class="color-swatch @(color == State.EditShiftColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.EditShiftColor = color)" aria-label=$"Select color {color}"></button>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="compact-editor-field compact-editor-field--span-2">
+                                    <label class="form-label">Notes (optional)</label>
+                                    <textarea class="form-control compact-editor-notes" rows="2" @bind="State.EditShiftNotes" placeholder="Add additional notes"></textarea>
+                                </div>
                             </div>
                         }
                     }
