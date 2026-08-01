@@ -1326,43 +1326,60 @@
             empMap[wk] = prev + (s.End - s.Start).TotalHours;
         }
 
-        // Per occupation+priority-tier round-robin cursor.
-        var roundRobinIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        // Track days already assigned per employee so auto-assign never gives more than
+        // one shift to the same person on a single day.
+        var assignedDaysByUser = new Dictionary<string, HashSet<DateOnly>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var s in allWeekShifts.Where(s => !string.IsNullOrEmpty(s.AssignedToUserId)))
+        {
+            var day = DateOnly.FromDateTime(s.Start.ToLocalTime());
+            if (!assignedDaysByUser.TryGetValue(s.AssignedToUserId!, out var daySet))
+            {
+                daySet = new HashSet<DateOnly>();
+                assignedDaysByUser[s.AssignedToUserId!] = daySet;
+            }
+            daySet.Add(day);
+        }
+
         var assignedThisRun = new Dictionary<string, (int Count, double Hours)>(StringComparer.OrdinalIgnoreCase);
         var uncappedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int assignedCount = 0;
 
-        foreach (var shift in unassigned)
-        {
-            var workerType = string.IsNullOrWhiteSpace(shift.WorkerType) ? "General" : shift.WorkerType;
+        // Assign in day + worker-type batches so when multiple shifts exist for the same
+        // worker type on one day, they are distributed by descending priority.
+        var groupedUnassigned = unassigned
+            .GroupBy(s => new
+            {
+                Day = DateOnly.FromDateTime(s.Start.ToLocalTime()),
+                WorkerType = string.IsNullOrWhiteSpace(s.WorkerType) ? "General" : s.WorkerType
+            })
+            .OrderBy(g => g.Key.Day)
+            .ThenBy(g => g.Min(s => s.Start))
+            .ToList();
 
-            if (!eligibleByOccupation.TryGetValue(workerType, out var candidates) || candidates.Count == 0)
+        foreach (var group in groupedUnassigned)
+        {
+            if (!eligibleByOccupation.TryGetValue(group.Key.WorkerType, out var candidates) || candidates.Count == 0)
                 continue;
 
-            var shiftHours = (shift.End - shift.Start).TotalHours;
-            var weekKey = GetIsoWeekKey(shift.Start.ToLocalTime());
-
-            // Sort candidates into priority tiers (highest priority first).
-            // Within each tier employees share shifts in round-robin order.
-            var tiers = candidates
-                .GroupBy(c => c.ShiftAssignmentPriority)
-                .OrderByDescending(g => g.Key)
-                .Select(g => g.ToList())
+            var orderedCandidates = candidates
+                .OrderByDescending(c => c.ShiftAssignmentPriority)
+                .ThenBy(c => c.DisplayName ?? c.Username ?? c.Id)
                 .ToList();
 
-            string? chosenId = null;
-
-            foreach (var tier in tiers)
+            foreach (var shift in group.OrderBy(s => s.Start))
             {
-                var rrKey = $"{workerType}::{tier[0].ShiftAssignmentPriority}";
-                roundRobinIndex.TryGetValue(rrKey, out var rrStart);
+                var shiftHours = (shift.End - shift.Start).TotalHours;
+                var weekKey = GetIsoWeekKey(shift.Start.ToLocalTime());
+                var shiftDay = group.Key.Day;
 
-                for (int attempt = 0; attempt < tier.Count; attempt++)
+                string? chosenId = null;
+
+                foreach (var candidate in orderedCandidates)
                 {
-                    var idx = (rrStart + attempt) % tier.Count;
-                    var candidate = tier[idx];
-
                     if (candidate.Id is null) continue;
+
+                    if (assignedDaysByUser.TryGetValue(candidate.Id, out var assignedDays) && assignedDays.Contains(shiftDay))
+                        continue;
 
                     // Enforce MaxHours cap per calendar week.
                     if (candidate.MaxHours > 0)
@@ -1371,36 +1388,40 @@
                         double hoursUsed = 0;
                         empMap?.TryGetValue(weekKey, out hoursUsed);
                         if (hoursUsed + shiftHours > candidate.MaxHours)
-                            continue; // over cap – try next candidate
+                            continue;
                     }
 
                     chosenId = candidate.Id;
                     if (candidate.MaxHours <= 0) uncappedIds.Add(candidate.Id);
-                    roundRobinIndex[rrKey] = (idx + 1) % tier.Count;
                     break;
                 }
 
-                if (chosenId is not null) break; // found in this tier – don't fall to lower tiers
+                if (chosenId is null) continue;
+
+                await ShiftService.UpdateShiftAsync(shift.Id!, _username, shift.Start, shift.End,
+                    shift.Title, shift.Notes, shift.WorkerType, shift.Color, chosenId);
+
+                // Immediately update in-memory weekly hours so the next iteration in the same
+                // week sees the hours just committed.
+                if (!weeklyHours.TryGetValue(chosenId, out var chosenWeeks))
+                {
+                    chosenWeeks = new Dictionary<string, double>();
+                    weeklyHours[chosenId] = chosenWeeks;
+                }
+                chosenWeeks.TryGetValue(weekKey, out var currentHours);
+                chosenWeeks[weekKey] = currentHours + shiftHours;
+
+                if (!assignedDaysByUser.TryGetValue(chosenId, out var chosenDays))
+                {
+                    chosenDays = new HashSet<DateOnly>();
+                    assignedDaysByUser[chosenId] = chosenDays;
+                }
+                chosenDays.Add(shiftDay);
+
+                assignedThisRun.TryGetValue(chosenId, out var runPrev);
+                assignedThisRun[chosenId] = (runPrev.Count + 1, runPrev.Hours + shiftHours);
+                assignedCount++;
             }
-
-            if (chosenId is null) continue;
-
-            await ShiftService.UpdateShiftAsync(shift.Id!, _username, shift.Start, shift.End,
-                shift.Title, shift.Notes, shift.WorkerType, shift.Color, chosenId);
-
-            // Immediately update in-memory weekly hours so the next iteration in the same
-            // week sees the hours just committed.
-            if (!weeklyHours.TryGetValue(chosenId, out var chosenWeeks))
-            {
-                chosenWeeks = new Dictionary<string, double>();
-                weeklyHours[chosenId] = chosenWeeks;
-            }
-            chosenWeeks.TryGetValue(weekKey, out var currentHours);
-            chosenWeeks[weekKey] = currentHours + shiftHours;
-
-            assignedThisRun.TryGetValue(chosenId, out var runPrev);
-            assignedThisRun[chosenId] = (runPrev.Count + 1, runPrev.Hours + shiftHours);
-            assignedCount++;
         }
 
         return (assignedCount, assignedThisRun, uncappedIds);
