@@ -85,6 +85,25 @@ namespace Rota.Services
         }
 
         /// <summary>
+        /// Updates the shift assignment priority for the specified user.
+        /// </summary>
+        public async System.Threading.Tasks.Task<bool> UpdateShiftAssignmentPriorityAsync(string username, int priority)
+        {
+            try
+            {
+                var filter = Builders<User>.Filter.Eq(u => u.Username, username);
+                var update = Builders<User>.Update.Set(u => u.ShiftAssignmentPriority, priority);
+                var result = await _users.UpdateOneAsync(filter, update);
+                return result.ModifiedCount > 0;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error updating ShiftAssignmentPriority for user {User}", username);
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Creates a new user and stores a bcrypt password hash.
         /// Errors are logged and rethrown so calling code can decide how to handle them.
         /// </summary>

@@ -87,5 +87,15 @@ namespace Rota.Models
         /// </summary>
         [BsonElement("maxHours")]
         public double MaxHours { get; set; } = 0.0;
+
+        /// <summary>
+        /// Shift assignment priority set by the manager. Higher numbers mean higher priority.
+        /// When two employees share the same priority they are assigned shifts in round-robin
+        /// order. When priorities differ, the highest-priority employee is filled first (up to
+        /// their weekly MaxHours cap), then the next highest, and so on.
+        /// Defaults to 0 (lowest/equal priority).
+        /// </summary>
+        [BsonElement("shiftAssignmentPriority")]
+        public int ShiftAssignmentPriority { get; set; } = 0;
     }
 }

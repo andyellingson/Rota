@@ -148,11 +148,15 @@
                     <button class="btn btn-sm @(view == ViewMode.Week ? "btn-primary" : "btn-outline-primary")"
                             title="Switch to weekly calendar view"
                             @onclick="(() => SetView(ViewMode.Week))"
-                            aria-pressed="@(view == ViewMode.Week)">Week</button>
+                            aria-pressed="@(view == ViewMode.Week)">
+                        Week
+                    </button>
                     <button class="btn btn-sm @(view == ViewMode.Month ? "btn-primary" : "btn-outline-primary")"
                             title="Switch to monthly calendar view"
                             @onclick="(() => SetView(ViewMode.Month))"
-                            aria-pressed="@(view == ViewMode.Month)">Month</button>
+                            aria-pressed="@(view == ViewMode.Month)">
+                        Month
+                    </button>
                 </div>
             </div>
 
@@ -209,151 +213,218 @@
         var totalShifts = GetTotalShiftsInSelectedDays();
         var totalAbsences = GetTotalAbsencesInSelectedDays();
         var totalReminders = GetTotalRemindersInSelectedDays();
+        var totalUnassignedShifts = GetTotalUnassignedShiftsInSelectedDays();
         <div class="multi-day-action-bar">
-            <span class="action-bar-info">
-                @selectedDays.Count day@(selectedDays.Count == 1 ? "" : "s") selected
-            </span>
-            <span class="action-bar-sep" aria-hidden="true"></span>
-            @if (canManageShifts && totalShifts > 0)
-            {
-                <button class="btn btn-sm btn-danger" @onclick="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Shifts))"
-                        title="Delete all shifts within the selected days">
-                    🗑 Delete @totalShifts Shift@(totalShifts == 1 ? "" : "s")
+            @* ── Row 1: buttons ──────────────────────────────────────── *@
+            <div class="multi-day-action-bar-row">
+                <span class="action-bar-info">
+                    @selectedDays.Count day@(selectedDays.Count == 1 ? "" : "s") selected
+                </span>
+                <span class="action-bar-sep" aria-hidden="true"></span>
+                @if (canManageShifts)
+                {
+                    var wwSelMulti = availableSchedules.FirstOrDefault(s => s.Id == selectedScheduleId);
+                    if (wwSelMulti?.Rotations?.Count > 0)
+                    {
+                        <select class="form-select form-select-sm d-inline-block" style="width:auto;min-width:220px;" @bind="multiDaySelectedWorkWeekId">
+                            <option value="">— Select Rotation Template —</option>
+                            @foreach (var ww in wwSelMulti.Rotations)
+                            {
+                                <option value="@ww.Id">@ww.Name</option>
+                            }
+                        </select>
+                        <button class="btn btn-sm btn-primary ms-2" @onclick="ApplyWorkWeekToSelectedDays" disabled="@(string.IsNullOrEmpty(multiDaySelectedWorkWeekId) || multiDayIsApplying)">
+                            @if (multiDayIsApplying)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                <span>Applying…</span>
+                            }
+                            else
+                            {
+                                <span>Apply Template</span>
+                            }
+                        </button>
+                    }
+
+                    <button class="btn btn-sm btn-success ms-2" @onclick="AutoPopulateSelectedDays" disabled="@(multiDayAutoIsRunning || totalUnassignedShifts == 0)">
+                        @if (multiDayAutoIsRunning)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            <span>Assigning…</span>
+                        }
+                        else
+                        {
+                            <span>Auto Assign</span>
+                        }
+                    </button>
+                }
+                @if (canManageShifts && totalShifts > 0)
+                {
+                    <button class="btn btn-sm btn-danger ms-2" @onclick="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Shifts))"
+                            title="Delete all shifts within the selected days">
+                        🗑 Delete @totalShifts Shift@(totalShifts == 1 ? "" : "s")
+                    </button>
+                }
+                @if (totalAbsences > 0)
+                {
+                    <button class="btn btn-sm btn-warning text-dark ms-2" @onclick="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Absences))"
+                            title="Delete all absences within the selected days">
+                        🗑 Delete @totalAbsences Absence@(totalAbsences == 1 ? "" : "s")
+                    </button>
+                }
+                @if (totalReminders > 0)
+                {
+                    <button class="btn btn-sm btn-info text-dark ms-2" @onclick="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Reminders))"
+                            title="Delete all reminders within the selected days">
+                        🗑 Delete @totalReminders Reminder@(totalReminders == 1 ? "" : "s")
+                    </button>
+                }
+                <span class="action-bar-sep" aria-hidden="true"></span>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="ClearDaySelection"
+                        title="Deselect all days">
+                    Clear Selection
                 </button>
-            }
-            @if (totalAbsences > 0)
+            </div>
+
+            @* ── Row 2: feedback messages ─────────────────────────────── *@
+            @if (!string.IsNullOrEmpty(multiDayWorkWeekError) ||
+                 !string.IsNullOrEmpty(multiDayAutoError) ||
+                 !string.IsNullOrEmpty(multiDayAutoWarning) ||
+                 !string.IsNullOrEmpty(multiDayAutoSuccess))
             {
-                <button class="btn btn-sm btn-warning text-dark" @onclick="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Absences))"
-                        title="Delete all absences within the selected days">
-                    🗑 Delete @totalAbsences Absence@(totalAbsences == 1 ? "" : "s")
-                </button>
+                <div class="multi-day-action-bar-messages">
+                    @if (!string.IsNullOrEmpty(multiDayWorkWeekError))
+                    {
+                        <span class="text-danger small">@multiDayWorkWeekError</span>
+                    }
+                    @if (!string.IsNullOrEmpty(multiDayAutoError))
+                    {
+                        <span class="text-danger small">@multiDayAutoError</span>
+                    }
+                    @if (!string.IsNullOrEmpty(multiDayAutoWarning))
+                    {
+                        <span class="text-warning small">@multiDayAutoWarning</span>
+                    }
+                    @if (!string.IsNullOrEmpty(multiDayAutoSuccess))
+                    {
+                        <span class="text-success small">@multiDayAutoSuccess</span>
+                    }
+                </div>
             }
-            @if (totalReminders > 0)
-            {
-                <button class="btn btn-sm btn-info text-dark" @onclick="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Reminders))"
-                        title="Delete all reminders within the selected days">
-                    🗑 Delete @totalReminders Reminder@(totalReminders == 1 ? "" : "s")
-                </button>
-            }
-            <span class="action-bar-sep" aria-hidden="true"></span>
-            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearDaySelection"
-                    title="Deselect all days">
-                Clear
-            </button>
         </div>
     }
 
     <div class="calendar-card card shadow-sm mt-2 mb-4">
-    <div class="card-body">
-        @if (view == ViewMode.Month)
-        {
-            <div class="calendar-month">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <strong>@current.ToString("MMMM yyyy", CultureInfo.CurrentCulture)</strong>
-                    <div class="text-muted small">Week starts on @CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek</div>
-                </div>
+        <div class="card-body">
+            @if (view == ViewMode.Month)
+            {
+                <div class="calendar-month">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>@current.ToString("MMMM yyyy", CultureInfo.CurrentCulture)</strong>
+                        <div class="text-muted small">Week starts on @CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek</div>
+                    </div>
 
-                <div class="calendar-grid">
-                    @foreach (var name in DayNames)
-                    {
-                        <div class="calendar-grid-header">@name</div>
-                    }
-
-                    @foreach (var week in GetMonthMatrix(current))
-                    {
-                        foreach (var day in week)
+                    <div class="calendar-grid">
+                        @foreach (var name in DayNames)
                         {
-                            var other = day.Month != current.Month;
-                            var isToday = day == DateOnly.FromDateTime(DateTime.Today);
-                            <div class="day-cell @(other ? "other-month" : "") @(isToday ? "today" : "") @(selectedDays.Contains(day) ? "day-selected" : "")" @onclick="(async () => { if (isMultiSelectMode) ToggleDaySelection(day); else await Task.Run(() => OpenDayModal(day)); })">
-                                <div class="day-number">@day.Day</div>
-                                <div class="events events-overlay">
-                                    @foreach (var item in GetSortedDayItems(day))
-                                    {
-                                        if (item.Shift is { } s)
+                            <div class="calendar-grid-header">@name</div>
+                        }
+
+                        @foreach (var week in GetMonthMatrix(current))
+                        {
+                            foreach (var day in week)
+                            {
+                                var other = day.Month != current.Month;
+                                var isToday = day == DateOnly.FromDateTime(DateTime.Today);
+                                <div class="day-cell @(other ? "other-month" : "") @(isToday ? "today" : "") @(selectedDays.Contains(day) ? "day-selected" : "")" @onclick="(async () => { if (isMultiSelectMode) ToggleDaySelection(day); else await Task.Run(() => OpenDayModal(day)); })">
+                                    <div class="day-number">@day.Day</div>
+                                    <div class="events events-overlay">
+                                        @foreach (var item in GetSortedDayItems(day))
                                         {
-                                            <ShiftItem Shift="s"
-                                                       AssignedToDisplayName="@GetEmployeeDisplayNameById(s.AssignedToUserId)"
-                                                       AssignedToFirstName="@GetEmployeeFirstNameById(s.AssignedToUserId)"
-                                                       AssignedToLastName="@GetEmployeeLastNameById(s.AssignedToUserId)"
-                                                       OnEdit="@(canManageShifts ? EventCallback.Factory.Create<Shift>(this, OpenEditShiftModal) : default)" />
+                                            if (item.Shift is { } s)
+                                            {
+                                                <ShiftItem Shift="s"
+                                                           AssignedToDisplayName="@GetEmployeeDisplayNameById(s.AssignedToUserId)"
+                                                           AssignedToFirstName="@GetEmployeeFirstNameById(s.AssignedToUserId)"
+                                                           AssignedToLastName="@GetEmployeeLastNameById(s.AssignedToUserId)"
+                                                           OnEdit="@(canManageShifts ? EventCallback.Factory.Create<Shift>(this, OpenEditShiftModal) : default)" />
+                                            }
+                                            else if (item.Absence is { } ab)
+                                            {
+                                                <AbsenceItem Absence="ab"
+                                                             AssignedToDisplayName="@GetEmployeeDisplayNameById(ab.AssignedToUserId)"
+                                                             ShowApprovalState="canManageShifts"
+                                                             OnEdit="EventCallback.Factory.Create<Absence>(this, OpenEditAbsenceModal)" />
+                                            }
+                                            else if (item.Reminder is { } reminder)
+                                            {
+                                                <ReminderItem Reminder="reminder" OnEdit="OpenEditReminderModal" />
+                                            }
                                         }
-                                        else if (item.Absence is { } ab)
+                                    </div>
+                                </div>
+                            }
+                        }
+
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="calendar-week">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>Week of @StartOfWeek(current).ToString("d", CultureInfo.CurrentCulture)</strong>
+                    </div>
+
+                    <div class="week-grid">
+                        @foreach (var d in Enumerable.Range(0, 7).Select(i => StartOfWeek(current).AddDays(i)))
+                        {
+                            var isToday = d == DateOnly.FromDateTime(DateTime.Today);
+                            <div class="week-day-card card me-2 @(selectedDays.Contains(d) ? "day-selected" : "")" @onclick="(async () => { if (isMultiSelectMode) ToggleDaySelection(d); else await Task.Run(() => OpenDayModal(d)); })">
+                                <div class="card-body p-2">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <div class="fw-bold">@d.ToString("ddd", CultureInfo.CurrentCulture)</div>
+                                            <div class="text-muted small">@d.ToString("d", CultureInfo.CurrentCulture)</div>
+                                        </div>
+                                        @if (isToday)
                                         {
-                                            <AbsenceItem Absence="ab"
-                                                         AssignedToDisplayName="@GetEmployeeDisplayNameById(ab.AssignedToUserId)"
-                                                         ShowApprovalState="canManageShifts"
-                                                         OnEdit="EventCallback.Factory.Create<Absence>(this, OpenEditAbsenceModal)" />
+                                            <span class="badge bg-primary">Today</span>
                                         }
-                                        else if (item.Reminder is { } reminder)
+                                    </div>
+                                    <div class="mt-2 events events-overlay">
+                                        @foreach (var item in GetSortedDayItems(d))
                                         {
-                                            <ReminderItem Reminder="reminder" OnEdit="OpenEditReminderModal" />
+                                            if (item.Shift is { } s)
+                                            {
+                                                <ShiftItem Shift="s"
+                                                           AssignedToDisplayName="@GetEmployeeDisplayNameById(s.AssignedToUserId)"
+                                                           AssignedToFirstName="@GetEmployeeFirstNameById(s.AssignedToUserId)"
+                                                           AssignedToLastName="@GetEmployeeLastNameById(s.AssignedToUserId)"
+                                                           OnEdit="@(canManageShifts ? EventCallback.Factory.Create<Shift>(this, OpenEditShiftModal) : default)" />
+                                            }
+                                            else if (item.Absence is { } ab)
+                                            {
+                                                <AbsenceItem Absence="ab"
+                                                             AssignedToDisplayName="@GetEmployeeDisplayNameById(ab.AssignedToUserId)"
+                                                             ShowApprovalState="canManageShifts"
+                                                             OnEdit="EventCallback.Factory.Create<Absence>(this, OpenEditAbsenceModal)" />
+                                            }
+                                            else if (item.Reminder is { } reminder)
+                                            {
+                                                <ReminderItem Reminder="reminder" OnEdit="OpenEditReminderModal" />
+                                            }
                                         }
-                                    }
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-secondary w-100 mt-1" @onclick:stopPropagation="true" @onclick="(() => OpenAddReminderModal(d))">+ Add</button>
                                 </div>
                             </div>
                         }
-                    }
-
+                    </div>
                 </div>
-            </div>
-        }
-        else
-        {
-            <div class="calendar-week">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <strong>Week of @StartOfWeek(current).ToString("d", CultureInfo.CurrentCulture)</strong>
-                </div>
-
-                <div class="week-grid">
-                    @foreach (var d in Enumerable.Range(0, 7).Select(i => StartOfWeek(current).AddDays(i)))
-                    {
-                        var isToday = d == DateOnly.FromDateTime(DateTime.Today);
-                        <div class="week-day-card card me-2 @(selectedDays.Contains(d) ? "day-selected" : "")" @onclick="(async () => { if (isMultiSelectMode) ToggleDaySelection(d); else await Task.Run(() => OpenDayModal(d)); })">
-                            <div class="card-body p-2">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div>
-                                        <div class="fw-bold">@d.ToString("ddd", CultureInfo.CurrentCulture)</div>
-                                        <div class="text-muted small">@d.ToString("d", CultureInfo.CurrentCulture)</div>
-                                    </div>
-                                    @if (isToday)
-                                    {
-                                        <span class="badge bg-primary">Today</span>
-                                    }
-                                </div>
-                                <div class="mt-2 events events-overlay">
-                                    @foreach (var item in GetSortedDayItems(d))
-                                    {
-                                        if (item.Shift is { } s)
-                                        {
-                                            <ShiftItem Shift="s"
-                                                       AssignedToDisplayName="@GetEmployeeDisplayNameById(s.AssignedToUserId)"
-                                                       AssignedToFirstName="@GetEmployeeFirstNameById(s.AssignedToUserId)"
-                                                       AssignedToLastName="@GetEmployeeLastNameById(s.AssignedToUserId)"
-                                                       OnEdit="@(canManageShifts ? EventCallback.Factory.Create<Shift>(this, OpenEditShiftModal) : default)" />
-                                        }
-                                        else if (item.Absence is { } ab)
-                                        {
-                                            <AbsenceItem Absence="ab"
-                                                         AssignedToDisplayName="@GetEmployeeDisplayNameById(ab.AssignedToUserId)"
-                                                         ShowApprovalState="canManageShifts"
-                                                         OnEdit="EventCallback.Factory.Create<Absence>(this, OpenEditAbsenceModal)" />
-                                        }
-                                        else if (item.Reminder is { } reminder)
-                                        {
-                                            <ReminderItem Reminder="reminder" OnEdit="OpenEditReminderModal" />
-                                        }
-                                    }
-                                </div>
-                                <button class="btn btn-sm btn-outline-secondary w-100 mt-1" @onclick:stopPropagation="true" @onclick="(() => OpenAddReminderModal(d))">+ Add</button>
-                            </div>
-                        </div>
-                    }
-                </div>
-            </div>
-        }
+            }
+        </div>
     </div>
-</div>
 </div>
 
 @* Day detail modal – expanded view for a single day *@
@@ -505,8 +576,8 @@
                             @* Calculate shift duration for display *@
                             var shiftDuration = ds.End - ds.Start;
                             var durationText = shiftDuration.TotalMinutes >= 60
-                                ? $"{(int)shiftDuration.TotalHours}h{(shiftDuration.Minutes > 0 ? $" {shiftDuration.Minutes}m" : "")}"
-                                : $"{shiftDuration.Minutes}m";
+                            ? $"{(int)shiftDuration.TotalHours}h{(shiftDuration.Minutes > 0 ? $" {shiftDuration.Minutes}m" : "")}"
+                            : $"{shiftDuration.Minutes}m";
 
                             <div class="day-detail-shift-card" style="border-left-color: @(ds.Color ?? "#1890ff");"
                                  @onclick="(() => { if (canManageShifts) OpenEditShiftModal(ds); })"
@@ -649,15 +720,15 @@
 {
     var confirmCount = bulkDeleteType switch
     {
-        BulkDeleteType.Absences  => GetTotalAbsencesInSelectedDays(),
+        BulkDeleteType.Absences => GetTotalAbsencesInSelectedDays(),
         BulkDeleteType.Reminders => GetTotalRemindersInSelectedDays(),
-        _                        => GetTotalShiftsInSelectedDays()
+        _ => GetTotalShiftsInSelectedDays()
     };
     var confirmTypeName = bulkDeleteType switch
     {
-        BulkDeleteType.Absences  => confirmCount == 1 ? "absence"  : "absences",
+        BulkDeleteType.Absences => confirmCount == 1 ? "absence" : "absences",
         BulkDeleteType.Reminders => confirmCount == 1 ? "reminder" : "reminders",
-        _                        => confirmCount == 1 ? "shift"    : "shifts"
+        _ => confirmCount == 1 ? "shift" : "shifts"
     };
     <div class="modal-backdrop fade show"></div>
     <div class="modal fade show d-block" tabindex="-1" role="dialog">
@@ -699,8 +770,7 @@
     </div>
 }
 
-<PrintScheduleModal
-                    OnClose="@(() => showPrintModal = false)"
+<PrintScheduleModal OnClose="@(() => showPrintModal = false)"
                     ViewMode="@(view == ViewMode.Month ? PrintScheduleModal.PrintViewMode.Month : PrintScheduleModal.PrintViewMode.Week)"
                     CurrentDate="current"
                     ScheduleName="@(availableSchedules.FirstOrDefault(s => s.Id == selectedScheduleId)?.Name ?? "Schedule")"
@@ -838,6 +908,16 @@
     private string? autoPopulateWarning;
     private string? autoPopulateSuccess;
     private bool autoPopulateIsRunning = false;
+
+    // Multi-day template / auto-assign state
+    private string? multiDaySelectedWorkWeekId;
+    private string? multiDayWorkWeekError;
+    private bool multiDayIsApplying = false;
+
+    private bool multiDayAutoIsRunning = false;
+    private string? multiDayAutoError;
+    private string? multiDayAutoWarning;
+    private string? multiDayAutoSuccess;
 
     // Shift fields for add/edit
     private Shift? editingShift { get => modalState.EditingShift; set => modalState.EditingShift = value; }
@@ -1130,10 +1210,7 @@
 
     /// <summary>
     /// Automatically assigns eligible employees to unassigned shifts in the given date range.
-    /// Matching is based on the shift's WorkerType against each employee's Occupation.
-    /// Employees are skipped for a given shift if adding it would exceed their MaxHours for that week.
-    /// A zero MaxHours value means no limit. Employees are distributed in round-robin order
-    /// per worker type to balance workload.
+    /// Delegates to <see cref="ExecuteAutoAssign"/> for the core assignment logic.
     /// </summary>
     private async Task AutoPopulateShifts()
     {
@@ -1157,26 +1234,20 @@
         {
             autoPopulateIsRunning = true;
 
-            // Refresh linked users from the database so we have the latest MaxHours values.
-            // This guards against stale in-memory data when the manager updated an employee's
-            // MaxHours on the Manage page after this Calendar page was first loaded.
-            if (!string.IsNullOrEmpty(_managerCode))
-            {
-                linkedUsers = await UserService.GetLinkedUsersForManagerAsync(_managerCode);
-            }
+            // Refresh linked users so we have the latest MaxHours / priority values.
+            linkedUsers = await UserService.GetLinkedUsersForManagerAsync(_managerCode);
 
-            // Load unassigned shifts for the exact requested range (padded for UTC boundaries)
+            // Load unassigned shifts for the exact requested range (padded for UTC boundaries).
             var queryStart = autoPopulateRangeStart.AddDays(-1);
             var queryEnd = autoPopulateRangeEnd.AddDays(1);
             var rangeShifts = await ShiftService.GetShiftsAsync(_username, _userId, _managerCode, queryStart, queryEnd);
 
-            // Filter to only unassigned shifts within the exact requested range
             var unassigned = rangeShifts
                 .Where(s => string.IsNullOrEmpty(s.AssignedToUserId))
                 .Where(s =>
                 {
-                    var shiftDay = DateOnly.FromDateTime(s.Start.ToLocalTime());
-                    return shiftDay >= autoPopulateRangeStart && shiftDay <= autoPopulateRangeEnd;
+                    var d = DateOnly.FromDateTime(s.Start.ToLocalTime());
+                    return d >= autoPopulateRangeStart && d <= autoPopulateRangeEnd;
                 })
                 .OrderBy(s => s.Start)
                 .ToList();
@@ -1187,157 +1258,14 @@
                 return;
             }
 
-            // To accurately enforce the weekly hour cap we must count ALL assigned shifts
-            // that fall within any calendar week overlapping the auto-populate range — not just
-            // shifts inside the range itself. Weeks run Sunday–Saturday, so expand the query
-            // to cover the full Sun–Sat span of every week that touches the range.
-            var firstWeekSunday = autoPopulateRangeStart.AddDays(-(int)autoPopulateRangeStart.DayOfWeek);
-            var lastWeekSaturday = autoPopulateRangeEnd.AddDays((6 - (int)autoPopulateRangeEnd.DayOfWeek + 7) % 7);
-            var hoursQueryStart = firstWeekSunday.AddDays(-1);
-            var hoursQueryEnd = lastWeekSaturday.AddDays(1);
-            var allWeekShifts = await ShiftService.GetShiftsAsync(_username, _userId, _managerCode, hoursQueryStart, hoursQueryEnd);
+            // Load all shifts spanning the full calendar-week range so pre-existing hours
+            // are counted correctly when enforcing the weekly MaxHours cap.
+            var allWeekShifts = await LoadFullWeekShifts(autoPopulateRangeStart, autoPopulateRangeEnd);
 
-            // Build a lookup of eligible employees by occupation (case-insensitive).
-            // Only consider employees linked to this manager.
-            var eligibleByOccupation = linkedUsers
-                .Where(u => u.Id != _userId) // exclude the manager themselves
-                .GroupBy(u => string.IsNullOrWhiteSpace(u.Occupation) ? "General" : u.Occupation, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+            var result = await ExecuteAutoAssign(unassigned, allWeekShifts);
 
-            // Pre-populate weekly hours from ALL assigned shifts across the full overlapping weeks
-            // so that hours worked before the auto-populate range (but in the same week) are counted.
-            var weeklyHours = new Dictionary<string, Dictionary<string, double>>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var shift in allWeekShifts.Where(s => !string.IsNullOrEmpty(s.AssignedToUserId)))
-            {
-                var weekKey = GetIsoWeekKey(shift.Start.ToLocalTime());
-                if (!weeklyHours.TryGetValue(shift.AssignedToUserId!, out var empWeeks))
-                {
-                    empWeeks = new Dictionary<string, double>();
-                    weeklyHours[shift.AssignedToUserId!] = empWeeks;
-                }
-                empWeeks.TryGetValue(weekKey, out var existing);
-                empWeeks[weekKey] = existing + (shift.End - shift.Start).TotalHours;
-            }
-
-            // Round-robin index per occupation so workload is spread evenly
-            var roundRobinIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-
-            // Track per-employee assignments made in this run only (count + hours)
-            // Kept separate from weeklyHours so the display is not polluted by historical data.
-            var assignedThisRun = new Dictionary<string, (int Count, double Hours)>(StringComparer.OrdinalIgnoreCase);
-            var uncappedEmployeeIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            int assignedCount = 0;
-
-            foreach (var shift in unassigned)
-            {
-                var workerType = string.IsNullOrWhiteSpace(shift.WorkerType) ? "General" : shift.WorkerType;
-
-                if (!eligibleByOccupation.TryGetValue(workerType, out var candidates) || candidates.Count == 0)
-                {
-                    // No employees match this worker type – skip
-                    continue;
-                }
-
-                var shiftHours = (shift.End - shift.Start).TotalHours;
-                var weekKey = GetIsoWeekKey(shift.Start.ToLocalTime());
-
-                // Pick the next candidate in round-robin order that has capacity
-                roundRobinIndex.TryGetValue(workerType, out var startIndex);
-                string? chosenId = null;
-
-                for (int attempt = 0; attempt < candidates.Count; attempt++)
-                {
-                    var candidateIndex = (startIndex + attempt) % candidates.Count;
-                    var candidate = candidates[candidateIndex];
-
-                    if (candidate.Id is null) continue;
-
-                    // Check weekly hour cap
-                    if (candidate.MaxHours > 0)
-                    {
-                        weeklyHours.TryGetValue(candidate.Id, out var empWeeks);
-                        double hoursUsed = 0;
-                        empWeeks?.TryGetValue(weekKey, out hoursUsed);
-                        if ((hoursUsed + shiftHours) > candidate.MaxHours)
-                            continue; // Would exceed cap – skip this candidate
-                    }
-
-                    chosenId = candidate.Id;
-                    // Flag employees with no hour cap so we can warn the manager
-                    if (candidate.MaxHours <= 0)
-                        uncappedEmployeeIds.Add(candidate.Id);
-                    // Advance round-robin past this candidate for the next shift of the same type
-                    roundRobinIndex[workerType] = (candidateIndex + 1) % candidates.Count;
-                    break;
-                }
-
-                if (chosenId is null) continue;
-
-                // Assign the shift
-                await ShiftService.UpdateShiftAsync(
-                    shift.Id!,
-                    _username,
-                    shift.Start,
-                    shift.End,
-                    shift.Title,
-                    shift.Notes,
-                    shift.WorkerType,
-                    shift.Color,
-                    chosenId);
-
-                // Update the in-memory weekly hours tracker so subsequent shifts in the same
-                // loop iteration reflect this assignment
-                if (!weeklyHours.TryGetValue(chosenId, out var chosenWeeks))
-                {
-                    chosenWeeks = new Dictionary<string, double>();
-                    weeklyHours[chosenId] = chosenWeeks;
-                }
-                chosenWeeks.TryGetValue(weekKey, out var currentHours);
-                chosenWeeks[weekKey] = currentHours + shiftHours;
-
-                // Track per-employee newly assigned count and hours for the success message
-                assignedThisRun.TryGetValue(chosenId, out var prev);
-                assignedThisRun[chosenId] = (prev.Count + 1, prev.Hours + shiftHours);
-
-                assignedCount++;
-            }
-
-            // Reload calendar so newly assigned shifts appear immediately
             await LoadReminders();
-
-            if (assignedCount == 0)
-            {
-                autoPopulateSuccess = "No shifts could be assigned. Check that employees with matching occupations exist and have sufficient weekly hours remaining.";
-            }
-            else
-            {
-                // Build a per-employee breakdown using only hours assigned in this run
-                var breakdown = assignedThisRun
-                    .Select(kvp =>
-                    {
-                        var emp = linkedUsers.FirstOrDefault(u => u.Id == kvp.Key);
-                        var name = emp?.DisplayName ?? emp?.Username ?? kvp.Key;
-                        return $"{name}: {kvp.Value.Count} shift{(kvp.Value.Count == 1 ? "" : "s")} ({kvp.Value.Hours:0.#}h assigned)";
-                    })
-                    .ToList();
-
-                autoPopulateSuccess = $"Successfully assigned {assignedCount} shift{(assignedCount == 1 ? "" : "s")}. " +
-                    string.Join(", ", breakdown);
-
-                // Warn if any assigned employee has no hour cap (MaxHours = 0)
-                if (uncappedEmployeeIds.Count > 0)
-                {
-                    var uncappedNames = uncappedEmployeeIds
-                        .Select(id => linkedUsers.FirstOrDefault(u => u.Id == id))
-                        .Where(u => u is not null)
-                        .Select(u => u!.DisplayName ?? u.Username)
-                        .ToList();
-                    autoPopulateWarning = $"⚠️ The following employee(s) have no weekly hour limit set (Max Hours = 0) and were assigned shifts without a cap: {string.Join(", ", uncappedNames)}. " +
-                        "Set their Max Hours in the Manage page to enforce a weekly limit.";
-                }
-            }
+            BuildAutoAssignMessages(result, ref autoPopulateSuccess, ref autoPopulateWarning);
         }
         catch (Exception ex)
         {
@@ -1347,6 +1275,329 @@
         finally
         {
             autoPopulateIsRunning = false;
+        }
+    }
+
+    /// <summary>
+    /// Loads all shifts spanning the full calendar-week boundaries that overlap the given
+    /// date range. This is used to seed the weekly-hours tracker so pre-existing assigned
+    /// hours are respected when enforcing MaxHours caps.
+    /// </summary>
+    private async Task<List<Shift>> LoadFullWeekShifts(DateOnly rangeStart, DateOnly rangeEnd)
+    {
+        // Expand to the Sunday that starts the first overlapping week and the Saturday that
+        // ends the last overlapping week, using DayOfWeek (0=Sunday) arithmetic.
+        var fdow = (int)CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek;
+        var startDiff = ((int)rangeStart.DayOfWeek - fdow + 7) % 7;
+        var endDiff = (fdow + 6 - (int)rangeEnd.DayOfWeek + 7) % 7;
+        var weekStart = rangeStart.AddDays(-startDiff).AddDays(-1); // pad one day for UTC
+        var weekEnd = rangeEnd.AddDays(endDiff).AddDays(1);         // pad one day for UTC
+        return await ShiftService.GetShiftsAsync(_username, _userId, _managerCode, weekStart, weekEnd);
+    }
+
+    /// <summary>
+    /// Core priority-aware, MaxHours-respecting shift assignment engine shared by both
+    /// <see cref="AutoPopulateShifts"/> and <see cref="AutoPopulateSelectedDays"/>.
+    /// </summary>
+    /// <param name="unassigned">Ordered list of unassigned shifts to fill.</param>
+    /// <param name="allWeekShifts">All shifts in the relevant week span, used to seed per-employee weekly hours.</param>
+    private async Task<(int AssignedCount, Dictionary<string, (int Count, double Hours)> AssignedThisRun, HashSet<string> UncappedIds)>
+        ExecuteAutoAssign(List<Shift> unassigned, List<Shift> allWeekShifts)
+    {
+        // Build lookup: occupation → eligible employees (manager excluded).
+        var eligibleByOccupation = linkedUsers
+            .Where(u => u.Id != _userId)
+            .GroupBy(u => string.IsNullOrWhiteSpace(u.Occupation) ? "General" : u.Occupation, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+        // Seed weekly hours from already-assigned shifts so existing workload is respected.
+        // Key: employeeId → (weekKey → hoursAssigned)
+        var weeklyHours = new Dictionary<string, Dictionary<string, double>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var s in allWeekShifts.Where(s => !string.IsNullOrEmpty(s.AssignedToUserId)))
+        {
+            var wk = GetIsoWeekKey(s.Start.ToLocalTime());
+            if (!weeklyHours.TryGetValue(s.AssignedToUserId!, out var empMap))
+            {
+                empMap = new Dictionary<string, double>();
+                weeklyHours[s.AssignedToUserId!] = empMap;
+            }
+            empMap.TryGetValue(wk, out var prev);
+            empMap[wk] = prev + (s.End - s.Start).TotalHours;
+        }
+
+        // Per occupation+priority-tier round-robin cursor.
+        var roundRobinIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var assignedThisRun = new Dictionary<string, (int Count, double Hours)>(StringComparer.OrdinalIgnoreCase);
+        var uncappedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int assignedCount = 0;
+
+        foreach (var shift in unassigned)
+        {
+            var workerType = string.IsNullOrWhiteSpace(shift.WorkerType) ? "General" : shift.WorkerType;
+
+            if (!eligibleByOccupation.TryGetValue(workerType, out var candidates) || candidates.Count == 0)
+                continue;
+
+            var shiftHours = (shift.End - shift.Start).TotalHours;
+            var weekKey = GetIsoWeekKey(shift.Start.ToLocalTime());
+
+            // Sort candidates into priority tiers (highest priority first).
+            // Within each tier employees share shifts in round-robin order.
+            var tiers = candidates
+                .GroupBy(c => c.ShiftAssignmentPriority)
+                .OrderByDescending(g => g.Key)
+                .Select(g => g.ToList())
+                .ToList();
+
+            string? chosenId = null;
+
+            foreach (var tier in tiers)
+            {
+                var rrKey = $"{workerType}::{tier[0].ShiftAssignmentPriority}";
+                roundRobinIndex.TryGetValue(rrKey, out var rrStart);
+
+                for (int attempt = 0; attempt < tier.Count; attempt++)
+                {
+                    var idx = (rrStart + attempt) % tier.Count;
+                    var candidate = tier[idx];
+
+                    if (candidate.Id is null) continue;
+
+                    // Enforce MaxHours cap per calendar week.
+                    if (candidate.MaxHours > 0)
+                    {
+                        weeklyHours.TryGetValue(candidate.Id, out var empMap);
+                        double hoursUsed = 0;
+                        empMap?.TryGetValue(weekKey, out hoursUsed);
+                        if (hoursUsed + shiftHours > candidate.MaxHours)
+                            continue; // over cap – try next candidate
+                    }
+
+                    chosenId = candidate.Id;
+                    if (candidate.MaxHours <= 0) uncappedIds.Add(candidate.Id);
+                    roundRobinIndex[rrKey] = (idx + 1) % tier.Count;
+                    break;
+                }
+
+                if (chosenId is not null) break; // found in this tier – don't fall to lower tiers
+            }
+
+            if (chosenId is null) continue;
+
+            await ShiftService.UpdateShiftAsync(shift.Id!, _username, shift.Start, shift.End,
+                shift.Title, shift.Notes, shift.WorkerType, shift.Color, chosenId);
+
+            // Immediately update in-memory weekly hours so the next iteration in the same
+            // week sees the hours just committed.
+            if (!weeklyHours.TryGetValue(chosenId, out var chosenWeeks))
+            {
+                chosenWeeks = new Dictionary<string, double>();
+                weeklyHours[chosenId] = chosenWeeks;
+            }
+            chosenWeeks.TryGetValue(weekKey, out var currentHours);
+            chosenWeeks[weekKey] = currentHours + shiftHours;
+
+            assignedThisRun.TryGetValue(chosenId, out var runPrev);
+            assignedThisRun[chosenId] = (runPrev.Count + 1, runPrev.Hours + shiftHours);
+            assignedCount++;
+        }
+
+        return (assignedCount, assignedThisRun, uncappedIds);
+    }
+
+    /// <summary>
+    /// Converts the result tuple from <see cref="ExecuteAutoAssign"/> into human-readable
+    /// success and warning messages, writing them into the provided ref strings.
+    /// </summary>
+    private void BuildAutoAssignMessages(
+        (int AssignedCount, Dictionary<string, (int Count, double Hours)> AssignedThisRun, HashSet<string> UncappedIds) result,
+        ref string? successMsg,
+        ref string? warningMsg)
+    {
+        if (result.AssignedCount == 0)
+        {
+            successMsg = "No shifts could be assigned. Check that employees with matching occupations exist and have sufficient weekly hours remaining.";
+            return;
+        }
+
+        var breakdown = result.AssignedThisRun
+            .Select(kvp =>
+            {
+                var emp = linkedUsers.FirstOrDefault(u => u.Id == kvp.Key);
+                var name = emp?.DisplayName ?? emp?.Username ?? kvp.Key;
+                return $"{name}: {kvp.Value.Count} shift{(kvp.Value.Count == 1 ? "" : "s")} ({kvp.Value.Hours:0.#}h assigned)";
+            })
+            .ToList();
+
+        successMsg = $"Successfully assigned {result.AssignedCount} shift{(result.AssignedCount == 1 ? "" : "s")}. {string.Join(", ", breakdown)}";
+
+        if (result.UncappedIds.Count > 0)
+        {
+            var names = result.UncappedIds
+                .Select(id => linkedUsers.FirstOrDefault(u => u.Id == id))
+                .Where(u => u is not null)
+                .Select(u => u!.DisplayName ?? u.Username)
+                .ToList();
+            warningMsg = $"⚠️ The following employee(s) have no weekly hour limit set (Max Hours = 0) and were assigned shifts without a cap: {string.Join(", ", names)}. " +
+                "Set their Max Hours in the Manage page to enforce a weekly limit.";
+        }
+    }
+
+    /// <summary>
+    /// Applies the selected rotation template across the currently selected days.
+    /// Equivalent to the day-modal Apply action but uses the explicit set of selected days
+    /// and does not allow changing the date range.
+    /// </summary>
+    private async Task ApplyWorkWeekToSelectedDays()
+    {
+        multiDayWorkWeekError = null;
+
+        if (selectedDays.Count == 0)
+        {
+            multiDayWorkWeekError = "No days are selected.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(multiDaySelectedWorkWeekId))
+        {
+            multiDayWorkWeekError = "Please select a WorkWeek template.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(selectedScheduleId))
+        {
+            multiDayWorkWeekError = "No schedule is selected.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(_managerCode))
+        {
+            multiDayWorkWeekError = "Your account does not have a manager code. Please contact support.";
+            return;
+        }
+
+        try
+        {
+            multiDayIsApplying = true;
+
+            var templateShifts = await ShiftService.GetRotationTemplateShiftsAsync(multiDaySelectedWorkWeekId, _managerCode);
+            if (templateShifts.Count == 0)
+            {
+                multiDayWorkWeekError = "No template shifts found for the selected WorkWeek.";
+                return;
+            }
+
+            var toCreate = new List<Shift>();
+            foreach (var day in selectedDays.OrderBy(d => d))
+            {
+                foreach (var template in templateShifts)
+                {
+                    if (template.WorkDay != day.DayOfWeek) continue;
+
+                    var templateStartTime = TimeOnly.FromDateTime(template.Start);
+                    var templateEndTime = TimeOnly.FromDateTime(template.End);
+
+                    toCreate.Add(new Shift
+                    {
+                        Username = _username ?? string.Empty,
+                        Start = day.ToDateTime(templateStartTime, DateTimeKind.Local).ToUniversalTime(),
+                        End = day.ToDateTime(templateEndTime, DateTimeKind.Local).ToUniversalTime(),
+                        Title = template.Title,
+                        Color = template.Color,
+                        Notes = template.Notes,
+                        AssignedToUserId = template.AssignedToUserId,
+                        ManagerCode = _managerCode,
+                        ScheduleId = selectedScheduleId,
+                        WorkerType = template.WorkerType,
+                        RotationId = null,
+                        WorkDay = null
+                    });
+                }
+            }
+
+            foreach (var shift in toCreate)
+            {
+                await ShiftService.CreateShiftAsync(shift);
+            }
+
+            await LoadReminders();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error applying WorkWeek template to selected days");
+            multiDayWorkWeekError = "An error occurred while applying the template. Please try again.";
+        }
+        finally
+        {
+            multiDayIsApplying = false;
+        }
+    }
+
+    /// <summary>
+    /// Auto-assign eligible employees to unassigned shifts that fall on the currently selected days.
+    /// Delegates to <see cref="ExecuteAutoAssign"/> for the core assignment logic.
+    /// </summary>
+    private async Task AutoPopulateSelectedDays()
+    {
+        multiDayAutoError = null;
+        multiDayAutoWarning = null;
+        multiDayAutoSuccess = null;
+
+        if (selectedDays.Count == 0)
+        {
+            multiDayAutoError = "No days are selected.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(_managerCode))
+        {
+            multiDayAutoError = "Your account does not have a manager code. Please contact support.";
+            return;
+        }
+
+        try
+        {
+            multiDayAutoIsRunning = true;
+
+            // Refresh linked users to get the latest MaxHours / priority values.
+            linkedUsers = await UserService.GetLinkedUsersForManagerAsync(_managerCode);
+
+            var minDay = selectedDays.Min();
+            var maxDay = selectedDays.Max();
+            var queryStart = minDay.AddDays(-1);
+            var queryEnd = maxDay.AddDays(1);
+            var rangeShifts = await ShiftService.GetShiftsAsync(_username, _userId, _managerCode, queryStart, queryEnd);
+
+            // Only process shifts whose local start day is one of the explicitly selected days.
+            var unassigned = rangeShifts
+                .Where(s => string.IsNullOrEmpty(s.AssignedToUserId))
+                .Where(s => selectedDays.Contains(DateOnly.FromDateTime(s.Start.ToLocalTime())))
+                .OrderBy(s => s.Start)
+                .ToList();
+
+            if (unassigned.Count == 0)
+            {
+                multiDayAutoSuccess = "No unassigned shifts found on the selected days.";
+                return;
+            }
+
+            // Load the full week span covering all selected days for accurate hour accounting.
+            var allWeekShifts = await LoadFullWeekShifts(minDay, maxDay);
+
+            var result = await ExecuteAutoAssign(unassigned, allWeekShifts);
+
+            await LoadReminders();
+            BuildAutoAssignMessages(result, ref multiDayAutoSuccess, ref multiDayAutoWarning);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during auto-assign for selected days");
+            multiDayAutoError = "An error occurred while auto-assigning shifts. Please try again.";
+        }
+        finally
+        {
+            multiDayAutoIsRunning = false;
         }
     }
 
@@ -1581,6 +1832,28 @@
             .Where(id => id is not null)
             .Distinct()
             .Count();
+    }
+
+    /// <summary>
+    /// Returns the total number of unassigned shifts (after filters) across all selected days.
+    /// </summary>
+    private int GetTotalUnassignedShiftsInSelectedDays()
+    {
+        // Count unassigned shifts using the loaded `shifts` collection rather than
+        // `GetShiftsForDay` so the button enables even if UI filters temporarily hide
+        // unassigned shifts. Match schedule filter and local-day overlap similarly.
+        if (shifts == null || shifts.Count == 0) return 0;
+
+        var ids = new HashSet<string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var s in shifts)
+        {
+            if (!string.IsNullOrEmpty(s.AssignedToUserId)) continue;
+            if (!string.IsNullOrEmpty(selectedScheduleId) && s.ScheduleId != selectedScheduleId) continue;
+            var day = DateOnly.FromDateTime(s.Start.ToLocalTime());
+            if (selectedDays.Contains(day)) ids.Add(s.Id);
+        }
+
+        return ids.Count(id => id is not null);
     }
 
     /// <summary>
@@ -2058,10 +2331,10 @@
         return [.. items.OrderBy(i => i.SortKey)];
     }
 
-        private void OpenEditAbsenceModal(Absence absence)
-        {
-            showDayModal = false;
-            editingAbsence = absence;
+    private void OpenEditAbsenceModal(Absence absence)
+    {
+        showDayModal = false;
+        editingAbsence = absence;
         editAbsenceStartDateUtc = absence.StartDate.ToString("O");
         editAbsenceDayCount = absence.DayCount;
         editAbsenceTitle = absence.Title;
@@ -2813,4 +3086,4 @@
         _userById = newMap;
     }
 
-    }
+}

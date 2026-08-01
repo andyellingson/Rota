@@ -425,6 +425,20 @@
                                             }
                                         </div>
 
+                                        <div class="team-detail-field" style="grid-row: 1; grid-column: 3;">
+                                            <label class="team-detail-label small mb-1">Shift Priority</label>
+                                            <div class="d-flex gap-2 mt-1 align-items-center">
+                                                <input type="number" step="1" min="0" class="form-control form-control-sm" style="width:100px;" @bind="selectedMemberPriority"
+                                                       title="Higher number = assigned shifts first. Employees with equal priority share shifts in round-robin order." />
+                                                <button class="btn btn-sm btn-primary" @onclick="SavePriorityOnly" disabled="@(!HasPriorityChanged || isBusy)">Save</button>
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(selectedMemberPriorityMessage))
+                                            {
+                                                <div class="team-detail-message @(selectedMemberPriorityError ? "team-detail-message-error" : "team-detail-message-ok") mt-2">@selectedMemberPriorityMessage</div>
+                                            }
+                                            <div class="text-muted small mt-1">Higher = assigned first. Equal priority = round-robin.</div>
+                                        </div>
+
                                         <div class="team-detail-field" style="grid-row: 2; grid-column: 1;">
                                             <label class="team-detail-label">Weekly Availability</label>
                                             @if (selectedMember.Availability.Count == 0)
@@ -583,14 +597,20 @@
     private bool memberOccupationError;
     private string? selectedMemberMaxHoursMessage;
     private bool selectedMemberMaxHoursError;
+    // Local edit buffer for the selected member's ShiftAssignmentPriority
+    private int selectedMemberPriority = 0;
+    private string? selectedMemberPriorityMessage;
+    private bool selectedMemberPriorityError;
 
     /// <summary>True when any of the member editable fields differ from the selected member's saved values.</summary>
     private bool HasMemberChanges =>
-        selectedMember is not null && (selectedMemberOccupation != selectedMember.Occupation || selectedMemberMaxHours != (selectedMember?.MaxHours ?? 0.0));
+        selectedMember is not null && (selectedMemberOccupation != selectedMember.Occupation || selectedMemberMaxHours != (selectedMember?.MaxHours ?? 0.0) || selectedMemberPriority != (selectedMember?.ShiftAssignmentPriority ?? 0));
 
     private bool HasOccupationChanged => selectedMember is not null && selectedMemberOccupation != selectedMember.Occupation;
 
     private bool HasMaxHoursChanged => selectedMember is not null && selectedMemberMaxHours != (selectedMember?.MaxHours ?? 0.0);
+
+    private bool HasPriorityChanged => selectedMember is not null && selectedMemberPriority != (selectedMember?.ShiftAssignmentPriority ?? 0);
 
     /// <summary>
     /// Returns the member's full name (First + Last). Falls back to DisplayName then Username
@@ -1099,6 +1119,9 @@
         // Populate editable MaxHours buffer
         selectedMemberMaxHours = member.MaxHours;
 
+        // Populate editable priority buffer
+        selectedMemberPriority = member.ShiftAssignmentPriority;
+
         // Load upcoming absences for this member (next 30 days)
         await LoadUpcomingAbsencesForMember(member);
     }
@@ -1401,6 +1424,39 @@
             {
                 selectedMemberMaxHoursMessage = "Could not update max hours. Please try again.";
                 selectedMemberMaxHoursError = true;
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task SavePriorityOnly()
+    {
+        if (selectedMember is null) return;
+        selectedMemberPriorityMessage = null;
+        isBusy = true;
+        try
+        {
+            if (selectedMemberPriority == selectedMember.ShiftAssignmentPriority)
+            {
+                selectedMemberPriorityMessage = "No changes.";
+                selectedMemberPriorityError = false;
+                return;
+            }
+
+            var ok = await UserService.UpdateShiftAssignmentPriorityAsync(selectedMember.Username, selectedMemberPriority);
+            if (ok)
+            {
+                selectedMember.ShiftAssignmentPriority = selectedMemberPriority;
+                selectedMemberPriorityMessage = "Priority updated.";
+                selectedMemberPriorityError = false;
+            }
+            else
+            {
+                selectedMemberPriorityMessage = "Could not update priority. Please try again.";
+                selectedMemberPriorityError = true;
             }
         }
         finally

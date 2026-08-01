@@ -56,6 +56,48 @@
     margin-right: auto;
 }
 
+/* Multi-day action bar should align and match the calendar width */
+.multi-day-action-bar {
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+    border: 1px solid var(--color-border);
+    padding: 0.45rem 0.9rem;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+/* Row 1: all buttons sit on a single horizontal line */
+.multi-day-action-bar-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* Row 2: feedback messages sit below the button row */
+.multi-day-action-bar-messages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding-left: 0.1rem;
+    font-size: 0.82rem;
+}
+
+.multi-day-action-bar .action-bar-info {
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.multi-day-action-bar .action-bar-sep {
+    width: 1px;
+    height: 1.25rem;
+    background-color: var(--color-border);
+    margin: 0 0.25rem;
+}
+
 /* ── Schedule toolbar (horizontal bar above calendar) ────────────────── */
 .schedule-toolbar {
     max-width: 1600px;
@@ -575,9 +617,8 @@
 /* Multi-day action bar – inline banner between toolbar and calendar */
 .multi-day-action-bar {
     display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 0.35rem;
     background: var(--color-bg-card);
     border: 1.5px solid #3b82f6;
     border-radius: 8px;
@@ -587,6 +628,21 @@
     font-size: 0.88rem;
     color: var(--color-text-primary);
     box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+.multi-day-action-bar .multi-day-action-bar-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.multi-day-action-bar .multi-day-action-bar-messages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.82rem;
+    padding-left: 0.1rem;
 }
 
 [data-theme="dark"] .multi-day-action-bar {
