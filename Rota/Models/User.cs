@@ -97,5 +97,12 @@ namespace Rota.Models
         /// </summary>
         [BsonElement("shiftAssignmentPriority")]
         public int ShiftAssignmentPriority { get; set; } = 0;
+
+        /// <summary>
+        /// IDs of the schedules the manager has assigned to this employee.
+        /// Employees can only view schedules listed here.
+        /// </summary>
+        [BsonElement("assignedScheduleIds")]
+        public List<string> AssignedScheduleIds { get; set; } = new();
     }
 }

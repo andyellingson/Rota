@@ -46,11 +46,18 @@
 /* Outline secondary/neutral buttons should use theme text color and subtle borders */
 .btn-outline-secondary {
     background-color: transparent !important;
-    border-color: rgba(0,0,0,0.08) !important;
+    /* Clearly visible border so the button doesn't look disabled */
+    border-color: color-mix(in srgb, var(--color-text-primary) 45%, transparent) !important;
     color: var(--color-text-primary) !important;
+    cursor: pointer;
 }
 .btn-outline-secondary:hover, .btn-outline-secondary:focus {
-    background-color: color-mix(in srgb, var(--color-text-primary) 6%, transparent) !important;
+    background-color: color-mix(in srgb, var(--color-text-primary) 10%, transparent) !important;
+    border-color: var(--color-text-primary) !important;
+}
+.btn-outline-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* Small utility for primary buttons inside darker themes where 'on' color should be dark */

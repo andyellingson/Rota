@@ -1,0 +1,275 @@
+@using Rota.Models
+
+@* Calendar toolbar: schedule selector, item toggles, shift filters, view/navigation controls, selection mode and print. *@
+<div class="schedule-toolbar card shadow-sm mt-4 mb-2">
+    <div class="card-body schedule-toolbar-body">
+
+        @* Group 1: Schedule selector *@
+        @if (Schedules.Count > 0)
+        {
+            <div class="toolbar-group toolbar-group--schedule">
+                <label class="toolbar-label" for="schedule-selector">Schedule</label>
+                <select id="schedule-selector"
+                        class="form-select form-select-sm toolbar-schedule-select"
+                        title="Choose which schedule to view in the calendar"
+                        value="@SelectedScheduleId"
+                        @onchange="OnScheduleSelected">
+                    @foreach (var schedule in Schedules)
+                    {
+                        <option value="@schedule.Id">@schedule.Name</option>
+                    }
+                </select>
+            </div>
+        }
+
+        @* Separator *@
+        <div class="toolbar-sep" aria-hidden="true"></div>
+
+        @* Group 4: Calendar item toggles *@
+        <div class="toolbar-group">
+            <div class="toolbar-label">Show</div>
+            <div class="toolbar-toggle-row">
+                <input type="checkbox" class="btn-check" id="filter-shifts" checked="@ShowShifts" @onchange="e => ShowShiftsChanged.InvokeAsync((bool)e.Value!)" autocomplete="off">
+                <label class="btn btn-sm btn-outline-primary toolbar-toggle-btn" for="filter-shifts" title="Show or hide shifts on the calendar">Shifts</label>
+
+                <input type="checkbox" class="btn-check" id="filter-absences" checked="@ShowAbsences" @onchange="e => ShowAbsencesChanged.InvokeAsync((bool)e.Value!)" autocomplete="off">
+                <label class="btn btn-sm btn-outline-warning toolbar-toggle-btn" for="filter-absences" title="Show or hide absences on the calendar">Absences</label>
+
+                <input type="checkbox" class="btn-check" id="filter-reminders" checked="@ShowReminders" @onchange="e => ShowRemindersChanged.InvokeAsync((bool)e.Value!)" autocomplete="off">
+                <label class="btn btn-sm btn-outline-info toolbar-toggle-btn" for="filter-reminders" title="Show or hide reminders on the calendar">Reminders</label>
+            </div>
+        </div>
+
+        @* Group 5: Shift filters (worker types + employees) – only when data is available *@
+        @if (WorkerTypeVisibility.Count > 0 || EmployeeVisibility.Count > 0)
+        {
+            <div class="toolbar-sep" aria-hidden="true"></div>
+
+            <div class="toolbar-group">
+                <div class="toolbar-label">Filters</div>
+                <div class="toolbar-filter-row">
+                    @* Worker type multi-select dropdown *@
+                    @if (WorkerTypeVisibility.Count > 0)
+                    {
+                        var allVisible = WorkerTypeVisibility.Values.All(v => v);
+                        var dropdownLabel = allVisible ? "Worker Types" : $"Worker Types ({WorkerTypeVisibility.Values.Count(v => v)}/{WorkerTypeVisibility.Count})";
+                        <div class="dropdown" @onclick:stopPropagation="true">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle toolbar-filter-btn @(!allVisible ? "active" : "")"
+                                    type="button"
+                                    title="Filter visible shifts by worker type"
+                                    @onclick="ToggleWorkerTypeDropdown"
+                                    aria-expanded="@showWorkerTypeDropdown.ToString().ToLowerInvariant()">
+                                @dropdownLabel
+                            </button>
+                            @if (showWorkerTypeDropdown)
+                            {
+                                <div class="dropdown-menu show p-2 worker-type-dropdown-menu">
+                                    <div class="d-flex gap-2 mb-2 border-bottom pb-2">
+                                        <button class="btn btn-link btn-sm p-0 text-decoration-none" @onclick="() => SetAllVisibility(WorkerTypeVisibility, true)">All</button>
+                                        <button class="btn btn-link btn-sm p-0 text-decoration-none" @onclick="() => SetAllVisibility(WorkerTypeVisibility, false)">None</button>
+                                    </div>
+                                    @foreach (var wt in WorkerTypeVisibility.Keys.OrderBy(k => k))
+                                    {
+                                        var capturedWt = wt;
+                                        var safeId = $"filter-wt-dd-{wt.Replace(" ", "-").Replace("/", "-")}";
+                                        <div class="form-check mb-1">
+                                            <input class="form-check-input" type="checkbox" id="@safeId"
+                                                   checked="@WorkerTypeVisibility[capturedWt]"
+                                                   @onchange="(() => ToggleVisibility(WorkerTypeVisibility, capturedWt))" />
+                                            <label class="form-check-label" for="@safeId">@capturedWt</label>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @* Employee multi-select dropdown *@
+                    @if (EmployeeVisibility.Count > 0)
+                    {
+                        var allEmpVisible = EmployeeVisibility.Values.All(v => v);
+                        var empDropdownLabel = allEmpVisible ? "Employees" : $"Employees ({EmployeeVisibility.Values.Count(v => v)}/{EmployeeVisibility.Count})";
+                        <div class="dropdown" @onclick:stopPropagation="true">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle toolbar-filter-btn @(!allEmpVisible ? "active" : "")"
+                                    type="button"
+                                    title="Filter visible shifts by assigned employee"
+                                    @onclick="ToggleEmployeeDropdown"
+                                    aria-expanded="@showEmployeeDropdown.ToString().ToLowerInvariant()">
+                                @empDropdownLabel
+                            </button>
+                            @if (showEmployeeDropdown)
+                            {
+                                <div class="dropdown-menu show p-2 worker-type-dropdown-menu">
+                                    <div class="d-flex gap-2 mb-2 border-bottom pb-2">
+                                        <button class="btn btn-link btn-sm p-0 text-decoration-none" @onclick="() => SetAllVisibility(EmployeeVisibility, true)">All</button>
+                                        <button class="btn btn-link btn-sm p-0 text-decoration-none" @onclick="() => SetAllVisibility(EmployeeVisibility, false)">None</button>
+                                    </div>
+                                    @foreach (var empId in EmployeeVisibility.Keys.OrderBy(k => GetEmployeeFilterName(k)))
+                                    {
+                                        var capturedId = empId;
+                                        var safeId = $"filter-emp-dd-{empId.Replace(" ", "-")}";
+                                        <div class="form-check mb-1">
+                                            <input class="form-check-input" type="checkbox" id="@safeId"
+                                                   checked="@EmployeeVisibility[capturedId]"
+                                                   @onchange="(() => ToggleVisibility(EmployeeVisibility, capturedId))" />
+                                            <label class="form-check-label" for="@safeId">@GetEmployeeFilterName(capturedId)</label>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @* Spacer pushes right-side groups to the far right *@
+        <div class="toolbar-spacer"></div>
+
+        @* Group 5b: View toggle (right side) *@
+        <div class="toolbar-group">
+            <div class="toolbar-label">View</div>
+            <div class="btn-group" role="group" aria-label="View mode">
+                <button class="btn btn-sm @(View == ViewMode.Week ? "btn-primary" : "btn-outline-primary")"
+                        title="Switch to weekly calendar view"
+                        @onclick="() => OnViewChanged.InvokeAsync(ViewMode.Week)"
+                        aria-pressed="@(View == ViewMode.Week)">
+                    Week
+                </button>
+                <button class="btn btn-sm @(View == ViewMode.Month ? "btn-primary" : "btn-outline-primary")"
+                        title="Switch to monthly calendar view"
+                        @onclick="() => OnViewChanged.InvokeAsync(ViewMode.Month)"
+                        aria-pressed="@(View == ViewMode.Month)">
+                    Month
+                </button>
+            </div>
+        </div>
+
+        @* Separator *@
+        <div class="toolbar-sep" aria-hidden="true"></div>
+
+        @* Group 5c: Navigation (right side) *@
+        <div class="toolbar-group">
+            <div class="toolbar-label">Navigate</div>
+            <div class="btn-group" role="group" aria-label="Navigation">
+                <button class="btn btn-sm btn-outline-secondary" title="Go to the previous week or month" @onclick="OnPrev">‹</button>
+                <button class="btn btn-sm btn-outline-secondary" title="Go to the next week or month" @onclick="OnNext">›</button>
+            </div>
+        </div>
+
+        @* Separator *@
+        <div class="toolbar-sep" aria-hidden="true"></div>
+
+        @* Group 6: Multi-day select mode toggle *@
+        <div class="toolbar-group toolbar-group--multiselect">
+            <div class="toolbar-label">Select Mode</div>
+            <div class="btn-group" role="group" aria-label="Selection mode">
+                <button class="btn btn-sm @(SelectionMode == SelectionMode.Day ? "btn-primary" : "btn-outline-secondary")"
+                        title="@(SelectionMode == SelectionMode.Day ? "Exit day selection mode" : "Click individual days to select them")"
+                        @onclick="() => OnSelectionModeChanged.InvokeAsync(SelectionMode.Day)"
+                        aria-pressed="@(SelectionMode == SelectionMode.Day)">
+                    ☑ Days
+                </button>
+                <button class="btn btn-sm @(SelectionMode == SelectionMode.Week ? "btn-primary" : "btn-outline-secondary")"
+                        title="@(SelectionMode == SelectionMode.Week ? "Exit week selection mode" : "Click any day to select its entire week")"
+                        @onclick="() => OnSelectionModeChanged.InvokeAsync(SelectionMode.Week)"
+                        aria-pressed="@(SelectionMode == SelectionMode.Week)">
+                    📅 Weeks
+                </button>
+            </div>
+        </div>
+
+        @* Separator *@
+        <div class="toolbar-sep" aria-hidden="true"></div>
+
+        @* Group 7: Print action *@
+        <div class="toolbar-group toolbar-group--print">
+            <button class="btn btn-sm btn-outline-secondary" title="Open the print preview for this schedule" @onclick="OnPrint">
+                🖨️ Print
+            </button>
+        </div>
+
+    </div>
+</div>
+
+@code {
+    // Controls whether the worker-type / employee filter dropdowns are open. Only one is open at a time.
+    private bool showWorkerTypeDropdown;
+    private bool showEmployeeDropdown;
+
+    /// <summary>Schedules the user can choose from.</summary>
+    [Parameter] public List<Schedule> Schedules { get; set; } = new();
+
+    /// <summary>Currently selected schedule id (two-way bindable).</summary>
+    [Parameter] public string? SelectedScheduleId { get; set; }
+    [Parameter] public EventCallback<string?> SelectedScheduleIdChanged { get; set; }
+
+    /// <summary>Whether shifts are shown (two-way bindable).</summary>
+    [Parameter] public bool ShowShifts { get; set; }
+    [Parameter] public EventCallback<bool> ShowShiftsChanged { get; set; }
+
+    /// <summary>Whether absences are shown (two-way bindable).</summary>
+    [Parameter] public bool ShowAbsences { get; set; }
+    [Parameter] public EventCallback<bool> ShowAbsencesChanged { get; set; }
+
+    /// <summary>Whether reminders are shown (two-way bindable).</summary>
+    [Parameter] public bool ShowReminders { get; set; }
+    [Parameter] public EventCallback<bool> ShowRemindersChanged { get; set; }
+
+    /// <summary>
+    /// Worker type name to visibility map. The dictionary is mutated in place by the toolbar,
+    /// so the owner reads the same instance when filtering shifts.
+    /// </summary>
+    [Parameter] public Dictionary<string, bool> WorkerTypeVisibility { get; set; } = new();
+
+    /// <summary>Employee id (or "__unassigned__") to visibility map; mutated in place like <see cref="WorkerTypeVisibility"/>.</summary>
+    [Parameter] public Dictionary<string, bool> EmployeeVisibility { get; set; } = new();
+
+    /// <summary>Resolves the label shown for an employee key in the filter dropdown.</summary>
+    [Parameter, EditorRequired] public Func<string, string> GetEmployeeFilterName { get; set; } = default!;
+
+    /// <summary>Raised after any visibility filter changed.</summary>
+    [Parameter] public EventCallback OnFilterChanged { get; set; }
+
+    /// <summary>Active view mode.</summary>
+    [Parameter] public ViewMode View { get; set; }
+    [Parameter] public EventCallback<ViewMode> OnViewChanged { get; set; }
+
+    /// <summary>Active multi-day selection mode.</summary>
+    [Parameter] public SelectionMode SelectionMode { get; set; }
+    [Parameter] public EventCallback<SelectionMode> OnSelectionModeChanged { get; set; }
+
+    [Parameter] public EventCallback OnPrev { get; set; }
+    [Parameter] public EventCallback OnNext { get; set; }
+    [Parameter] public EventCallback OnPrint { get; set; }
+
+    private Task OnScheduleSelected(ChangeEventArgs e) => SelectedScheduleIdChanged.InvokeAsync(e.Value?.ToString());
+
+    private void ToggleWorkerTypeDropdown()
+    {
+        showWorkerTypeDropdown = !showWorkerTypeDropdown;
+        if (showWorkerTypeDropdown) showEmployeeDropdown = false;
+    }
+
+    private void ToggleEmployeeDropdown()
+    {
+        showEmployeeDropdown = !showEmployeeDropdown;
+        if (showEmployeeDropdown) showWorkerTypeDropdown = false;
+    }
+
+    /// <summary>Sets every entry of the visibility map to <paramref name="visible"/>.</summary>
+    private Task SetAllVisibility(Dictionary<string, bool> map, bool visible)
+    {
+        foreach (var key in map.Keys.ToList())
+            map[key] = visible;
+        return OnFilterChanged.InvokeAsync();
+    }
+
+    /// <summary>Flips the visibility of a single entry.</summary>
+    private Task ToggleVisibility(Dictionary<string, bool> map, string key)
+    {
+        if (!map.ContainsKey(key)) return Task.CompletedTask;
+        map[key] = !map[key];
+        return OnFilterChanged.InvokeAsync();
+    }
+}

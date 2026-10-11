@@ -1,0 +1,338 @@
+.modal-backdrop {
+    background-color: rgba(0,0,0,0.5);
+    z-index: 1250 !important;
+}
+
+.modal {
+    z-index: 1300 !important;
+}
+
+.text-muted {
+    color: var(--color-text-medium) !important;
+}
+
+/* Shift cards */
+.day-detail-shift-card {
+    border: 1px solid var(--color-border);
+    border-left: 4px solid #1890ff;
+    border-radius: 6px;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    background: var(--color-bg-subtle);
+}
+
+.day-detail-shift-card:hover { opacity: 0.85; }
+
+/* Absence cards */
+.day-detail-absence-card {
+    border-left: 4px solid #fa8c16;
+    border-radius: 6px;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.day-detail-absence-card:hover { opacity: 0.85; }
+
+.day-detail-absence-card--pending {
+    border: 5px dashed var(--color-border);
+    border-left-width: 7px;
+}
+
+.day-detail-absence-card--denied {
+    position: relative;
+    border-left: 7px solid #dc3545;
+    opacity: 0.85;
+    overflow: hidden;
+}
+
+.day-detail-absence-card--denied::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        -45deg,
+        rgba(0, 0, 0, 0.08) 0px,
+        rgba(0, 0, 0, 0.08) 3px,
+        transparent 3px,
+        transparent 9px
+    );
+    pointer-events: none;
+}
+
+[data-theme="dark"] .day-detail-absence-card--denied::after {
+    background: repeating-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.07) 0px,
+        rgba(255, 255, 255, 0.07) 3px,
+        transparent 3px,
+        transparent 9px
+    );
+}
+
+.day-detail-absence-name { max-width: 35%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+
+/* Absence status badge contrast fixes for dark mode */
+[data-theme="dark"] .day-detail-absence-card .badge.bg-warning,
+[data-theme="dark"] .day-detail-absence-card .badge.bg-warning.text-dark {
+    background-color: #f59e0b !important;
+    color: #0f172a !important;
+}
+
+[data-theme="dark"] .day-detail-absence-card .badge.bg-danger {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+}
+
+/* Modal chrome */
+.day-modal-content {
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    overflow: hidden;
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+}
+
+.day-detail-body {
+    max-height: 60vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+}
+
+.day-modal-footer {
+    background: var(--color-bg-card);
+    border-top: 1px solid var(--color-border);
+    padding: 0.65rem 1.25rem;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.day-modal-header {
+    background: var(--color-bg-card);
+    border-bottom: 1px solid var(--color-border);
+    padding: 1rem 1.25rem;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+}
+
+.day-modal-template-bar {
+    background: var(--color-bg-subtle);
+    border-bottom: 1px solid rgba(13,110,253,0.12);
+    padding: 0.75rem 1.25rem;
+    color: var(--color-text-primary);
+}
+
+.day-modal-template-bar-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.1rem;
+}
+
+.day-modal-template-bar-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #4051b5;
+}
+
+[data-theme="dark"] .day-modal-template-bar-title {
+    color: #b0bdf9;
+}
+
+.day-modal-template-select {
+    min-width: 11rem;
+    max-width: 14rem;
+    background-color: var(--color-bg-card);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
+}
+
+.day-modal-date-input {
+    width: 9rem;
+    background-color: var(--color-bg-card);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
+}
+
+/* Reminder cards */
+.day-detail-reminder-card {
+    border: 1px solid var(--color-border);
+    border-left: 4px solid #ffeb3b;
+    border-radius: 6px;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    background: var(--color-bg-subtle);
+    color: var(--color-text-primary);
+}
+
+.day-detail-reminder-card:hover { opacity: 0.85; }
+
+/* Section headers */
+.day-detail-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
+    color: var(--color-text-medium);
+}
+
+.day-detail-section-title-text {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-medium);
+}
+
+.day-detail-section-count {
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: var(--color-bg-muted);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-medium);
+    border-radius: 10px;
+    padding: 0 0.45rem;
+    line-height: 1.6;
+}
+
+.day-modal-section-icon {
+    font-size: 0.9rem;
+}
+
+/* Card sub-elements */
+.day-detail-card-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.day-detail-shift-header,
+.day-detail-shift-details {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    min-width: 0;
+}
+
+.day-detail-shift-title {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-text-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.day-detail-unassigned {
+    color: #ff4d4f;
+    font-size: 0.72rem;
+    font-style: italic;
+    white-space: nowrap;
+}
+
+.day-detail-time-badge {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--color-text-medium);
+    background: var(--color-bg-muted);
+    border-radius: 4px;
+    padding: 0.05rem 0.4rem;
+    white-space: nowrap;
+}
+
+.day-detail-shift-details .day-detail-assigned {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.day-detail-duration-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-medium);
+}
+
+.day-detail-edit-hint {
+    font-size: 0.72rem;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+.day-detail-worker-badge {
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 0.1rem 0.5rem;
+}
+
+.day-detail-reminder-title-text {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.day-detail-absence-title-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 0.05rem 0.45rem;
+}
+
+.day-detail-assigned {
+    font-size: 0.78rem;
+    color: var(--color-text-medium);
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.day-detail-assigned-icon {
+    font-size: 0.8rem;
+}
+
+.day-detail-item-notes {
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+    margin-top: 0.3rem;
+    font-style: italic;
+}
+
+/* Empty state */
+.day-detail-empty {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--color-text-secondary);
+}
+
+.day-detail-empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.5;
+}
+
+.day-detail-empty-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-medium);
+    margin-bottom: 0.3rem;
+}
+
+.day-detail-empty-text {
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}

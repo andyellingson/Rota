@@ -1,0 +1,311 @@
+@using System.Globalization
+@using Rota.Models
+
+@* Expanded view of a single day: rotation/auto-populate tools (managers) plus its shifts, absences and reminders. *@
+@{
+    var isToday = State.Date == DateOnly.FromDateTime(DateTime.Today);
+    var totalItems = Shifts.Count + Absences.Count + Reminders.Count;
+}
+
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
+            <div class="modal-content day-modal-content">
+
+            @* Modal header *@
+            <div class="modal-header day-modal-header">
+                <div class="d-flex align-items-center gap-2">
+                    <h5 class="modal-title mb-0 fw-bold">
+                        @State.Date.ToString("dddd, MMMM d, yyyy", CultureInfo.CurrentCulture)
+                        @if (isToday)
+                        {
+                            <span class="badge bg-primary ms-2" style="font-size:0.65rem;vertical-align:middle;">Today</span>
+                        }
+                    </h5>
+                </div>
+                <div class="d-flex align-items-center ms-auto">
+                    <button type="button" class="btn-close" @onclick="OnClose" aria-label="Close"></button>
+                </div>
+            </div>
+
+            @* Apply rotation template bar (managers only) *@
+            @if (CanManageShifts && Rotations is { Count: > 0 })
+            {
+                <div class="day-modal-template-bar">
+                    <div class="day-modal-template-bar-label">
+                        <span class="day-modal-section-icon day-modal-section-icon--template">📋</span>
+                        <span class="day-modal-template-bar-title">Apply Template</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+                        <select class="form-select form-select-sm day-modal-template-select" @bind="State.SelectedRotationId">
+                            <option value="">— Select Rotation Template —</option>
+                            @foreach (var ww in Rotations)
+                            {
+                                <option value="@ww.Id">@ww.Name</option>
+                            }
+                        </select>
+                        <div class="d-flex align-items-center gap-1">
+                            <input type="date" class="form-control form-control-sm day-modal-date-input"
+                                   @bind="State.RotationRangeStart" @bind:format="yyyy-MM-dd" />
+                            <span class="text-muted small px-1">→</span>
+                            <input type="date" class="form-control form-control-sm day-modal-date-input"
+                                   @bind="State.RotationRangeEnd" @bind:format="yyyy-MM-dd" />
+                        </div>
+                        <button class="btn btn-sm btn-primary" @onclick="OnApplyTemplate"
+                                disabled="@(string.IsNullOrEmpty(State.SelectedRotationId) || State.IsApplying)">
+                            @if (State.IsApplying)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                <span>Applying…</span>
+                            }
+                            else
+                            {
+                                <span>Apply</span>
+                            }
+                        </button>
+                    </div>
+                    @if (!string.IsNullOrEmpty(State.RotationError))
+                    {
+                        <div class="alert alert-danger alert-sm mb-0 mt-2 py-1 px-2">
+                            <small>@State.RotationError</small>
+                        </div>
+                    }
+                </div>
+            }
+
+            @* Auto Populate Shifts bar (managers only) *@
+            @if (CanManageShifts)
+            {
+                <div class="day-modal-template-bar">
+                    <div class="day-modal-template-bar-label">
+                        <span class="day-modal-section-icon day-modal-section-icon--shift">🤖</span>
+                        <span class="day-modal-template-bar-title">Auto Populate Shifts</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+                        <div class="d-flex align-items-center gap-1">
+                            <input type="date" class="form-control form-control-sm day-modal-date-input"
+                                   @bind="State.AutoRangeStart" @bind:format="yyyy-MM-dd" />
+                            <span class="text-muted small px-1">→</span>
+                            <input type="date" class="form-control form-control-sm day-modal-date-input"
+                                   @bind="State.AutoRangeEnd" @bind:format="yyyy-MM-dd" />
+                        </div>
+                        <button class="btn btn-sm btn-success" @onclick="OnAutoPopulate"
+                                disabled="@State.AutoIsRunning"
+                                title="Automatically assign eligible employees to unassigned shifts in the date range">
+                            @if (State.AutoIsRunning)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                <span>Populating…</span>
+                            }
+                            else
+                            {
+                                <span>Auto Populate</span>
+                            }
+                        </button>
+                    </div>
+                    @if (!string.IsNullOrEmpty(State.AutoError))
+                    {
+                        <div class="alert alert-danger alert-sm mb-0 mt-2 py-1 px-2"><small>@State.AutoError</small></div>
+                    }
+                    @if (!string.IsNullOrEmpty(State.AutoWarning))
+                    {
+                        <div class="alert alert-warning alert-sm mb-0 mt-2 py-1 px-2"><small>@State.AutoWarning</small></div>
+                    }
+                    @if (!string.IsNullOrEmpty(State.AutoSuccess))
+                    {
+                        <div class="alert alert-success alert-sm mb-0 mt-2 py-1 px-2"><small>@State.AutoSuccess</small></div>
+                    }
+                </div>
+            }
+
+            @* Modal body *@
+            <div class="modal-body day-detail-body">
+
+                @* Shifts section *@
+                @if (Shifts.Count > 0)
+                {
+                    <div class="day-detail-section-header">
+                        <span class="day-modal-section-icon day-modal-section-icon--shift">🕐</span>
+                        <span class="day-detail-section-title-text">Shifts</span>
+                        <span class="day-detail-section-count">@Shifts.Count</span>
+                    </div>
+                    @foreach (var s in Shifts)
+                    {
+                        var ds = s;
+                        var shiftDuration = ds.End - ds.Start;
+                        var durationText = shiftDuration.TotalMinutes >= 60
+                            ? $"{(int)shiftDuration.TotalHours}h{(shiftDuration.Minutes > 0 ? $" {shiftDuration.Minutes}m" : "")}"
+                            : $"{shiftDuration.Minutes}m";
+
+                        <div class="day-detail-shift-card" style="border-left-color: @(ds.Color ?? "#1890ff");"
+                             @onclick="() => { if (CanManageShifts) OnEditShift.InvokeAsync(ds); }"
+                             role="@(CanManageShifts ? "button" : "")"
+                             title="@(CanManageShifts ? "Click to edit" : "")">
+                            <div class="day-detail-card-header day-detail-shift-header">
+                                <span class="day-detail-shift-title">@(string.IsNullOrWhiteSpace(ds.Title) ? ds.WorkerType : ds.Title)</span>
+                                <span class="day-detail-worker-badge" style="color: @(ds.Color ?? "#1890ff"); background-color: @(ds.Color ?? "#1890ff")1a;">
+                                    @ds.WorkerType
+                                </span>
+                            </div>
+                            <div class="day-detail-card-header day-detail-shift-details">
+                                @if (!string.IsNullOrWhiteSpace(ds.AssignedToUserId))
+                                {
+                                    <div class="day-detail-assigned"><span class="day-detail-assigned-icon">👤</span>@GetDisplayName(ds.AssignedToUserId)</div>
+                                }
+                                else
+                                {
+                                    <div class="day-detail-unassigned">UNASSIGNED</div>
+                                }
+                                <div class="d-flex align-items-center gap-2 ms-auto">
+                                    <span class="day-detail-time-badge">@FormatShiftTime(ds.Start) – @FormatShiftTime(ds.End)</span>
+                                    @if (CanManageShifts)
+                                    {
+                                        <span class="day-detail-edit-hint">Edit ›</span>
+                                    }
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(ds.Notes))
+                            {
+                                <div class="day-detail-item-notes">@ds.Notes</div>
+                            }
+                        </div>
+                    }
+                }
+
+                @* Absences section *@
+                @if (Absences.Count > 0)
+                {
+                    <div class="day-detail-section-header @(Shifts.Count > 0 ? "mt-4" : "")">
+                        <span class="day-modal-section-icon day-modal-section-icon--absence">🚇</span>
+                        <span class="day-detail-section-title-text">Absences</span>
+                        <span class="day-detail-section-count">@Absences.Count</span>
+                    </div>
+                    @foreach (var a in Absences)
+                    {
+                        var da = a;
+                        <div class="day-detail-absence-card @(CanManageShifts && !da.IsApproved ? (da.ApprovalState == AbsenceApprovalState.Denied ? "day-detail-absence-card--denied" : "day-detail-absence-card--pending") : "")" style="border-left-color: @(da.Color ?? "#fa8c16"); background-color: @(da.Color ?? "#fa8c16")1a;"
+                             @onclick="() => OnEditAbsence.InvokeAsync(da)" role="button" title="Click to edit">
+                            <div class="day-detail-card-header">
+                                <div class="d-flex flex-column flex-grow-1 min-w-0">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="day-detail-absence-name fw-semibold text-truncate">@GetDisplayName(da.AssignedToUserId)</span>
+                                        <span class="day-detail-absence-title-badge" style="background-color: @(da.Color ?? "#fa8c16")1a; color: @(da.Color ?? "#fa8c16");">@da.DisplayTitle</span>
+                                        @if (CanManageShifts && da.ApprovalState == AbsenceApprovalState.Pending)
+                                        {
+                                            <span class="badge bg-warning text-dark" style="font-size:0.65rem;">⏳ Pending Approval</span>
+                                        }
+                                        else if (CanManageShifts && da.ApprovalState == AbsenceApprovalState.Denied)
+                                        {
+                                            <span class="badge bg-danger" style="font-size:0.65rem;">❌ Denied</span>
+                                        }
+                                    </div>
+                                    <div class="mt-1">
+                                        @{
+                                            var hasTimes = !string.IsNullOrWhiteSpace(da.StartTime) && !string.IsNullOrWhiteSpace(da.EndTime) && da.DayCount == 1;
+                                            if (hasTimes && TimeOnly.TryParse(da.StartTime, CultureInfo.CurrentCulture, out var ts) && TimeOnly.TryParse(da.EndTime, CultureInfo.CurrentCulture, out var te))
+                                            {
+                                                <span class="day-detail-time-badge">@ts.ToString("t", CultureInfo.CurrentCulture) – @te.ToString("t", CultureInfo.CurrentCulture)</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="day-detail-time-badge">@(da.DayCount == 1 ? "All day" : $"{da.DayCount} days")</span>
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                                <span class="day-detail-edit-hint ms-2">Edit ›</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(da.Notes))
+                            {
+                                <div class="day-detail-item-notes">@da.Notes</div>
+                            }
+                        </div>
+                    }
+                }
+
+                @* Reminders section *@
+                @if (Reminders.Count > 0)
+                {
+                    <div class="day-detail-section-header @((Shifts.Count > 0 || Absences.Count > 0) ? "mt-4" : "")">
+                        <span class="day-modal-section-icon day-modal-section-icon--reminder">🔔</span>
+                        <span class="day-detail-section-title-text">Reminders</span>
+                        <span class="day-detail-section-count">@Reminders.Count</span>
+                    </div>
+                    @foreach (var r in Reminders)
+                    {
+                        var dr = r;
+                        <div class="day-detail-reminder-card" style="border-left-color:@(dr.Color ?? "#ffeb3b");"
+                             @onclick="() => OnEditReminder.InvokeAsync(dr)" role="button" title="Click to edit">
+                            <div class="day-detail-card-header">
+                                <span class="day-detail-reminder-title-text">@dr.Title</span>
+                                <div class="d-flex align-items-center gap-2 ms-auto">
+                                    <span class="day-detail-time-badge">@dr.ReminderDateTime.ToLocalTime().ToString("t")</span>
+                                    <span class="day-detail-edit-hint">Edit ›</span>
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(dr.Notes))
+                            {
+                                <div class="day-detail-item-notes">@dr.Notes</div>
+                            }
+                        </div>
+                    }
+                }
+
+                @* Empty state *@
+                @if (totalItems == 0)
+                {
+                    <div class="day-detail-empty">
+                        <div class="day-detail-empty-icon">📅</div>
+                        <div class="day-detail-empty-title">Nothing scheduled</div>
+                        <div class="day-detail-empty-text">There are no shifts, absences, or reminders for this day yet.</div>
+                    </div>
+                }
+            </div>
+
+            @* Modal footer – always-visible action buttons *@
+            <div class="modal-footer day-modal-footer">
+                @if (CanManageShifts)
+                {
+                    <button class="btn btn-primary btn-sm" @onclick="OnAddShift">＋ Add Shift</button>
+                }
+                <button class="btn btn-warning btn-sm text-dark" @onclick="OnAddAbsence">＋ Add Absence</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="OnAddReminder">＋ Add Reminder</button>
+            </div>
+        </div>
+        </div>
+    </div>
+
+@code {
+    /// <summary>Shared modal state (date, template and auto-populate inputs and results).</summary>
+    [Parameter, EditorRequired] public DayModalState State { get; set; } = default!;
+
+    /// <summary>Entries for the day, already filtered and sorted by the owner.</summary>
+    [Parameter] public List<Shift> Shifts { get; set; } = new();
+    [Parameter] public List<Absence> Absences { get; set; } = new();
+    [Parameter] public List<Reminder> Reminders { get; set; } = new();
+
+    /// <summary>True when the user may apply templates, auto-populate and edit shifts.</summary>
+    [Parameter] public bool CanManageShifts { get; set; }
+
+    /// <summary>Rotation templates of the selected schedule.</summary>
+    [Parameter] public List<Rotation>? Rotations { get; set; }
+
+    [Parameter, EditorRequired] public Func<string?, string> GetDisplayName { get; set; } = default!;
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnApplyTemplate { get; set; }
+    [Parameter] public EventCallback OnAutoPopulate { get; set; }
+    [Parameter] public EventCallback<Shift> OnEditShift { get; set; }
+    [Parameter] public EventCallback<Absence> OnEditAbsence { get; set; }
+    [Parameter] public EventCallback<Reminder> OnEditReminder { get; set; }
+    [Parameter] public EventCallback OnAddShift { get; set; }
+    [Parameter] public EventCallback OnAddAbsence { get; set; }
+    [Parameter] public EventCallback OnAddReminder { get; set; }
+
+    private static string FormatShiftTime(DateTime time)
+    {
+        var localTime = time.ToLocalTime();
+        return localTime.Minute == 0
+            ? localTime.ToString("h tt", CultureInfo.CurrentCulture)
+            : localTime.ToString("h:mm tt", CultureInfo.CurrentCulture);
+    }
+}

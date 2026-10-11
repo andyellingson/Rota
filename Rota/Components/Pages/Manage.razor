@@ -153,6 +153,11 @@
                 <div class="modal-body">
                     @if (showCreateRotation)
                     {
+                        @if (!string.IsNullOrEmpty(rotationModalState.ModalError))
+                        {
+                            <div class="alert alert-danger" role="alert">@rotationModalState.ModalError</div>
+                        }
+
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Rotation Name</label>
                             <input class="form-control" @bind="newRotationName" @bind:after="OnRotationChanged" />
@@ -439,6 +444,34 @@
                                             <div class="text-muted small mt-1">Higher = assigned first. Equal priority = round-robin.</div>
                                         </div>
 
+                                        <div class="team-detail-field" style="grid-row: 3; grid-column: 1 / span 3;">
+                                            <label class="team-detail-label">Assigned Schedules</label>
+                                            @if (schedules.Count == 0)
+                                            {
+                                                <div class="team-member-no-avail mt-1">No schedules available.</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="mt-1">
+                                                    @foreach (var sch in schedules)
+                                                    {
+                                                        var schId = sch.Id!;
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" id="assign-@schId"
+                                                                   checked="@selectedMemberScheduleIds.Contains(schId)"
+                                                                   @onchange="e => ToggleMemberSchedule(schId, (bool)(e.Value ?? false))" />
+                                                            <label class="form-check-label" for="assign-@schId">@sch.Name</label>
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <button class="btn btn-sm btn-primary mt-2" @onclick="SaveAssignedSchedules" disabled="@(!HasScheduleAssignmentChanged || isBusy)">Save</button>
+                                                @if (!string.IsNullOrEmpty(memberScheduleMessage))
+                                                {
+                                                    <div class="team-detail-message @(memberScheduleError ? "team-detail-message-error" : "team-detail-message-ok") mt-2">@memberScheduleMessage</div>
+                                                }
+                                            }
+                                        </div>
+
                                         <div class="team-detail-field" style="grid-row: 2; grid-column: 1;">
                                             <label class="team-detail-label">Weekly Availability</label>
                                             @if (selectedMember.Availability.Count == 0)
@@ -477,7 +510,7 @@
                                                     {
                                                         <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-start" style="cursor: pointer;" @onclick="(() => OpenEditAbsenceModal(a))" title="Click to edit absence">
                                                             <div>
-                                                                <div class="fw-bold">@a.Title</div>
+                                                                <div class="fw-bold">@a.DisplayTitle</div>
                                                                 <div class="team-absence-date small">@a.StartDate.ToLocalTime().ToString("d") – @a.EndDate.AddDays(-1).ToLocalTime().ToString("d")</div>
                                                                 @if (!string.IsNullOrEmpty(a.Notes)) { <div class="team-absence-notes small">@a.Notes</div> }
                                                             </div>
@@ -605,6 +638,48 @@
     /// <summary>True when any of the member editable fields differ from the selected member's saved values.</summary>
     private bool HasMemberChanges =>
         selectedMember is not null && (selectedMemberOccupation != selectedMember.Occupation || selectedMemberMaxHours != (selectedMember?.MaxHours ?? 0.0) || selectedMemberPriority != (selectedMember?.ShiftAssignmentPriority ?? 0));
+
+    // Local edit buffer for the schedules assigned to the selected member
+    private HashSet<string> selectedMemberScheduleIds = new();
+    private string? memberScheduleMessage;
+    private bool memberScheduleError;
+
+    private bool HasScheduleAssignmentChanged =>
+        selectedMember is not null && !selectedMemberScheduleIds.SetEquals(selectedMember.AssignedScheduleIds ?? new());
+
+    /// <summary>Adds or removes a schedule from the selected member's pending assignments.</summary>
+    private void ToggleMemberSchedule(string scheduleId, bool isChecked)
+    {
+        if (isChecked) selectedMemberScheduleIds.Add(scheduleId);
+        else selectedMemberScheduleIds.Remove(scheduleId);
+    }
+
+    /// <summary>Persists the selected member's schedule assignments.</summary>
+    private async Task SaveAssignedSchedules()
+    {
+        if (selectedMember is null) return;
+        memberScheduleMessage = null;
+        isBusy = true;
+        try
+        {
+            var ok = await UserService.UpdateAssignedSchedulesAsync(selectedMember.Username, selectedMemberScheduleIds);
+            if (ok)
+            {
+                selectedMember.AssignedScheduleIds = selectedMemberScheduleIds.ToList();
+                memberScheduleMessage = "Assigned schedules updated.";
+                memberScheduleError = false;
+            }
+            else
+            {
+                memberScheduleMessage = "Could not update assigned schedules. Please try again.";
+                memberScheduleError = true;
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
 
     private bool HasOccupationChanged => selectedMember is not null && selectedMemberOccupation != selectedMember.Occupation;
 
@@ -816,9 +891,7 @@
         originalRotationName = string.Empty;
         originalRotationShifts.Clear();
 
-        // Load the real template-shift counts from the shifts collection.
-        // The embedded Rotation.Shifts list is always empty; actual template shifts
-        // are stored as Shift documents with RotationId set.
+        // Load template-shift counts from Shift documents with RotationId set.
         await RefreshRotationShiftCountsAsync(schedule);
     }
 
@@ -938,16 +1011,19 @@
                 await ShiftsService.DeleteRotationTemplateShiftsAsync(editingRotation.Id!, _managerCode);
 
                 // Update the name (we can't directly update Rotation in the embedded array, so we delete and re-add)
-                await SchedulesService.DeleteRotationAsync(rotationSchedule.Id!, _userId, editingRotation.Id!);
+                var removed = await SchedulesService.DeleteRotationAsync(rotationSchedule.Id!, _userId, editingRotation.Id!, _managerCode);
+                if (!removed)
+                {
+                    throw new InvalidOperationException("The rotation metadata could not be updated. Its template shifts were deleted; please retry saving the rotation.");
+                }
 
                 var updatedRotation = new Rotation
                 {
                     Id = editingRotation.Id,
-                    Name = newRotationName.Trim(),
-                    Shifts = new List<RotationShift>()
+                    Name = newRotationName.Trim()
                 };
 
-                var added = await SchedulesService.AddRotationAsync(rotationSchedule.Id!, _userId, updatedRotation);
+                var added = await SchedulesService.AddRotationAsync(rotationSchedule.Id!, _userId, updatedRotation, _managerCode);
 
                 // Now create all the template shifts with the RotationId
                 foreach (var templateShift in newRotationShifts)
@@ -964,12 +1040,11 @@
                 // Create new Rotation
                 var rotation = new Rotation
                 {
-                    Name = newRotationName.Trim(),
-                    Shifts = new List<RotationShift>()
+                    Name = newRotationName.Trim()
                 };
 
                 // Add the Rotation metadata to the schedule
-                var added = await SchedulesService.AddRotationAsync(rotationSchedule.Id!, _userId, rotation);
+                var added = await SchedulesService.AddRotationAsync(rotationSchedule.Id!, _userId, rotation, _managerCode);
 
                 // Now create all the template shifts with the RotationId
                 foreach (var templateShift in newRotationShifts)
@@ -999,6 +1074,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error saving rotation");
+            rotationModalState.ModalError = "The rotation could not be saved. Please try again.";
         }
         finally
         {
@@ -1006,27 +1082,37 @@
         }
     }
 
-    private async Task DeleteRotation(Rotation ww)
+    private async Task<bool> DeleteRotation(Rotation ww)
     {
-        if (rotationSchedule == null || string.IsNullOrEmpty(_userId) || string.IsNullOrEmpty(_managerCode) || ww == null) return;
+        if (rotationSchedule == null || string.IsNullOrEmpty(_userId) || string.IsNullOrEmpty(_managerCode) || ww == null) return false;
 
         try
         {
             isBusy = true;
+            rotationModalState.ModalError = null;
             // Delete all template shifts associated with this Rotation
             await ShiftsService.DeleteRotationTemplateShiftsAsync(ww.Id!, _managerCode);
 
             // Delete the Rotation metadata from the schedule
-            await SchedulesService.DeleteRotationAsync(rotationSchedule.Id!, _userId, ww.Id!);
+            var removed = await SchedulesService.DeleteRotationAsync(rotationSchedule.Id!, _userId, ww.Id!, _managerCode);
+            if (!removed)
+            {
+                throw new InvalidOperationException("The rotation could not be deleted. Its template shifts were deleted, but its rotation record remains.");
+            }
 
             await LoadSchedules();
             rotationSchedule = schedules.FirstOrDefault(s => s.Id == rotationSchedule.Id);
             // Refresh counts so the selection list no longer shows the deleted Rotation's shifts
             await RefreshRotationShiftCountsAsync(rotationSchedule);
+            return true;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error deleting rotation");
+            rotationModalState.ModalError = ex is InvalidOperationException
+                ? ex.Message
+                : "The rotation could not be deleted because its template shifts failed to delete. Please try again.";
+            return false;
         }
         finally
         {
@@ -1038,7 +1124,7 @@
     {
         if (editingRotation == null) return;
 
-        await DeleteRotation(editingRotation);
+        if (!await DeleteRotation(editingRotation)) return;
         showCreateRotation = false;
         showRotationModal = false;
         showRotationSelectionModal = true;
@@ -1122,6 +1208,11 @@
         // Populate editable priority buffer
         selectedMemberPriority = member.ShiftAssignmentPriority;
 
+        // Populate editable schedule assignment buffer
+        selectedMemberScheduleIds = new HashSet<string>(member.AssignedScheduleIds ?? new());
+        memberScheduleMessage = null;
+        memberScheduleError = false;
+
         // Load upcoming absences for this member (next 30 days)
         await LoadUpcomingAbsencesForMember(member);
     }
@@ -1165,7 +1256,7 @@
         absenceModalState.EditingAbsence = absence;
         absenceModalState.EditAbsenceStartDateUtc = absence.StartDate.ToString("O");
         absenceModalState.EditAbsenceDayCount = absence.DayCount;
-        absenceModalState.EditAbsenceTitle = absence.Title;
+        absenceModalState.EditAbsenceReason = absence.Reason;
         absenceModalState.EditAbsenceNotes = absence.Notes;
         absenceModalState.EditAbsenceColor = absence.Color ?? "#fa8c16";
         // Use the user id stored on the absence to pre-select the correct user
@@ -1249,7 +1340,7 @@
             await AbsencesService.UpdateAbsenceAsync(
                 absence.Id,
                 absence.Username,
-                absenceModalState.EditAbsenceTitle,
+                absenceModalState.EditAbsenceReason.ToDisplayName(),
                 absenceModalState.EditAbsenceNotes,
                 startUtc,
                 endUtc,
@@ -1260,7 +1351,8 @@
                 _managerCode,
                 startTimeStr,
                 endTimeStr,
-                absenceModalState.EditAbsenceApprovalState);
+                absenceModalState.EditAbsenceApprovalState,
+                absenceModalState.EditAbsenceReason);
 
             CloseAbsenceModal();
 
@@ -1595,7 +1687,7 @@
         isLoading = true;
         try
         {
-            schedules = await SchedulesService.GetSchedulesForManagerAsync(_userId);
+            schedules = await SchedulesService.GetSchedulesForManagerAsync(_userId, _managerCode);
 
             // Ensure at least one schedule exists
             if (schedules.Count == 0 && !string.IsNullOrEmpty(_username))
@@ -1756,7 +1848,8 @@
                     _userId,
                     scheduleName.Trim(),
                     scheduleDescription?.Trim(),
-                    setAsDefault
+                    setAsDefault,
+                    _managerCode
                 );
             }
 
@@ -1803,7 +1896,7 @@
         modalError = null;
         try
         {
-            await SchedulesService.DeleteScheduleAsync(scheduleToDelete.Id!, _userId);
+            await SchedulesService.DeleteScheduleAsync(scheduleToDelete.Id!, _userId, _managerCode);
             CloseDeleteConfirm();
             await LoadSchedules();
         }
@@ -1831,7 +1924,7 @@
 
         try
         {
-            await SchedulesService.SetDefaultScheduleAsync(schedule.Id!, _userId);
+            await SchedulesService.SetDefaultScheduleAsync(schedule.Id!, _userId, _managerCode);
             await LoadSchedules();
         }
         catch (Exception ex)

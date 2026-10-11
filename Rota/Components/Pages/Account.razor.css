@@ -199,6 +199,29 @@
     color: #dc3545;
 }
 
+/* AMOLED: lift sections off the pure black page and strengthen borders */
+[data-theme="amoled"] .account-card {
+    background: #14161b;
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="amoled"] .account-field + .account-field {
+    border-top-color: rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="amoled"] .account-section-title {
+    border-bottom-color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="amoled"] .avail-day-card {
+    background: #1a1d24;
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="amoled"] .avail-day-header {
+    border-bottom-color: rgba(255, 255, 255, 0.18);
+}
+
 /* Inline add form shown per day */
 .avail-add-form {
     display: flex;

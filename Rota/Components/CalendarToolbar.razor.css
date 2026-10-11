@@ -1,0 +1,257 @@
+/* Ensure the Bootstrap .card follows the app theme variables so the toolbar isn't bright white in dark mode. */
+.card {
+    background: var(--color-bg-card);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+}
+
+.card .card-body {
+    background: transparent;
+    color: var(--color-text-primary);
+}
+
+/* Worker-type / employee filter dropdown – themed for dark mode */
+.worker-type-dropdown-menu {
+    background-color: var(--color-bg-card);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+    z-index: 1050;
+}
+
+.worker-type-dropdown-menu .form-check-label {
+    color: var(--color-text-primary);
+}
+
+.worker-type-dropdown-menu .btn-link {
+    color: var(--color-text-medium, #6c757d);
+    font-size: 0.75rem;
+}
+
+/* ── Schedule toolbar (horizontal bar above calendar) ── */
+.schedule-toolbar {
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+    border-color: var(--color-border);
+}
+
+.schedule-toolbar-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem 1rem;
+    padding: 0.65rem 1rem !important;
+}
+
+/* Each logical group: label on top, control(s) below */
+.toolbar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.toolbar-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-text-medium);
+    white-space: nowrap;
+}
+
+/* Schedule selector – slightly wider than the others */
+.toolbar-schedule-select {
+    min-width: 11rem;
+    max-width: 16rem;
+}
+
+/* Inline row of toggle buttons (Shifts / Absences / Reminders) */
+.toolbar-toggle-row {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.toolbar-toggle-btn {
+    white-space: nowrap;
+}
+
+/* Inline row of filter dropdowns */
+.toolbar-filter-row {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.toolbar-filter-btn {
+    white-space: nowrap;
+    min-width: 9rem;
+}
+
+/* Thin vertical divider between groups */
+.toolbar-sep {
+    width: 1px;
+    align-self: stretch;
+    background-color: var(--color-border);
+    margin: 0.1rem 0;
+    flex-shrink: 0;
+}
+
+/* Pushes the right-side groups to the right end */
+.toolbar-spacer {
+    flex: 1 1 0;
+    min-width: 0.5rem;
+}
+
+/* On small screens stack everything vertically */
+@media (max-width: 767px) {
+    .schedule-toolbar-body {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.6rem;
+    }
+
+    .toolbar-sep {
+        width: 100%;
+        height: 1px;
+        align-self: auto;
+    }
+
+    .toolbar-spacer {
+        display: none;
+    }
+
+    .toolbar-schedule-select {
+        max-width: 100%;
+        width: 100%;
+    }
+}
+
+/* ── Shifts / Absences / Reminders toggle buttons ──
+   OFF state: faint outline, muted text – item is hidden
+   ON  state: solid fill, bright text  – item is visible
+   The hidden <input class="btn-check"> drives :checked + label. */
+
+/* ── OFF state (unchecked) ── */
+.toolbar-toggle-row .btn-outline-primary {
+    background-color: transparent !important;
+    border-color: var(--color-accent-primary) !important;
+    color: var(--color-accent-primary) !important;
+    opacity: 0.6;
+}
+.toolbar-toggle-row .btn-outline-primary:hover {
+    background-color: color-mix(in srgb, var(--color-accent-primary) 12%, transparent) !important;
+    opacity: 0.85;
+}
+
+.toolbar-toggle-row .btn-outline-warning {
+    background-color: transparent !important;
+    border-color: var(--color-accent-warning) !important;
+    color: var(--color-accent-warning) !important;
+    opacity: 0.85;
+}
+.toolbar-toggle-row .btn-outline-warning:hover {
+    background-color: color-mix(in srgb, var(--color-accent-warning) 12%, transparent) !important;
+    opacity: 1;
+}
+
+.toolbar-toggle-row .btn-outline-info {
+    background-color: transparent !important;
+    border-color: var(--color-accent-info) !important;
+    color: var(--color-accent-info) !important;
+    opacity: 0.6;
+}
+.toolbar-toggle-row .btn-outline-info:hover {
+    background-color: color-mix(in srgb, var(--color-accent-info) 12%, transparent) !important;
+    opacity: 0.85;
+}
+
+/* ── ON state (checked) ── */
+.toolbar-toggle-row .btn-check:checked + .btn-outline-primary {
+    background-color: var(--color-accent-primary) !important;
+    border-color: var(--color-accent-primary) !important;
+    color: var(--color-accent-primary-on) !important;
+    opacity: 1;
+}
+.toolbar-toggle-row .btn-check:checked + .btn-outline-primary:hover {
+    background-color: var(--color-accent-primary-hover) !important;
+    border-color: var(--color-accent-primary-hover) !important;
+}
+
+.toolbar-toggle-row .btn-check:checked + .btn-outline-warning {
+    background-color: var(--color-accent-warning) !important;
+    border-color: var(--color-accent-warning) !important;
+    color: var(--color-accent-warning-on) !important;
+    opacity: 1;
+}
+.toolbar-toggle-row .btn-check:checked + .btn-outline-warning:hover {
+    background-color: var(--color-accent-warning-hover) !important;
+    border-color: var(--color-accent-warning-hover) !important;
+}
+
+.toolbar-toggle-row .btn-check:checked + .btn-outline-info {
+    background-color: var(--color-accent-info) !important;
+    border-color: var(--color-accent-info) !important;
+    color: var(--color-accent-info-on) !important;
+    opacity: 1;
+}
+.toolbar-toggle-row .btn-check:checked + .btn-outline-info:hover {
+    background-color: var(--color-accent-info-hover) !important;
+    border-color: var(--color-accent-info-hover) !important;
+}
+
+/* ── Dark-mode OFF state ── */
+[data-theme="dark"] .toolbar-toggle-row .btn-outline-primary {
+    background-color: transparent !important;
+    border-color: #2563eb !important;
+    color: #2563eb !important;
+    opacity: 0.5;
+}
+[data-theme="dark"] .toolbar-toggle-row .btn-outline-warning {
+    background-color: transparent !important;
+    border-color: #f59e0b !important;
+    color: #f59e0b !important;
+    opacity: 0.5;
+}
+[data-theme="dark"] .toolbar-toggle-row .btn-outline-info {
+    background-color: transparent !important;
+    border-color: #06b6d4 !important;
+    color: #06b6d4 !important;
+    opacity: 0.5;
+}
+
+/* ── Dark-mode ON state ── */
+[data-theme="dark"] .toolbar-toggle-row .btn-check:checked + .btn-outline-primary {
+    background-color: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #ffffff !important;
+    opacity: 1;
+}
+[data-theme="dark"] .toolbar-toggle-row .btn-check:checked + .btn-outline-primary:hover {
+    background-color: #1e40af !important;
+}
+[data-theme="dark"] .toolbar-toggle-row .btn-check:checked + .btn-outline-warning {
+    background-color: #f59e0b !important;
+    border-color: #f59e0b !important;
+    color: #0f172a !important;
+    opacity: 1;
+}
+[data-theme="dark"] .toolbar-toggle-row .btn-check:checked + .btn-outline-warning:hover {
+    background-color: #b45309 !important;
+}
+[data-theme="dark"] .toolbar-toggle-row .btn-check:checked + .btn-outline-info {
+    background-color: #06b6d4 !important;
+    border-color: #06b6d4 !important;
+    color: #042f3a !important;
+    opacity: 1;
+}
+[data-theme="dark"] .toolbar-toggle-row .btn-check:checked + .btn-outline-info:hover {
+    background-color: #0e7490 !important;
+}
+
+/* Active multi-select toolbar button */
+.toolbar-group--multiselect .btn.active-select {
+    background-color: var(--color-accent-primary) !important;
+    border-color: var(--color-accent-primary) !important;
+    color: #fff !important;
+}

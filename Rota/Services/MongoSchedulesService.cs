@@ -12,13 +12,26 @@ namespace Rota.Services
     {
         private readonly IMongoCollection<Schedule> _schedules;
         private readonly ILogger<MongoSchedulesService> _logger;
+        private readonly IShiftsService? _shiftsService;
+
+        /// <summary>
+        /// Matches schedules owned by manager ID or sharing the manager's code.
+        /// </summary>
+        private static FilterDefinition<Schedule> OwnerFilter(string managerId, string? managerCode)
+        {
+            var byManagerId = Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId);
+            return string.IsNullOrEmpty(managerCode)
+                ? byManagerId
+                : Builders<Schedule>.Filter.Or(byManagerId, Builders<Schedule>.Filter.Eq(s => s.ManagerCode, managerCode));
+        }
 
         /// <summary>
         /// Creates the schedules service using configured MongoDB options.
         /// </summary>
-        public MongoSchedulesService(IOptions<MongoDbOptions> options, ILogger<MongoSchedulesService> logger)
+        public MongoSchedulesService(IOptions<MongoDbOptions> options, ILogger<MongoSchedulesService> logger, IShiftsService shiftsService)
         {
             _logger = logger;
+            _shiftsService = shiftsService;
             var opts = options?.Value ?? throw new ArgumentNullException(nameof(options));
             if (string.IsNullOrWhiteSpace(opts.ConnectionString))
             {
@@ -30,15 +43,22 @@ namespace Rota.Services
             _schedules = db.GetCollection<Schedule>("schedules");
         }
 
+        public MongoSchedulesService(IMongoCollection<Schedule> schedulesCollection, ILogger<MongoSchedulesService> logger, IShiftsService? shiftsService = null)
+        {
+            _schedules = schedulesCollection;
+            _logger = logger;
+            _shiftsService = shiftsService;
+        }
+
         /// <inheritdoc />
-        public async Task<Rotation> AddRotationAsync(string scheduleId, string managerId, Rotation rotation)
+        public async Task<Rotation> AddRotationAsync(string scheduleId, string managerId, Rotation rotation, string? managerCode = null)
         {
             try
             {
                 // Ensure schedule belongs to manager
                 var filter = Builders<Schedule>.Filter.And(
                     Builders<Schedule>.Filter.Eq(s => s.Id, scheduleId),
-                    Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId)
+                    OwnerFilter(managerId, managerCode)
                 );
 
                 // Assign id if missing
@@ -61,13 +81,13 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async Task<bool> DeleteRotationAsync(string scheduleId, string managerId, string rotationId)
+        public async Task<bool> DeleteRotationAsync(string scheduleId, string managerId, string rotationId, string? managerCode = null)
         {
             try
             {
                 var filter = Builders<Schedule>.Filter.And(
                     Builders<Schedule>.Filter.Eq(s => s.Id, scheduleId),
-                    Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId)
+                    OwnerFilter(managerId, managerCode)
                 );
 
                 var update = Builders<Schedule>.Update.PullFilter(s => s.Rotations, Builders<Rotation>.Filter.Eq(w => w.Id, rotationId));
@@ -82,11 +102,11 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async Task<List<Schedule>> GetSchedulesForManagerAsync(string managerId)
+        public async Task<List<Schedule>> GetSchedulesForManagerAsync(string managerId, string? managerCode = null)
         {
             try
             {
-                var filter = Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId);
+                var filter = OwnerFilter(managerId, managerCode);
                 return await _schedules.Find(filter)
                     .SortBy(s => s.CreatedAt)
                     .ToListAsync();
@@ -99,13 +119,13 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async Task<Schedule?> GetScheduleByIdAsync(string scheduleId, string managerId)
+        public async Task<Schedule?> GetScheduleByIdAsync(string scheduleId, string managerId, string? managerCode = null)
         {
             try
             {
                 var filter = Builders<Schedule>.Filter.And(
                     Builders<Schedule>.Filter.Eq(s => s.Id, scheduleId),
-                    Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId)
+                    OwnerFilter(managerId, managerCode)
                 );
                 return await _schedules.Find(filter).FirstOrDefaultAsync();
             }
@@ -123,7 +143,7 @@ namespace Rota.Services
             {
                 // Check if a schedule with this name already exists for this manager
                 var existingFilter = Builders<Schedule>.Filter.And(
-                    Builders<Schedule>.Filter.Eq(s => s.ManagerId, schedule.ManagerId),
+                    OwnerFilter(schedule.ManagerId, schedule.ManagerCode),
                     Builders<Schedule>.Filter.Eq(s => s.Name, schedule.Name)
                 );
                 var existing = await _schedules.Find(existingFilter).FirstOrDefaultAsync();
@@ -135,14 +155,14 @@ namespace Rota.Services
                 schedule.CreatedAt = DateTime.UtcNow;
                 
                 // If this is the first schedule or marked as default, make it default
-                var managerSchedules = await GetSchedulesForManagerAsync(schedule.ManagerId);
+                var managerSchedules = await GetSchedulesForManagerAsync(schedule.ManagerId, schedule.ManagerCode);
                 if (managerSchedules.Count == 0 || schedule.IsDefault)
                 {
                     // Clear other defaults
                     if (schedule.IsDefault)
                     {
                         var updateFilter = Builders<Schedule>.Filter.And(
-                            Builders<Schedule>.Filter.Eq(s => s.ManagerId, schedule.ManagerId),
+                            OwnerFilter(schedule.ManagerId, schedule.ManagerCode),
                             Builders<Schedule>.Filter.Eq(s => s.IsDefault, true)
                         );
                         var update = Builders<Schedule>.Update.Set(s => s.IsDefault, false);
@@ -162,13 +182,13 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async Task<Schedule?> UpdateScheduleAsync(string scheduleId, string managerId, string name, string? description, bool isDefault)
+        public async Task<Schedule?> UpdateScheduleAsync(string scheduleId, string managerId, string name, string? description, bool isDefault, string? managerCode = null)
         {
             try
             {
                 // Check if name is unique (excluding current schedule)
                 var nameCheckFilter = Builders<Schedule>.Filter.And(
-                    Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId),
+                    OwnerFilter(managerId, managerCode),
                     Builders<Schedule>.Filter.Eq(s => s.Name, name),
                     Builders<Schedule>.Filter.Ne(s => s.Id, scheduleId)
                 );
@@ -182,7 +202,7 @@ namespace Rota.Services
                 if (isDefault)
                 {
                     var clearDefaultFilter = Builders<Schedule>.Filter.And(
-                        Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId),
+                        OwnerFilter(managerId, managerCode),
                         Builders<Schedule>.Filter.Ne(s => s.Id, scheduleId)
                     );
                     var clearUpdate = Builders<Schedule>.Update.Set(s => s.IsDefault, false);
@@ -191,7 +211,7 @@ namespace Rota.Services
 
                 var filter = Builders<Schedule>.Filter.And(
                     Builders<Schedule>.Filter.Eq(s => s.Id, scheduleId),
-                    Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId)
+                    OwnerFilter(managerId, managerCode)
                 );
 
                 var update = Builders<Schedule>.Update
@@ -214,18 +234,18 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async Task<bool> DeleteScheduleAsync(string scheduleId, string managerId)
+        public async Task<bool> DeleteScheduleAsync(string scheduleId, string managerId, string? managerCode = null)
         {
             try
             {
                 // Check if this is the only schedule
-                var managerSchedules = await GetSchedulesForManagerAsync(managerId);
+                var managerSchedules = await GetSchedulesForManagerAsync(managerId, managerCode);
                 if (managerSchedules.Count <= 1)
                 {
                     throw new InvalidOperationException("Cannot delete the last schedule. At least one schedule must exist.");
                 }
 
-                var schedule = await GetScheduleByIdAsync(scheduleId, managerId);
+                var schedule = await GetScheduleByIdAsync(scheduleId, managerId, managerCode);
                 if (schedule == null)
                 {
                     return false;
@@ -233,22 +253,40 @@ namespace Rota.Services
 
                 var filter = Builders<Schedule>.Filter.And(
                     Builders<Schedule>.Filter.Eq(s => s.Id, scheduleId),
-                    Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId)
+                    OwnerFilter(managerId, managerCode)
                 );
 
+                if (_shiftsService is null)
+                {
+                    throw new InvalidOperationException("The schedule could not be deleted because shift cleanup is unavailable. The schedule was not deleted.");
+                }
+
+                try
+                {
+                    await _shiftsService.DeleteShiftsByScheduleIdAsync(scheduleId);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("The schedule could not be deleted because its shifts could not be deleted. The schedule was not deleted. Please try again.", ex);
+                }
+
                 var result = await _schedules.DeleteOneAsync(filter);
+                if (result.DeletedCount == 0)
+                {
+                    return false;
+                }
 
                 // If we deleted the default schedule, set another one as default
-                if (result.DeletedCount > 0 && schedule.IsDefault)
+                if (schedule.IsDefault)
                 {
-                    var remainingSchedules = await GetSchedulesForManagerAsync(managerId);
+                    var remainingSchedules = await GetSchedulesForManagerAsync(managerId, managerCode);
                     if (remainingSchedules.Any())
                     {
-                        await SetDefaultScheduleAsync(remainingSchedules.First().Id!, managerId);
+                        await SetDefaultScheduleAsync(remainingSchedules.First().Id!, managerId, managerCode);
                     }
                 }
 
-                return result.DeletedCount > 0;
+                return true;
             }
             catch (Exception ex)
             {
@@ -264,7 +302,7 @@ namespace Rota.Services
             {
                 // Try to get default schedule
                 var defaultFilter = Builders<Schedule>.Filter.And(
-                    Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId),
+                    OwnerFilter(managerId, managerCode),
                     Builders<Schedule>.Filter.Eq(s => s.IsDefault, true)
                 );
                 var defaultSchedule = await _schedules.Find(defaultFilter).FirstOrDefaultAsync();
@@ -274,12 +312,12 @@ namespace Rota.Services
                 }
 
                 // Try to get any schedule
-                var anyFilter = Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId);
+                var anyFilter = OwnerFilter(managerId, managerCode);
                 var anySchedule = await _schedules.Find(anyFilter).FirstOrDefaultAsync();
                 if (anySchedule != null)
                 {
                     // Set it as default
-                    await SetDefaultScheduleAsync(anySchedule.Id!, managerId);
+                    await SetDefaultScheduleAsync(anySchedule.Id!, managerId, managerCode);
                     return anySchedule;
                 }
 
@@ -321,19 +359,19 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async Task<bool> SetDefaultScheduleAsync(string scheduleId, string managerId)
+        public async Task<bool> SetDefaultScheduleAsync(string scheduleId, string managerId, string? managerCode = null)
         {
             try
             {
                 // Clear all defaults for this manager
-                var clearFilter = Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId);
+                var clearFilter = OwnerFilter(managerId, managerCode);
                 var clearUpdate = Builders<Schedule>.Update.Set(s => s.IsDefault, false);
                 await _schedules.UpdateManyAsync(clearFilter, clearUpdate);
 
                 // Set the new default
                 var setFilter = Builders<Schedule>.Filter.And(
                     Builders<Schedule>.Filter.Eq(s => s.Id, scheduleId),
-                    Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId)
+                    OwnerFilter(managerId, managerCode)
                 );
                 var setUpdate = Builders<Schedule>.Update.Set(s => s.IsDefault, true);
                 var result = await _schedules.UpdateOneAsync(setFilter, setUpdate);

@@ -1,0 +1,73 @@
+@using System.Globalization
+
+@* Confirmation dialog shown before bulk-deleting shifts, absences or reminders across the selected days. *@
+@{
+    var typeName = Type switch
+    {
+        BulkDeleteType.Absences => Count == 1 ? "absence" : "absences",
+        BulkDeleteType.Reminders => Count == 1 ? "reminder" : "reminders",
+        _ => Count == 1 ? "shift" : "shifts"
+    };
+}
+
+<div class="modal-backdrop fade show"></div>
+<div class="modal fade show d-block" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete @(CultureInfo.CurrentCulture.TextInfo.ToTitleCase(typeName))</h5>
+                <button type="button" class="btn-close" @onclick="OnClose" disabled="@IsDeleting" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    This will permanently delete
+                    <strong>@Count @typeName</strong>
+                    across
+                    <strong>@DayCount day@(DayCount == 1 ? "" : "s")</strong>.
+                    This action cannot be undone.
+                </p>
+                @if (!string.IsNullOrEmpty(Error))
+                {
+                    <div class="alert alert-danger py-2 px-3">@Error</div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="OnClose" disabled="@IsDeleting">Cancel</button>
+                <button class="btn btn-danger" @onclick="OnConfirm" disabled="@IsDeleting">
+                    @if (IsDeleting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        <span>Deleting…</span>
+                    }
+                    else
+                    {
+                        <span>Delete @Count @typeName</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>The kind of item being deleted.</summary>
+    [Parameter, EditorRequired] public BulkDeleteType Type { get; set; }
+
+    /// <summary>Number of items that will be deleted.</summary>
+    [Parameter, EditorRequired] public int Count { get; set; }
+
+    /// <summary>Number of selected days the items span.</summary>
+    [Parameter, EditorRequired] public int DayCount { get; set; }
+
+    /// <summary>True while the delete is in progress; disables the buttons.</summary>
+    [Parameter] public bool IsDeleting { get; set; }
+
+    /// <summary>Error message from the last delete attempt.</summary>
+    [Parameter] public string? Error { get; set; }
+
+    /// <summary>Raised when the user cancels or closes the dialog.</summary>
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>Raised when the user confirms the deletion.</summary>
+    [Parameter] public EventCallback OnConfirm { get; set; }
+}

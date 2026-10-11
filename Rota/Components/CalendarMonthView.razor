@@ -1,0 +1,65 @@
+@using System.Globalization
+
+@* Month grid: six weeks of day cells. Day content is supplied by the owner. *@
+<div class="calendar-month">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <strong>@Current.ToString("MMMM yyyy", CultureInfo.CurrentCulture)</strong>
+        <div class="text-muted small">Week starts on @CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek</div>
+    </div>
+
+    <div class="calendar-grid">
+        @foreach (var name in DayNames)
+        {
+            <div class="calendar-grid-header">@name</div>
+        }
+
+        @foreach (var day in GetMonthDays())
+        {
+            var other = day.Month != Current.Month;
+            var isToday = day == DateOnly.FromDateTime(DateTime.Today);
+            var capturedDay = day;
+            <div class="day-cell @(other ? "other-month" : "") @(isToday ? "today" : "") @(SelectedDays.Contains(day) ? "day-selected" : "")"
+                 @onclick="() => OnDayClick.InvokeAsync(capturedDay)">
+                <div class="day-number">@day.Day</div>
+                <div class="events events-overlay">
+                    @DayContent(day)
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>Any date inside the month being displayed.</summary>
+    [Parameter, EditorRequired] public DateOnly Current { get; set; }
+
+    /// <summary>Days currently selected in multi-select mode.</summary>
+    [Parameter] public HashSet<DateOnly> SelectedDays { get; set; } = new();
+
+    /// <summary>Renders the entries of a single day.</summary>
+    [Parameter, EditorRequired] public RenderFragment<DateOnly> DayContent { get; set; } = default!;
+
+    /// <summary>Raised when a day cell is clicked.</summary>
+    [Parameter] public EventCallback<DateOnly> OnDayClick { get; set; }
+
+    // Day names for the header, rotated to start on the culture's first day of week.
+    private static string[] DayNames
+    {
+        get
+        {
+            var format = CultureInfo.CurrentCulture.DateTimeFormat;
+            var first = (int)format.FirstDayOfWeek;
+            return format.AbbreviatedDayNames.Skip(first).Concat(format.AbbreviatedDayNames.Take(first)).ToArray();
+        }
+    }
+
+    /// <summary>
+    /// Returns the 42 days (six weeks) shown for the month, starting on the first day of the
+    /// week that contains the 1st of the month.
+    /// </summary>
+    private IEnumerable<DateOnly> GetMonthDays()
+    {
+        var start = CalendarDates.StartOfWeek(new DateOnly(Current.Year, Current.Month, 1));
+        return Enumerable.Range(0, 42).Select(i => start.AddDays(i));
+    }
+}

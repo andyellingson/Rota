@@ -234,8 +234,13 @@
                         @if (State.EditingAbsence is null)
                         {
                             <div class="mb-3">
-                                <label class="form-label">Title</label>
-                                <input class="form-control" @bind="State.NewAbsenceTitle" placeholder="e.g. Sick Leave, Holiday" />
+                                <label class="form-label">Reason</label>
+                                <select class="form-select" @bind="State.NewAbsenceReason">
+                                    @foreach (var reason in Enum.GetValues<AbsenceReason>())
+                                    {
+                                        <option value="@reason">@reason.ToDisplayName()</option>
+                                    }
+                                </select>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Number of Days</label>
@@ -326,9 +331,16 @@
                         }
                         else
                         {
+                            @* Existing absence: the whole form is disabled when the user may not change it *@
+                            <fieldset disabled="@(!CanEditAbsence)" class="border-0 p-0 m-0">
                             <div class="mb-3">
-                                <label class="form-label">Title</label>
-                                <input class="form-control" @bind="State.EditAbsenceTitle" placeholder="e.g. Sick Leave, Holiday" />
+                                <label class="form-label">Reason</label>
+                                <select class="form-select" @bind="State.EditAbsenceReason">
+                                    @foreach (var reason in Enum.GetValues<AbsenceReason>())
+                                    {
+                                        <option value="@reason">@reason.ToDisplayName()</option>
+                                    }
+                                </select>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Number of Days</label>
@@ -423,6 +435,7 @@
                                     </p>
                                 </div>
                             }
+                            </fieldset>
                         }
                     }
                 </div>
@@ -469,6 +482,10 @@
                             <button type="button" class="btn btn-secondary" @onclick="OnClose" disabled="@State.IsBusy">Cancel</button>
                             <button type="button" class="btn btn-warning" @onclick="OnSaveAbsence" disabled="@State.IsBusy">Log Absence</button>
                         }
+                        else if (!CanEditAbsence)
+                        {
+                            <button type="button" class="btn btn-secondary" @onclick="OnClose">Close</button>
+                        }
                         else
                         {
                             <button type="button" class="btn btn-danger me-auto" @onclick="OnDeleteAbsence" disabled="@State.IsBusy">Delete</button>
@@ -495,6 +512,12 @@
 
     [Parameter]
     public bool CanManageShifts { get; set; }
+
+    /// <summary>
+    /// False when the current user may only view the absence being opened (read-only dialog).
+    /// </summary>
+    [Parameter]
+    public bool CanEditAbsence { get; set; } = true;
 
     [Parameter]
     public IReadOnlyList<User> Employees { get; set; } = Array.Empty<User>();
@@ -555,7 +578,7 @@
                 : "Edit Shift",
             ModalMode.Absence => State.EditingAbsence is null
                 ? $"Add Absence for {State.SelectedDate?.ToString("d", CultureInfo.CurrentCulture)}"
-                : "Edit Absence",
+                : (CanEditAbsence ? "Edit Absence" : "View Absence"),
             _ => "Edit"
         };
     }

@@ -109,6 +109,26 @@ namespace Rota.Services
         }
 
         /// <summary>
+        /// Replaces the schedule IDs assigned to the specified employee.
+        /// </summary>
+        public async System.Threading.Tasks.Task<bool> UpdateAssignedSchedulesAsync(string username, IEnumerable<string> scheduleIds)
+        {
+            try
+            {
+                var filter = Builders<User>.Filter.Eq(u => u.Username, username);
+                var update = Builders<User>.Update.Set(u => u.AssignedScheduleIds, scheduleIds.Distinct().ToList());
+                var result = await _users.UpdateOneAsync(filter, update);
+                // MatchedCount (not ModifiedCount) so saving an unchanged list still succeeds
+                return result.MatchedCount > 0;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error updating assigned schedules for user {User}", username);
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Creates a new user and stores a bcrypt password hash.
         /// Errors are logged and rethrown so calling code can decide how to handle them.
         /// </summary>

@@ -53,6 +53,21 @@
   min-width: 120px;
 }
 
+/* The card is always white, so use fixed colors (theme text color can be near-white in dark themes).
+   !important is needed to override the global .btn-outline-secondary rules in app.css. */
+.auth-card .btn-outline-secondary {
+  color: #344054 !important;
+  border-color: #98a2b3 !important;
+  background-color: #fff !important;
+}
+
+.auth-card .btn-outline-secondary:hover,
+.auth-card .btn-outline-secondary:focus {
+  color: #1a1d23 !important;
+  border-color: #344054 !important;
+  background-color: #f2f4f7 !important;
+}
+
 .auth-card p.small {
   margin-bottom: 12px;
 }

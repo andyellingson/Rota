@@ -6,6 +6,8 @@ namespace Rota.Models
     /// <summary>
     /// Represents a reusable weekly rotation template containing shift definitions.
     /// </summary>
+    // Ignore legacy elements (e.g. 'shifts') that no longer map to a property
+    [BsonIgnoreExtraElements]
     public class Rotation
     {
         /// <summary>
@@ -21,10 +23,5 @@ namespace Rota.Models
         [BsonElement("name")]
         public string Name { get; set; } = null!;
 
-        /// <summary>
-        /// Collection of shift definitions for this rotation. DayOfWeek indicates which weekday the shift applies to.
-        /// </summary>
-        [BsonElement("shifts")]
-        public List<RotationShift> Shifts { get; set; } = new();
     }
 }

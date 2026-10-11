@@ -1,0 +1,9 @@
+.modal-backdrop {
+    background-color: rgba(0,0,0,0.5);
+    z-index: 1250 !important;
+}
+
+/* Modal sits on top of everything (including the fixed schedule options panel). */
+.modal {
+    z-index: 1300 !important;
+}

@@ -4,18 +4,21 @@
 <div class="shift-item mb-1 @(IsUnassignedFuture ? "shift-item--unassigned" : "") @(IsPast ? "item--past" : "")" style="border-left-color: @(Shift.Color ?? "#1890ff");"
      @onclick:stopPropagation="true" @onclick="HandleEdit">
     <div class="shift-header">
+        <div class="shift-title">@(string.IsNullOrWhiteSpace(Shift.Title) ? Shift.WorkerType : Shift.Title)</div>
         <div class="shift-worker-type" style="color: @(Shift.Color ?? "#1890ff");">@Shift.WorkerType</div>
-        <div class="shift-time-inline">@CompactTime(Shift.Start.ToLocalTime()) – @CompactTime(Shift.End.ToLocalTime())</div>
     </div>
 
-    @if (!string.IsNullOrEmpty(AssignedFullName))
-    {
-        <div class="shift-assigned">@AssignedFullName</div>
-    }
-    else if (IsUnassignedFuture)
-    {
-        <div class="shift-unassigned-label">UNASSIGNED</div>
-    }
+    <div class="shift-details-row">
+        @if (!string.IsNullOrEmpty(AssignedFullName))
+        {
+            <div class="shift-assigned">@AssignedFullName</div>
+        }
+        else
+        {
+            <div class="shift-unassigned-label">UNASSIGNED</div>
+        }
+        <div class="shift-time-inline">@CompactTime(Shift.Start.ToLocalTime()) – @CompactTime(Shift.End.ToLocalTime())</div>
+    </div>
 
     @if (OvertimeHours > 0)
     {

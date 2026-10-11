@@ -57,6 +57,12 @@ namespace Rota.Services
         System.Threading.Tasks.Task<bool> UpdateShiftAssignmentPriorityAsync(string username, int priority);
 
         /// <summary>
+        /// Replaces the list of schedule IDs assigned to the specified employee.
+        /// Returns true when the update succeeded.
+        /// </summary>
+        System.Threading.Tasks.Task<bool> UpdateAssignedSchedulesAsync(string username, IEnumerable<string> scheduleIds);
+
+        /// <summary>
         /// Verifies <paramref name="currentPassword"/> then replaces the stored hash with a
         /// hash of <paramref name="newPassword"/>.
         /// Returns true on success, false when the current password is wrong.

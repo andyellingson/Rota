@@ -1,0 +1,43 @@
+@using Rota.Models
+
+@* Renders the shift, absence and reminder entries for one calendar day, in the order supplied. *@
+@foreach (var item in Items)
+{
+    if (item.Shift is { } s)
+    {
+        <ShiftItem Shift="s"
+                   AssignedToDisplayName="@GetDisplayName(s.AssignedToUserId)"
+                   AssignedToFirstName="@GetFirstName(s.AssignedToUserId)"
+                   AssignedToLastName="@GetLastName(s.AssignedToUserId)"
+                   OvertimeHours="@GetOvertimeHours(s)"
+                   OnEdit="@(CanManageShifts ? OnEditShift : default)" />
+    }
+    else if (item.Absence is { } ab)
+    {
+        <AbsenceItem Absence="ab"
+                     AssignedToDisplayName="@GetDisplayName(ab.AssignedToUserId)"
+                     ShowApprovalState="CanManageShifts"
+                     OnEdit="OnEditAbsence" />
+    }
+    else if (item.Reminder is { } reminder)
+    {
+        <ReminderItem Reminder="reminder" OnEdit="OnEditReminder" />
+    }
+}
+
+@code {
+    /// <summary>Items to render, already sorted.</summary>
+    [Parameter, EditorRequired] public List<CalendarDayItem> Items { get; set; } = new();
+
+    /// <summary>Shifts are only editable (clickable) for managers.</summary>
+    [Parameter] public bool CanManageShifts { get; set; }
+
+    [Parameter, EditorRequired] public Func<string?, string> GetDisplayName { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<string?, string> GetFirstName { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<string?, string> GetLastName { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<Shift, double> GetOvertimeHours { get; set; } = default!;
+
+    [Parameter] public EventCallback<Shift> OnEditShift { get; set; }
+    [Parameter] public EventCallback<Absence> OnEditAbsence { get; set; }
+    [Parameter] public EventCallback<Reminder> OnEditReminder { get; set; }
+}

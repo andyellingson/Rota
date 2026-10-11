@@ -1,9 +1,8 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.Extensions.Logging;
 using Rota.DTOs;
 using Rota.Services;
+using System.Security.Claims;
 
 namespace Rota.Endpoints
 {
@@ -64,7 +63,8 @@ namespace Rota.Endpoints
                     }
 
                     // Sign in using the cookie authentication handler
-                    await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new Microsoft.AspNetCore.Authentication.AuthenticationProperties { IsPersistent = true });
+                    // Persistent cookie only when the user ticked "Remember me"; otherwise a session cookie
+                    await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new Microsoft.AspNetCore.Authentication.AuthenticationProperties { IsPersistent = dto.RememberMe });
                     return Results.Json(new { ok = true, message = "OK", code = 200 }, statusCode: 200);
                 }
                 catch (Exception ex)

@@ -10,12 +10,12 @@ namespace Rota.Services
         /// <summary>
         /// Gets all schedules for a manager.
         /// </summary>
-        Task<List<Schedule>> GetSchedulesForManagerAsync(string managerId);
+        Task<List<Schedule>> GetSchedulesForManagerAsync(string managerId, string? managerCode = null);
 
         /// <summary>
         /// Gets a specific schedule by ID.
         /// </summary>
-        Task<Schedule?> GetScheduleByIdAsync(string scheduleId, string managerId);
+        Task<Schedule?> GetScheduleByIdAsync(string scheduleId, string managerId, string? managerCode = null);
 
         /// <summary>
         /// Creates a new schedule.
@@ -25,12 +25,12 @@ namespace Rota.Services
         /// <summary>
         /// Updates an existing schedule.
         /// </summary>
-        Task<Schedule?> UpdateScheduleAsync(string scheduleId, string managerId, string name, string? description, bool isDefault);
+        Task<Schedule?> UpdateScheduleAsync(string scheduleId, string managerId, string name, string? description, bool isDefault, string? managerCode = null);
 
         /// <summary>
         /// Deletes a schedule and optionally all associated events.
         /// </summary>
-        Task<bool> DeleteScheduleAsync(string scheduleId, string managerId);
+        Task<bool> DeleteScheduleAsync(string scheduleId, string managerId, string? managerCode = null);
 
         /// <summary>
         /// Gets the default schedule for a manager, or creates one if none exists.
@@ -40,7 +40,7 @@ namespace Rota.Services
         /// <summary>
         /// Sets a schedule as the default for a manager.
         /// </summary>
-        Task<bool> SetDefaultScheduleAsync(string scheduleId, string managerId);
+        Task<bool> SetDefaultScheduleAsync(string scheduleId, string managerId, string? managerCode = null);
 
         /// <summary>
         /// Returns the schedules whose IDs are in the supplied list (used to look up
@@ -51,11 +51,11 @@ namespace Rota.Services
         /// <summary>
         /// Adds a new Rotation template to the specified schedule.
         /// </summary>
-        Task<Rotation> AddRotationAsync(string scheduleId, string managerId, Rotation rotation);
+        Task<Rotation> AddRotationAsync(string scheduleId, string managerId, Rotation rotation, string? managerCode = null);
 
         /// <summary>
         /// Deletes a Rotation template from the specified schedule.
         /// </summary>
-        Task<bool> DeleteRotationAsync(string scheduleId, string managerId, string rotationId);
+        Task<bool> DeleteRotationAsync(string scheduleId, string managerId, string rotationId, string? managerCode = null);
     }
 }

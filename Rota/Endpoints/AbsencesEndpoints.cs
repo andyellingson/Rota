@@ -151,7 +151,10 @@ namespace Rota.Endpoints
                         StartTime = dayCount == 1 && !string.IsNullOrWhiteSpace(dto.StartTime) ? dto.StartTime : null,
                         EndTime = dayCount == 1 && !string.IsNullOrWhiteSpace(dto.EndTime) ? dto.EndTime : null,
                         DayCount = dayCount,
-                        Title = dto.Title,
+                        Title = dto.Reason == AbsenceReason.Other && !string.IsNullOrWhiteSpace(dto.Title)
+                            ? dto.Title
+                            : dto.Reason.ToDisplayName(),
+                        Reason = dto.Reason,
                         Notes = dto.Notes,
                         Color = dto.Color ?? "#fa8c16",
                         AssignedToUserId = targetUser.Id
@@ -168,7 +171,7 @@ namespace Rota.Endpoints
             }).RequireAuthorization();
 
             // DELETE /api/absences/{id}
-            app.MapDelete("/api/absences/{id}", async (string id, IAbsencesService absences, Microsoft.AspNetCore.Http.HttpContext context) =>
+            app.MapDelete("/api/absences/{id}", async (string id, IAbsencesService absences, IUserService users, Microsoft.AspNetCore.Http.HttpContext context) =>
             {
                 try
                 {
@@ -176,7 +179,9 @@ namespace Rota.Endpoints
                     if (string.IsNullOrEmpty(username))
                         return Results.Json(new { ok = false, message = "Unauthorized", code = 401 }, statusCode: 401);
 
-                    var deleted = await absences.DeleteAbsenceAsync(id, username);
+                    var caller = await users.GetByUsernameAsync(username);
+                    var managerCode = context.User.IsInRole(Roles.Manager) ? caller?.ManagerCode : null;
+                    var deleted = await absences.DeleteAbsenceAsync(id, username, managerCode);
                     if (!deleted)
                         return Results.Json(new { ok = false, message = "Not found or access denied", code = 404 }, statusCode: 404);
 
@@ -229,22 +234,15 @@ namespace Rota.Endpoints
                     var creator = await users.GetByUsernameAsync(username);
                     var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
 
-                    string? managerCode = null;
-                    if (isManager)
-                    {
-                        managerCode = creator?.ManagerCode;
-                    }
-                    else
-                    {
-                        managerCode = creator?.ManagerCode;
-                    }
+                    var callerManagerCode = creator?.ManagerCode;
+                    var managerCode = context.User.IsInRole(Roles.Manager) ? callerManagerCode : null;
 
                     var targetUserId = string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? creator?.Id : dto.AssignedToUserId;
                     User? targetUser = null;
 
-                    if (!string.IsNullOrEmpty(managerCode))
+                    if (!string.IsNullOrEmpty(callerManagerCode))
                     {
-                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(managerCode);
+                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(callerManagerCode);
                         targetUser = linkedUsers.FirstOrDefault(u => u.Id == targetUserId);
                     }
 
@@ -252,12 +250,17 @@ namespace Rota.Endpoints
                     if (targetUser is null)
                         return Results.Json(new { ok = false, message = "Target user not found", code = 400 }, statusCode: 400);
 
-                    var updated = await absences.UpdateAbsenceAsync(id, username, dto.Title, dto.Notes,
+                    var title = dto.Reason == AbsenceReason.Other && !string.IsNullOrWhiteSpace(dto.Title)
+                        ? dto.Title
+                        : dto.Reason.ToDisplayName();
+                    var updated = await absences.UpdateAbsenceAsync(id, username, title, dto.Notes,
                         DateTime.SpecifyKind(startUtcFinal, DateTimeKind.Utc),
                         DateTime.SpecifyKind(endUtcFinal, DateTimeKind.Utc),
                         dayCount, dto.Color, targetUser.Id, targetUser.Id, managerCode,
                         dayCount == 1 && !string.IsNullOrWhiteSpace(dto.StartTime) ? dto.StartTime : null,
-                        dayCount == 1 && !string.IsNullOrWhiteSpace(dto.EndTime) ? dto.EndTime : null);
+                        dayCount == 1 && !string.IsNullOrWhiteSpace(dto.EndTime) ? dto.EndTime : null,
+                        approvalState: AbsenceApprovalState.Pending,
+                        reason: dto.Reason);
 
                     if (updated is null)
                         return Results.Json(new { ok = false, message = "Not found or access denied", code = 404 }, statusCode: 404);

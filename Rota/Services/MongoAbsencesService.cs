@@ -92,14 +92,23 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async System.Threading.Tasks.Task<bool> DeleteAbsenceAsync(string id, string username)
+        public async System.Threading.Tasks.Task<bool> DeleteAbsenceAsync(string id, string username, string? managerCode = null)
         {
             try
             {
-                var filter = Builders<Absence>.Filter.And(
+                // Creator may only delete until the absence has been approved; managers are unrestricted.
+                var ownerFilter = Builders<Absence>.Filter.And(
                     Builders<Absence>.Filter.Eq(a => a.Id, id),
-                    Builders<Absence>.Filter.Eq(a => a.Username, username)
+                    Builders<Absence>.Filter.Eq(a => a.Username, username),
+                    Builders<Absence>.Filter.Ne(a => a.ApprovalState, AbsenceApprovalState.Approved)
                 );
+                var filter = string.IsNullOrWhiteSpace(managerCode)
+                    ? ownerFilter
+                    : Builders<Absence>.Filter.Or(
+                        ownerFilter,
+                        Builders<Absence>.Filter.And(
+                            Builders<Absence>.Filter.Eq(a => a.Id, id),
+                            Builders<Absence>.Filter.Eq(a => a.ManagerCode, managerCode)));
                 var result = await _absences.DeleteOneAsync(filter);
                 return result.DeletedCount > 0;
             }
@@ -111,20 +120,23 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async System.Threading.Tasks.Task<Absence?> UpdateAbsenceAsync(string id, string username, string title, string? notes, DateTime startDateUtc, DateTime endDateUtc, int dayCount, string? color, string? userId, string? assignedToUserId, string? managerCode, string? startTime = null, string? endTime = null, AbsenceApprovalState approvalState = AbsenceApprovalState.Pending)
+        public async System.Threading.Tasks.Task<Absence?> UpdateAbsenceAsync(string id, string username, string title, string? notes, DateTime startDateUtc, DateTime endDateUtc, int dayCount, string? color, string? userId, string? assignedToUserId, string? managerCode, string? startTime = null, string? endTime = null, AbsenceApprovalState approvalState = AbsenceApprovalState.Pending, AbsenceReason reason = AbsenceReason.Other)
         {
             try
             {
-                // Allow the owner (by username) OR any manager with the matching manager code to update
+                // Creator may only update until the absence has been approved; managers are unrestricted.
                 var ownerFilter = Builders<Absence>.Filter.And(
                     Builders<Absence>.Filter.Eq(a => a.Id, id),
-                    Builders<Absence>.Filter.Eq(a => a.Username, username)
+                    Builders<Absence>.Filter.Eq(a => a.Username, username),
+                    Builders<Absence>.Filter.Ne(a => a.ApprovalState, AbsenceApprovalState.Approved)
                 );
-                var managerFilter = Builders<Absence>.Filter.And(
-                    Builders<Absence>.Filter.Eq(a => a.Id, id),
-                    Builders<Absence>.Filter.Eq(a => a.ManagerCode, managerCode)
-                );
-                var filter = Builders<Absence>.Filter.Or(ownerFilter, managerFilter);
+                var filter = string.IsNullOrWhiteSpace(managerCode)
+                    ? ownerFilter
+                    : Builders<Absence>.Filter.Or(
+                        ownerFilter,
+                        Builders<Absence>.Filter.And(
+                            Builders<Absence>.Filter.Eq(a => a.Id, id),
+                            Builders<Absence>.Filter.Eq(a => a.ManagerCode, managerCode)));
 
                 var update = Builders<Absence>.Update
                     .Set(a => a.Title, title)
@@ -135,10 +147,10 @@ namespace Rota.Services
                     .Set(a => a.Color, color ?? "#fa8c16")
                     .Set(a => a.UserId, userId)
                     .Set(a => a.AssignedToUserId, assignedToUserId)
-                    .Set(a => a.ManagerCode, managerCode)
                     .Set(a => a.StartTime, startTime)
                     .Set(a => a.EndTime, endTime)
-                    .Set(a => a.ApprovalState, approvalState);
+                    .Set(a => a.ApprovalState, approvalState)
+                    .Set(a => a.Reason, reason);
 
                 var opts = new FindOneAndUpdateOptions<Absence> { ReturnDocument = ReturnDocument.After };
                 return await _absences.FindOneAndUpdateAsync(filter, update, opts);

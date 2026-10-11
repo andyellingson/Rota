@@ -214,9 +214,9 @@ namespace Rota.Components
         public int NewAbsenceDayCount { get; set; } = 1;
 
         /// <summary>
-        /// Gets or sets title for newly created absences.
+        /// Gets or sets the reason for a newly created absence.
         /// </summary>
-        public string NewAbsenceTitle { get; set; } = string.Empty;
+        public AbsenceReason NewAbsenceReason { get; set; } = AbsenceReason.Other;
 
         /// <summary>
         /// Gets or sets notes for newly created absences.
@@ -259,9 +259,9 @@ namespace Rota.Components
         public int EditAbsenceDayCount { get; set; } = 1;
 
         /// <summary>
-        /// Gets or sets title for the absence being edited.
+        /// Gets or sets the reason for the absence being edited.
         /// </summary>
-        public string EditAbsenceTitle { get; set; } = string.Empty;
+        public AbsenceReason EditAbsenceReason { get; set; } = AbsenceReason.Other;
 
         /// <summary>
         /// Gets or sets notes for the absence being edited.

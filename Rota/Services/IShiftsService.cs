@@ -23,6 +23,11 @@ namespace Rota.Services
         System.Threading.Tasks.Task<bool> DeleteShiftAsync(string id, string username);
 
         /// <summary>
+        /// Deletes every shift belonging to the specified schedule.
+        /// </summary>
+        System.Threading.Tasks.Task<long> DeleteShiftsByScheduleIdAsync(string scheduleId);
+
+        /// <summary>
         /// Deletes all shifts in a recurring series for the specified user.
         /// </summary>
         System.Threading.Tasks.Task<int> DeleteShiftsBySeriesIdAsync(Guid seriesId, string username);

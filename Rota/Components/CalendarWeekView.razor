@@ -1,0 +1,52 @@
+@using System.Globalization
+
+@* Week view: seven day cards. Day content is supplied by the owner. *@
+<div class="calendar-week">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <strong>Week of @CalendarDates.StartOfWeek(Current).ToString("d", CultureInfo.CurrentCulture)</strong>
+    </div>
+
+    <div class="week-grid">
+        @foreach (var d in Enumerable.Range(0, 7).Select(i => CalendarDates.StartOfWeek(Current).AddDays(i)))
+        {
+            var isToday = d == DateOnly.FromDateTime(DateTime.Today);
+            var capturedDay = d;
+            <div class="week-day-card card me-2 @(SelectedDays.Contains(d) ? "day-selected" : "")"
+                 @onclick="() => OnDayClick.InvokeAsync(capturedDay)">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-bold">@d.ToString("ddd", CultureInfo.CurrentCulture)</div>
+                            <div class="text-muted small">@d.ToString("d", CultureInfo.CurrentCulture)</div>
+                        </div>
+                        @if (isToday)
+                        {
+                            <span class="badge bg-primary">Today</span>
+                        }
+                    </div>
+                    <div class="mt-2 events events-overlay">
+                        @DayContent(d)
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary w-100 mt-1" @onclick:stopPropagation="true" @onclick="() => OnAddClick.InvokeAsync(capturedDay)">+ Add</button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    /// <summary>Any date inside the week being displayed.</summary>
+    [Parameter, EditorRequired] public DateOnly Current { get; set; }
+
+    /// <summary>Days currently selected in multi-select mode.</summary>
+    [Parameter] public HashSet<DateOnly> SelectedDays { get; set; } = new();
+
+    /// <summary>Renders the entries of a single day.</summary>
+    [Parameter, EditorRequired] public RenderFragment<DateOnly> DayContent { get; set; } = default!;
+
+    /// <summary>Raised when a day card is clicked.</summary>
+    [Parameter] public EventCallback<DateOnly> OnDayClick { get; set; }
+
+    /// <summary>Raised when the "+ Add" button of a day is clicked.</summary>
+    [Parameter] public EventCallback<DateOnly> OnAddClick { get; set; }
+}

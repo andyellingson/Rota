@@ -18,13 +18,13 @@ namespace Rota.Services
         System.Threading.Tasks.Task<Absence> CreateAbsenceAsync(Absence absence);
 
         /// <summary>
-        /// Deletes an absence owned by the specified username.
+        /// Deletes an absence created by the specified username or belonging to the specified manager scope.
         /// </summary>
-        System.Threading.Tasks.Task<bool> DeleteAbsenceAsync(string id, string username);
+        System.Threading.Tasks.Task<bool> DeleteAbsenceAsync(string id, string username, string? managerCode = null);
 
         /// <summary>
         /// Updates an absence owned by the specified user or manager scope.
         /// </summary>
-        System.Threading.Tasks.Task<Absence?> UpdateAbsenceAsync(string id, string username, string title, string? notes, DateTime startDateUtc, DateTime endDateUtc, int dayCount, string? color, string? userId, string? assignedToUserId, string? managerCode, string? startTime = null, string? endTime = null, AbsenceApprovalState approvalState = AbsenceApprovalState.Pending);
+        System.Threading.Tasks.Task<Absence?> UpdateAbsenceAsync(string id, string username, string title, string? notes, DateTime startDateUtc, DateTime endDateUtc, int dayCount, string? color, string? userId, string? assignedToUserId, string? managerCode, string? startTime = null, string? endTime = null, AbsenceApprovalState approvalState = AbsenceApprovalState.Pending, AbsenceReason reason = AbsenceReason.Other);
     }
 }

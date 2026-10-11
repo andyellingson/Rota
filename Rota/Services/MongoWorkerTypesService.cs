@@ -30,6 +30,12 @@ namespace Rota.Services
             _workerTypes = db.GetCollection<WorkerType>(opts.WorkerTypesCollectionName);
         }
 
+        public MongoWorkerTypesService(IMongoCollection<WorkerType> workerTypesCollection, ILogger<MongoWorkerTypesService> logger)
+        {
+            _workerTypes = workerTypesCollection;
+            _logger = logger;
+        }
+
         /// <inheritdoc />
         public async Task<List<WorkerType>> GetByOwnerAsync(string ownerId)
         {

@@ -14,6 +14,34 @@ namespace Rota.Models
         Denied = 2
     }
 
+    /// <summary>Reason for an absence.</summary>
+    public enum AbsenceReason
+    {
+        Sick,
+        Vacation,
+        Personal,
+        FamilyCare,
+        MedicalAppointment,
+        Bereavement,
+        ParentalLeave,
+        JuryDuty,
+        UnpaidLeave,
+        Other
+    }
+
+    public static class AbsenceReasonExtensions
+    {
+        public static string ToDisplayName(this AbsenceReason reason) => reason switch
+        {
+            AbsenceReason.FamilyCare => "Family Care",
+            AbsenceReason.MedicalAppointment => "Medical Appointment",
+            AbsenceReason.ParentalLeave => "Parental Leave",
+            AbsenceReason.JuryDuty => "Jury Duty",
+            AbsenceReason.UnpaidLeave => "Unpaid Leave",
+            _ => reason.ToString()
+        };
+    }
+
     /// <summary>
     /// Represents a period of absence for a user (e.g. sick leave, holiday).
     /// </summary>
@@ -65,6 +93,16 @@ namespace Rota.Models
         /// <summary>Short title, e.g. "Sick Leave" or "Holiday".</summary>
         [BsonElement("title")]
         public string Title { get; set; } = null!;
+
+        /// <summary>Category describing why the absence was recorded.</summary>
+        [BsonElement("reason")]
+        [BsonRepresentation(BsonType.String)]
+        public AbsenceReason Reason { get; set; } = AbsenceReason.Other;
+
+        [BsonIgnore]
+        public string DisplayTitle => Reason == AbsenceReason.Other && !string.IsNullOrWhiteSpace(Title)
+            ? Title
+            : Reason.ToDisplayName();
 
         /// <summary>Optional additional notes.</summary>
         [BsonElement("notes")]

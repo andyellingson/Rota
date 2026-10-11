@@ -6,6 +6,8 @@ namespace Rota.Models
     /// <summary>
     /// Represents a named schedule that groups shifts, absences, and reminders.
     /// </summary>
+    // Ignore legacy elements that no longer map to a property
+    [BsonIgnoreExtraElements]
     public class Schedule
     {
         /// <summary>

@@ -1,3 +1,5 @@
+using Rota.Models;
+
 namespace Rota.DTOs
 {
     /// <summary>DTO for updating an existing absence entry.</summary>
@@ -9,5 +11,5 @@ namespace Rota.DTOs
     /// <param name="AssignedToUserId">MongoDB ObjectId string of the user the absence is for.</param>
     /// <param name="StartTime">Optional local time string (e.g. "09:00") for part-day absences. Only used when DayCount == 1.</param>
     /// <param name="EndTime">Optional local time string (e.g. "17:00") for part-day absences. Only used when DayCount == 1.</param>
-    public record UpdateAbsenceDto(string StartDate, int DayCount, string Title, string? Notes, string? Color, string? AssignedToUserId = null, string? StartTime = null, string? EndTime = null);
+    public record UpdateAbsenceDto(string StartDate, int DayCount, string Title, string? Notes, string? Color, string? AssignedToUserId = null, string? StartTime = null, string? EndTime = null, AbsenceReason Reason = AbsenceReason.Other);
 }

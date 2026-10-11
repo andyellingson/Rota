@@ -107,7 +107,7 @@
                                             @foreach (var a in dayAbsences)
                                             {
                                                 <div class="print-event print-event-absence" style="border-left-color:@(a.Color ?? "#fa8c16");">
-                                                    <span class="print-event-label">@a.Title</span>
+                                                    <span class="print-event-label">@a.DisplayTitle</span>
                                                     <span class="print-event-person">@GetEmployeeDisplayName(a.AssignedToUserId)</span>
                                                 </div>
                                             }

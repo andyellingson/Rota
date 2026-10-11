@@ -84,6 +84,22 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
+        public async System.Threading.Tasks.Task<long> DeleteShiftsByScheduleIdAsync(string scheduleId)
+        {
+            try
+            {
+                var filter = Builders<Shift>.Filter.Eq(s => s.ScheduleId, scheduleId);
+                var result = await _shifts.DeleteManyAsync(filter);
+                return result.DeletedCount;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting shifts for schedule {ScheduleId}", scheduleId);
+                throw;
+            }
+        }
+
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<Shift> CreateShiftAsync(Shift shift)
         {
             try
@@ -224,7 +240,7 @@ namespace Rota.Services
             catch (System.Exception ex)
             {
                 _logger.LogError(ex, "Error deleting template shifts for Rotation {RotationId}", rotationId);
-                return 0;
+                throw;
             }
         }
     }

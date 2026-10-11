@@ -4,33 +4,26 @@
 <div class="absence-item mb-1 @PendingClass @(IsPast ? "item--past" : "")"
      style="background-color: @(Absence.Color ?? "#fa8c16");"
      @onclick:stopPropagation="true" @onclick="HandleEdit">
-    <div class="d-flex w-100">
-        <div class="absence-left text-start text-truncate">@AssignedToDisplayName</div>
-        <div class="absence-right text-end text-truncate">
-            @Absence.Title
-            @if (ShowApprovalState && Absence.ApprovalState == AbsenceApprovalState.Pending)
-            {
-                <span class="absence-pending-badge">⏳ Pending</span>
-            }
-            else if (ShowApprovalState && Absence.ApprovalState == AbsenceApprovalState.Denied)
-            {
-                <span class="absence-pending-badge absence-denied-badge">❌ Denied</span>
-            }
-        </div>
-    </div>
-    @if (!string.IsNullOrWhiteSpace(Absence.StartTime) &&
-         !string.IsNullOrWhiteSpace(Absence.EndTime) &&
-         Absence.DayCount == 1)
-    {
-        // Show part-day times when available
-        if (TimeOnly.TryParse(Absence.StartTime, CultureInfo.CurrentCulture, out var st) &&
-            TimeOnly.TryParse(Absence.EndTime, CultureInfo.CurrentCulture, out var et))
+    <div class="absence-top-row">
+        <div class="absence-name text-start" title="@AssignedToDisplayName">@CompactAssignedName</div>
+        @if (HasTimeRange)
         {
-            <div class="absence-time small mt-1">
-                @st.ToString("t", CultureInfo.CurrentCulture) – @et.ToString("t", CultureInfo.CurrentCulture)
+            <div class="absence-time small">
+                @FormatTime(Absence.StartTime!) – @FormatTime(Absence.EndTime!)
             </div>
         }
-    }
+    </div>
+    <div class="absence-reason text-start text-truncate">
+        <span>@Absence.DisplayTitle</span>
+        @if (ShowApprovalState && Absence.ApprovalState == AbsenceApprovalState.Pending)
+        {
+            <span class="absence-pending-badge">⏳ Pending</span>
+        }
+        else if (ShowApprovalState && Absence.ApprovalState == AbsenceApprovalState.Denied)
+        {
+            <span class="absence-pending-badge absence-denied-badge">❌ Denied</span>
+        }
+    </div>
 </div>
 
 @code {
@@ -60,6 +53,19 @@
 
     /// <summary>True when the absence has already ended.</summary>
     private bool IsPast => Absence.EndDate.ToUniversalTime() < DateTime.UtcNow;
+
+    private bool HasTimeRange => Absence.DayCount == 1 &&
+        !string.IsNullOrWhiteSpace(Absence.StartTime) &&
+        !string.IsNullOrWhiteSpace(Absence.EndTime) &&
+        TimeOnly.TryParse(Absence.StartTime, CultureInfo.CurrentCulture, out _) &&
+        TimeOnly.TryParse(Absence.EndTime, CultureInfo.CurrentCulture, out _);
+
+    private static string FormatTime(string time) =>
+        TimeOnly.Parse(time, CultureInfo.CurrentCulture).ToString("t", CultureInfo.CurrentCulture);
+
+    private string CompactAssignedName => AssignedToDisplayName.Length > 12
+        ? $"{AssignedToDisplayName[..12]}..."
+        : AssignedToDisplayName;
 
     private Task HandleEdit()
         => OnEdit.HasDelegate ? OnEdit.InvokeAsync(Absence) : Task.CompletedTask;
