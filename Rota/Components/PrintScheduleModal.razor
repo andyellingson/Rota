@@ -36,6 +36,16 @@
                                    placeholder="@ScheduleName" />
                         </div>
 
+                        @* ── Week navigation: shifts the print range back/forward one week ── *@
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 small fw-semibold">Start week:</label>
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Change print start week">
+                                <button type="button" class="btn btn-outline-secondary print-nav-btn" title="Previous week" @onclick="() => ShiftRange(-1)">‹</button>
+                                <span class="btn btn-outline-secondary disabled print-nav-label">@printStart.ToString("d", CultureInfo.CurrentCulture)</span>
+                                <button type="button" class="btn btn-outline-secondary print-nav-btn" title="Next week" @onclick="() => ShiftRange(1)">›</button>
+                            </div>
+                        </div>
+
                         @* ── Period count ── *@
                         <div class="d-flex align-items-center gap-2">
                             <label class="form-label mb-0 small fw-semibold">Weeks to print:</label>
@@ -67,7 +77,7 @@
                         @* ── Always render as week grids – one week per page ── *@
                         @for (int p = 0; p < periodCount; p++)
                         {
-                            var weekStart = StartOfWeek(CurrentDate).AddDays(p * 7);
+                            var weekStart = printStart.AddDays(p * 7);
                             var isLastPeriod = p == periodCount - 1;
 
                             @* Page break after every week except the last *@
@@ -89,18 +99,32 @@
                                             @foreach (var s in dayShifts)
                                             {
                                                 <div class="print-event print-event-shift" style="border-left-color:@(s.Color ?? "#1890ff");">
+                                                    @* Row 1: title (left) and worker type (right), as in the Calendar *@
                                                     <div class="print-event-header">
-                                                        <div class="print-event-worker">@s.WorkerType</div>
+                                                        <div class="print-event-title">@(string.IsNullOrWhiteSpace(s.Title) ? s.WorkerType : s.Title)</div>
+                                                        <div class="print-event-worker" style="color:@(s.Color ?? "#1890ff");">@s.WorkerType</div>
+                                                    </div>
+                                                    @* Row 2: assigned person (or UNASSIGNED) and time range *@
+                                                    <div class="print-event-header">
+                                                        @if (!string.IsNullOrEmpty(s.AssignedToUserId))
+                                                        {
+                                                            var fn = GetEmployeeFirstName(s.AssignedToUserId)?.Trim() ?? string.Empty;
+                                                            var ln = GetEmployeeLastName(s.AssignedToUserId)?.Trim() ?? string.Empty;
+                                                            var assignedFull = (!string.IsNullOrEmpty(fn) || !string.IsNullOrEmpty(ln))
+                                                                ? $"{fn} {ln}".Trim()
+                                                                : GetEmployeeDisplayName(s.AssignedToUserId);
+                                                            <div class="print-event-person">@assignedFull</div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="print-event-unassigned">UNASSIGNED</div>
+                                                        }
                                                         <div class="print-event-time">@CompactTime(s.Start.ToLocalTime()) – @CompactTime(s.End.ToLocalTime())</div>
                                                     </div>
-                                                    @if (!string.IsNullOrEmpty(s.AssignedToUserId))
+                                                    @{ var overtime = GetOvertimeHours(s); }
+                                                    @if (overtime > 0)
                                                     {
-                                                        var fn = GetEmployeeFirstName(s.AssignedToUserId)?.Trim() ?? string.Empty;
-                                                        var ln = GetEmployeeLastName(s.AssignedToUserId)?.Trim() ?? string.Empty;
-                                                        var assignedFull = (!string.IsNullOrEmpty(fn) || !string.IsNullOrEmpty(ln))
-                                                            ? $"{fn} {ln}".Trim()
-                                                            : GetEmployeeDisplayName(s.AssignedToUserId);
-                                                        <div class="print-event-person">@assignedFull</div>
+                                                        <div class="print-event-overtime">⚠ Overtime @overtime.ToString("0.#", CultureInfo.CurrentCulture) h</div>
                                                     }
                                                 </div>
                                             }
@@ -189,8 +213,11 @@
     [Parameter] public Func<Shift, string> GetShiftTitle { get; set; } = s =>
         string.IsNullOrWhiteSpace(s.Title) ? s.WorkerType.ToString() : $"{s.Title} - {s.WorkerType}";
 
+    /// <summary>Returns the overtime hours for a shift (Calendar's own method).</summary>
+    [Parameter] public Func<Shift, double> GetOvertimeHours { get; set; } = _ => 0;
+
     /// <summary>
-    /// Called when the user changes the period count so that Calendar can load the
+    /// Called when the user changes the period count so
     /// required date range into its shift/absence/reminder lists.
     /// Receives the inclusive start and end dates of the full print range.
     /// </summary>
@@ -213,15 +240,35 @@
     /// <summary>
     /// Re-initialises editable state whenever the modal transitions from hidden to visible.
     /// </summary>
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        if (IsVisible && !_wasVisible)
-        {
-            customTitle = ScheduleName;
-            // Always default to 2 weeks (one week per printed page).
-            periodCount = 2;
-        }
+        var freshOpen = IsVisible && !_wasVisible;
+        // Update before awaiting so re-entrant parameter sets don't re-initialise.
         _wasVisible = IsVisible;
+        if (!freshOpen) return;
+
+        customTitle = ScheduleName;
+        // Always default to 2 weeks (one week per printed page).
+        periodCount = 2;
+        printStart = StartOfWeek(CurrentDate);
+        await LoadPrintRange();
+    }
+
+    /// <summary>First day of the first week to print; user-adjustable with the ‹ › buttons.</summary>
+    private DateOnly printStart;
+
+    /// <summary>Moves the print range by whole weeks and loads data for the new range.</summary>
+    private async Task ShiftRange(int weeks)
+    {
+        printStart = printStart.AddDays(weeks * 7);
+        await LoadPrintRange();
+    }
+
+    /// <summary>Requests data for the full selected print range from the owner.</summary>
+    private async Task LoadPrintRange()
+    {
+        if (LoadRangeData is null) return;
+        await LoadRangeData(printStart, printStart.AddDays(periodCount * 7 - 1));
     }
 
     // ── Calendar layout helpers (no dependency on Calendar's private state) ──
@@ -245,10 +292,7 @@
     private async Task SetPeriodCount(int count)
     {
         periodCount = count;
-        if (LoadRangeData is null) return;
-        var start = StartOfWeek(CurrentDate);
-        var end = start.AddDays(count * 7 - 1);
-        await LoadRangeData(start, end);
+        await LoadPrintRange();
     }
 
     /// <summary>
@@ -256,7 +300,7 @@
     /// </summary>
     private string GetPrintSubtitle()
     {
-        var weekStart = StartOfWeek(CurrentDate);
+        var weekStart = printStart;
         if (periodCount == 1)
             return $"Week of {weekStart.ToString("d", CultureInfo.CurrentCulture)}";
         var weekEnd = weekStart.AddDays(periodCount * 7 - 1);

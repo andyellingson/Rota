@@ -170,6 +170,7 @@ window.printSchedule = function (elementId) {
 
     @media print {
       /* Remove margins when printing so content uses full page width */
+      @page { size: landscape; margin: 0.5cm; }
       html, body { margin: 0; padding: 0; }
       .print-preview-container { transform: none; width: 100%; padding: 0.5cm; }
       .print-day-cell, .print-week-col { break-inside: avoid; }
@@ -182,9 +183,24 @@ window.printSchedule = function (elementId) {
 
     printWindow.document.close();
     printWindow.focus();
-    // Small delay so the browser finishes rendering before showing the print dialog.
-    setTimeout(function () {
+    // Keep the print window available briefly after printing so Edge can finish
+    // updating its print-preview destination capabilities.
+    printWindow.addEventListener('afterprint', function () {
+        setTimeout(function () {
+            printWindow.close();
+        }, 1000);
+    }, { once: true });
+
+    (async function () {
+        if (printWindow.document.fonts?.ready) {
+            await printWindow.document.fonts.ready;
+        }
+        await new Promise(resolve => {
+            printWindow.requestAnimationFrame(() => printWindow.requestAnimationFrame(resolve));
+        });
+        printWindow.focus();
         printWindow.print();
-        printWindow.close();
-    }, 300);
+    })().catch(error => {
+        console.error('Unable to open the schedule print dialog.', error);
+    });
 };

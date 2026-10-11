@@ -1,5 +1,7 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
 
 <PageTitle>Rota</PageTitle>
 
@@ -69,3 +71,15 @@
     </NotAuthorized>
 
 </AuthorizeView>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            // Send signed-in users directly to their schedules instead of showing the welcome page.
+            Navigation.NavigateTo("/calendar", replace: true);
+        }
+    }
+}

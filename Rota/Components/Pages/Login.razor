@@ -22,7 +22,7 @@
 
     /// <summary>
     /// Attempts to sign the user in by calling the server-side auth endpoint.
-    /// On success the user is navigated to the root page. Errors are displayed to the user
+    /// On success the user is navigated to the schedules page. Errors are displayed to the user
     /// and unexpected exceptions are logged for diagnostics.
     /// </summary>
     private async System.Threading.Tasks.Task Submit()
@@ -38,7 +38,7 @@
             var ok = result.TryGetProperty("ok", out var okProp) && okProp.ValueKind == JsonValueKind.True;
             if (ok)
             {
-                Navigation.NavigateTo("/", forceLoad: true);
+                Navigation.NavigateTo("/calendar", forceLoad: true);
                 return;
             }
 
@@ -110,7 +110,7 @@
             var ok = result.TryGetProperty("ok", out var okProp) && okProp.ValueKind == JsonValueKind.True;
             if (ok)
             {
-                Navigation.NavigateTo("/", forceLoad: true);
+                Navigation.NavigateTo("/calendar", forceLoad: true);
                 return;
             }
 

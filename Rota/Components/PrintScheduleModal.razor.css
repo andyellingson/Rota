@@ -291,7 +291,39 @@
     white-space: nowrap;
 }
 
-/* ── Footer ──────────────────────────────────────────────────────────────── */
+/* Calendar-style shift card parts */
+.print-event-title {
+    font-weight: 600;
+    font-size: 0.72rem;
+    color: #111;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.print-event-unassigned {
+    font-size: 0.66rem;
+    color: #ff4d4f;
+    font-style: italic;
+}
+
+.print-event-overtime {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #b45309;
+    background: rgba(245, 158, 11, 0.15);
+    border-radius: 3px;
+    padding: 0.05rem 0.3rem;
+}
+
+.print-nav-label {
+    min-width: 6.5rem;
+    opacity: 1;
+    color: var(--color-text-primary);
+}
+
+/* ── Footer ──
 .print-schedule-footer {
     border-top: 1px solid var(--color-border);
 }
