@@ -43,8 +43,23 @@ namespace Rota.Services
             _logger = logger;
         }
 
+        /// <inheritdoc />
+        public async System.Threading.Tasks.Task<long> DeleteRemindersByScheduleIdAsync(string scheduleId)
+        {
+            try
+            {
+                var result = await _reminders.DeleteManyAsync(Builders<Reminder>.Filter.Eq(r => r.ScheduleId, scheduleId));
+                return result.DeletedCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting reminders for schedule {ScheduleId}", scheduleId);
+                throw;
+            }
+        }
+
         /// <summary>
-        /// Fetches reminders matching the manager code and/or the personal owner ObjectId.
+        /// Fetches reminders matching
         /// An OR filter is used so both shared (manager) and personal reminders are returned.
         /// </summary>
         public async System.Threading.Tasks.Task<List<Reminder>> GetCalendarRemindersAsync(string? managerCode, string? ownerId, DateOnly startDate, DateOnly endDate)

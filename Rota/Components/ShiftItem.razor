@@ -17,7 +17,7 @@
         {
             <div class="shift-unassigned-label">UNASSIGNED</div>
         }
-        <div class="shift-time-inline">@CompactTime(Shift.Start.ToLocalTime()) – @CompactTime(Shift.End.ToLocalTime())</div>
+        <div class="shift-time-inline">@CompactTime(GetDisplayTime(Shift.Start)) – @CompactTime(GetDisplayTime(Shift.End))</div>
     </div>
 
     @if (OvertimeHours > 0)
@@ -54,6 +54,9 @@
     [Parameter]
     public double OvertimeHours { get; set; }
 
+    [Parameter]
+    public bool UseWallClockTime { get; set; }
+
     /// <summary>Full name composed from first/last name when available, otherwise falls back to display name.</summary>
     private string AssignedFullName
     {
@@ -77,16 +80,32 @@
     }
 
     /// <summary>True when the shift has already ended.</summary>
-    private bool IsPast => Shift.End.ToUniversalTime() < DateTime.UtcNow;
+    private bool IsPast => !UseWallClockTime && Shift.End.ToUniversalTime() < DateTime.UtcNow;
 
     /// <summary>True when the shift is in the future and has no assigned user, visible only to managers (OnEdit delegate present).</summary>
     private bool IsUnassignedFuture =>
+        !UseWallClockTime &&
         OnEdit.HasDelegate &&
         string.IsNullOrWhiteSpace(Shift.AssignedToUserId) &&
         Shift.Start.ToUniversalTime() > DateTime.UtcNow;
 
     private Task HandleEdit()
         => OnEdit.HasDelegate ? OnEdit.InvokeAsync(Shift) : Task.CompletedTask;
+
+    private DateTime GetDisplayTime(DateTime time)
+    {
+        if (!UseWallClockTime && Shift.RotationId is null)
+        {
+            return time.ToLocalTime();
+        }
+
+        return time.Kind switch
+        {
+            DateTimeKind.Local => time.ToUniversalTime(),
+            DateTimeKind.Unspecified => DateTime.SpecifyKind(time, DateTimeKind.Utc),
+            _ => time
+        };
+    }
 
     /// <summary>
     /// Returns a compact time string: omits the minutes when they are zero

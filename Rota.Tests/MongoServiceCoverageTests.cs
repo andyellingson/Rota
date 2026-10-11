@@ -253,34 +253,6 @@ public class MongoSchedulesServiceTests
     }
 
     [Test]
-    public async Task AddRotationAsync_GeneratesIdAndReturnsRotationWhenScheduleUpdated()
-    {
-        var collection = new Mock<IMongoCollection<Schedule>>();
-        var result = new Mock<UpdateResult>();
-        result.SetupGet(r => r.ModifiedCount).Returns(1);
-        collection.Setup(c => c.UpdateOneAsync(It.IsAny<FilterDefinition<Schedule>>(), It.IsAny<UpdateDefinition<Schedule>>(), It.IsAny<UpdateOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(result.Object);
-        var service = new MongoSchedulesService(collection.Object, Mock.Of<ILogger<MongoSchedulesService>>());
-        var rotation = new Rotation { Name = "Week A" };
-
-        var returned = await service.AddRotationAsync("schedule-id", "manager-id", rotation);
-
-        Assert.That(returned, Is.SameAs(rotation));
-        Assert.That(rotation.Id, Is.Not.Null.And.Not.Empty);
-    }
-
-    [Test]
-    public async Task AddRotationAsync_ThrowsWhenScheduleIsNotUpdated()
-    {
-        var collection = new Mock<IMongoCollection<Schedule>>();
-        var result = new Mock<UpdateResult>();
-        result.SetupGet(r => r.ModifiedCount).Returns(0);
-        collection.Setup(c => c.UpdateOneAsync(It.IsAny<FilterDefinition<Schedule>>(), It.IsAny<UpdateDefinition<Schedule>>(), It.IsAny<UpdateOptions>(), It.IsAny<CancellationToken>())).ReturnsAsync(result.Object);
-        var service = new MongoSchedulesService(collection.Object, Mock.Of<ILogger<MongoSchedulesService>>());
-
-        Assert.ThrowsAsync<InvalidOperationException>(() => service.AddRotationAsync("missing", "manager-id", new Rotation { Name = "Week A" }));
-    }
-
-    [Test]
     public async Task SetDefaultScheduleAsync_ReturnsFalseWhenMongoUpdateFails()
     {
         var collection = new Mock<IMongoCollection<Schedule>>();
@@ -315,7 +287,7 @@ public class MongoSchedulesServiceTests
         var shiftsService = new Mock<IShiftsService>();
         shiftsService.Setup(s => s.DeleteShiftsByScheduleIdAsync("507f1f77bcf86cd799439011"))
             .ThrowsAsync(new InvalidOperationException("Database unavailable"));
-        var service = new MongoSchedulesService(collection.Object, Mock.Of<ILogger<MongoSchedulesService>>(), shiftsService.Object);
+        var service = new MongoSchedulesService(collection.Object, Mock.Of<ILogger<MongoSchedulesService>>(), shiftsService.Object, Mock.Of<IAbsencesService>(), Mock.Of<IRemindersService>());
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.DeleteScheduleAsync("507f1f77bcf86cd799439011", "manager-id"));
@@ -325,14 +297,37 @@ public class MongoSchedulesServiceTests
     }
 
     [Test]
-    public void DeleteRotationAsync_PropagatesMongoUpdateFailure()
+    public void DeleteScheduleAsync_DoesNotDeleteScheduleWhenAbsenceCleanupFails()
     {
         var collection = new Mock<IMongoCollection<Schedule>>();
-        collection.Setup(c => c.UpdateOneAsync(It.IsAny<FilterDefinition<Schedule>>(), It.IsAny<UpdateDefinition<Schedule>>(), It.IsAny<UpdateOptions>(), It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException());
-        var service = new MongoSchedulesService(collection.Object, Mock.Of<ILogger<MongoSchedulesService>>());
+        var schedules = new[]
+        {
+            new Schedule { Id = "507f1f77bcf86cd799439011", ManagerId = "manager-id" },
+            new Schedule { Id = "507f1f77bcf86cd799439012", ManagerId = "manager-id" }
+        };
+        IAsyncCursor<Schedule> NewCursor(Schedule[] items)
+        {
+            var cursor = new Mock<IAsyncCursor<Schedule>>();
+            cursor.SetupSequence(c => c.MoveNext(It.IsAny<CancellationToken>())).Returns(true).Returns(false);
+            cursor.SetupSequence(c => c.MoveNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true).ReturnsAsync(false);
+            cursor.SetupGet(c => c.Current).Returns(items);
+            return cursor.Object;
+        }
+        var cursors = new Queue<IAsyncCursor<Schedule>>([NewCursor(schedules), NewCursor([schedules[0]])]);
+        collection.Setup(c => c.FindAsync(It.IsAny<FilterDefinition<Schedule>>(), It.IsAny<FindOptions<Schedule, Schedule>>(), It.IsAny<CancellationToken>()))
+            .Returns(() => Task.FromResult(cursors.Dequeue()));
+        var absences = new Mock<IAbsencesService>();
+        absences.Setup(a => a.DeleteAbsencesByScheduleIdAsync("507f1f77bcf86cd799439011"))
+            .ThrowsAsync(new InvalidOperationException("Database unavailable"));
+        var service = new MongoSchedulesService(collection.Object, Mock.Of<ILogger<MongoSchedulesService>>(), Mock.Of<IShiftsService>(), absences.Object, Mock.Of<IRemindersService>());
 
-        Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteRotationAsync("schedule", "manager", "rotation"));
+        var exception = Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.DeleteScheduleAsync("507f1f77bcf86cd799439011", "manager-id"));
+
+        Assert.That(exception!.Message, Does.Contain("its absences could not be deleted"));
+        collection.Verify(c => c.DeleteOneAsync(It.IsAny<FilterDefinition<Schedule>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
 }
 
 [TestFixture]

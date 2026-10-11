@@ -19,6 +19,7 @@ builder.Services.AddScoped<IRemindersService, MongoRemindersService>();
 builder.Services.AddScoped<IShiftsService, MongoShiftsService>();
 builder.Services.AddScoped<IAbsencesService, MongoAbsencesService>();
 builder.Services.AddScoped<ISchedulesService, MongoSchedulesService>();
+builder.Services.AddScoped<IRotationsService, MongoRotationsService>();
 builder.Services.AddScoped<IWorkerTypesService, MongoWorkerTypesService>();
 builder.Services.AddScoped<IRotationTemplateService, RotationTemplateService>();
 builder.Services.AddScoped<IShiftAutoAssignService, ShiftAutoAssignService>();

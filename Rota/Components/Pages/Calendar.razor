@@ -12,6 +12,7 @@
 @inject IAbsencesService AbsenceService
 @inject IUserService UserService
 @inject ISchedulesService SchedulesService
+@inject IRotationsService RotationsService
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
 @inject IWorkerTypesService WorkerTypesService
 @inject IJSRuntime JS
@@ -48,12 +49,12 @@
                 <span class="action-bar-sep" aria-hidden="true"></span>
                 @if (canManageShifts)
                 {
-                    var wwSelMulti = availableSchedules.FirstOrDefault(s => s.Id == selectedScheduleId);
-                    if (wwSelMulti?.Rotations?.Count > 0)
+                    var scheduleRotations = GetRotationsForSelectedSchedule();
+                    if (scheduleRotations.Count > 0)
                     {
                         <select class="form-select form-select-sm d-inline-block" style="width:auto;min-width:220px;" @bind="multiDaySelectedWorkWeekId">
                             <option value="">— Select Rotation Template —</option>
-                            @foreach (var ww in wwSelMulti.Rotations)
+                            @foreach (var ww in scheduleRotations)
                             {
                                 <option value="@ww.Id">@ww.Name</option>
                             }
@@ -183,7 +184,7 @@
         var detailShifts = GetShiftsForDay(dayModalDate).OrderBy(s => s.Start).ToList();
         var detailReminders = GetRemindersForDay(dayModalDate).OrderBy(r => r.ReminderDateTime).ToList();
         var detailAbsences = GetAbsencesForDay(dayModalDate).OrderBy(a => a.StartDate).ToList();
-        var scheduleRotations = availableSchedules.FirstOrDefault(s => s.Id == selectedScheduleId)?.Rotations;
+        var scheduleRotations = GetRotationsForSelectedSchedule();
 
         <DayDetailsModal State="dayModal"
                          Shifts="detailShifts" Absences="detailAbsences" Reminders="detailReminders"
@@ -209,7 +210,8 @@
                                 OnClose="CloseMultiDayConfirmModal" OnConfirm="ExecuteBulkDelete" />
     }
 
-    <PrintScheduleModal OnClose="@(() => showPrintModal = false)"
+    <PrintScheduleModal IsVisible="showPrintModal"
+                        OnClose="@(() => showPrintModal = false)"
                         ViewMode="@(view == ViewMode.Month ? PrintScheduleModal.PrintViewMode.Month : PrintScheduleModal.PrintViewMode.Week)"
                         CurrentDate="current"
                         ScheduleName="@(availableSchedules.FirstOrDefault(s => s.Id == selectedScheduleId)?.Name ?? "Schedule")"
@@ -295,6 +297,7 @@
 
         // Schedule selection state
         private List<Schedule> availableSchedules = new();
+        private List<Rotation> rotations = new();
         private string? selectedScheduleId;
         [SupplyParameterFromQuery(Name = "scheduleId")]
         private string? QueryScheduleId { get; set; }
@@ -519,6 +522,9 @@
                 if (canManageShifts)
                 {
                     availableSchedules = await SchedulesService.GetSchedulesForManagerAsync(_userId, _managerCode);
+                    rotations = string.IsNullOrEmpty(_managerCode)
+                        ? new List<Rotation>()
+                        : await RotationsService.GetForManagerAsync(_managerCode);
 
                     // Ensure at least one schedule exists for managers
                     if (availableSchedules.Count == 0 && !string.IsNullOrEmpty(_username))
@@ -552,6 +558,11 @@
                 Logger.LogError(ex, "Error loading schedules");
             }
         }
+
+        private List<Rotation> GetRotationsForSelectedSchedule() =>
+            string.IsNullOrEmpty(selectedScheduleId)
+                ? new List<Rotation>()
+                : rotations.Where(rotation => rotation.ScheduleIds.Contains(selectedScheduleId, StringComparer.Ordinal)).ToList();
 
         /// <summary>
         /// Called when the selected schedule changes

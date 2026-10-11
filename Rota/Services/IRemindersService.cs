@@ -25,7 +25,12 @@ namespace Rota.Services
         System.Threading.Tasks.Task<bool> DeleteReminderAsync(string id, string username);
 
         /// <summary>
-        /// Updates an existing reminder (only if it belongs to the specified user).
+        /// Deletes every reminder belonging to the given schedule. Returns the number deleted.
+        /// </summary>
+        System.Threading.Tasks.Task<long> DeleteRemindersByScheduleIdAsync(string scheduleId);
+
+        /// <summary>
+        /// Updates an existing reminder
         /// Returns the updated reminder if successful; null if not found or not owned by user.
         /// </summary>
         System.Threading.Tasks.Task<Reminder?> UpdateReminderAsync(string id, string username, string title, string? notes, DateTime reminderDateTimeUtc, string? color, string? ownerId, string? forUsername, string? forDisplayName, string? managerCode);

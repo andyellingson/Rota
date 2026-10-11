@@ -76,6 +76,38 @@ public class RotationTemplateServiceTests
         });
         shifts.Verify(s => s.CreateShiftAsync(It.IsAny<Shift>()), Times.Once);
     }
+
+    [Test]
+    public async Task ApplyAsync_TreatsTemplateEndTimeAtMidnightAsNextDay()
+    {
+        var template = new Shift
+        {
+            WorkDay = DayOfWeek.Sunday,
+            Start = new DateTime(2000, 1, 2, 16, 0, 0, DateTimeKind.Utc),
+            End = new DateTime(2000, 1, 2, 0, 0, 0, DateTimeKind.Utc)
+        };
+        var shifts = new Mock<IShiftsService>();
+        shifts.Setup(s => s.GetRotationTemplateShiftsAsync("rotation", "manager"))
+            .ReturnsAsync([template]);
+        Shift? created = null;
+        shifts.Setup(s => s.CreateShiftAsync(It.IsAny<Shift>()))
+            .Callback<Shift>(shift => created = shift)
+            .ReturnsAsync((Shift shift) => shift);
+        var service = new RotationTemplateService(shifts.Object);
+        var sunday = new DateOnly(2026, 10, 4);
+
+        var result = await service.ApplyAsync("rotation", "owner", "manager", "schedule", [sunday]);
+
+        Assert.That(result.CreatedCount, Is.EqualTo(1));
+        Assert.That(created, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(created!.Start.ToLocalTime().Date, Is.EqualTo(sunday.ToDateTime(TimeOnly.MinValue).Date));
+            Assert.That(created.Start.ToLocalTime().TimeOfDay, Is.EqualTo(new TimeSpan(16, 0, 0)));
+            Assert.That(created.End.ToLocalTime().Date, Is.EqualTo(sunday.AddDays(1).ToDateTime(TimeOnly.MinValue).Date));
+            Assert.That(created.End.ToLocalTime().TimeOfDay, Is.EqualTo(TimeSpan.Zero));
+        });
+    }
 }
 
 [TestFixture]

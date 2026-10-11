@@ -48,14 +48,5 @@ namespace Rota.Services
         /// </summary>
         Task<List<Schedule>> GetSchedulesByIdsAsync(IEnumerable<string> scheduleIds);
 
-        /// <summary>
-        /// Adds a new Rotation template to the specified schedule.
-        /// </summary>
-        Task<Rotation> AddRotationAsync(string scheduleId, string managerId, Rotation rotation, string? managerCode = null);
-
-        /// <summary>
-        /// Deletes a Rotation template from the specified schedule.
-        /// </summary>
-        Task<bool> DeleteRotationAsync(string scheduleId, string managerId, string rotationId, string? managerCode = null);
     }
 }

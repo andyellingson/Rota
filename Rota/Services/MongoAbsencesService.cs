@@ -40,6 +40,21 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
+        public async System.Threading.Tasks.Task<long> DeleteAbsencesByScheduleIdAsync(string scheduleId)
+        {
+            try
+            {
+                var result = await _absences.DeleteManyAsync(Builders<Absence>.Filter.Eq(a => a.ScheduleId, scheduleId));
+                return result.DeletedCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting absences for schedule {ScheduleId}", scheduleId);
+                throw;
+            }
+        }
+
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<List<Absence>> GetAbsencesAsync(string? managerCode, string? userId, DateOnly startDate, DateOnly endDate)
         {
             try

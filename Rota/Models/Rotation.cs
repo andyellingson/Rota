@@ -23,5 +23,17 @@ namespace Rota.Models
         [BsonElement("name")]
         public string Name { get; set; } = null!;
 
+        /// <summary>
+        /// Manager code that owns this reusable rotation template.
+        /// </summary>
+        [BsonElement("managerCode")]
+        public string? ManagerCode { get; set; }
+
+        /// <summary>
+        /// Schedule IDs that are allowed to use this rotation template.
+        /// </summary>
+        [BsonElement("scheduleIds")]
+        public List<string> ScheduleIds { get; set; } = new();
+
     }
 }

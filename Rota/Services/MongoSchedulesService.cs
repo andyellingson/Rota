@@ -13,6 +13,8 @@ namespace Rota.Services
         private readonly IMongoCollection<Schedule> _schedules;
         private readonly ILogger<MongoSchedulesService> _logger;
         private readonly IShiftsService? _shiftsService;
+        private readonly IAbsencesService? _absencesService;
+        private readonly IRemindersService? _remindersService;
 
         /// <summary>
         /// Matches schedules owned by manager ID or sharing the manager's code.
@@ -28,10 +30,12 @@ namespace Rota.Services
         /// <summary>
         /// Creates the schedules service using configured MongoDB options.
         /// </summary>
-        public MongoSchedulesService(IOptions<MongoDbOptions> options, ILogger<MongoSchedulesService> logger, IShiftsService shiftsService)
+        public MongoSchedulesService(IOptions<MongoDbOptions> options, ILogger<MongoSchedulesService> logger, IShiftsService shiftsService, IAbsencesService absencesService, IRemindersService remindersService)
         {
             _logger = logger;
             _shiftsService = shiftsService;
+            _absencesService = absencesService;
+            _remindersService = remindersService;
             var opts = options?.Value ?? throw new ArgumentNullException(nameof(options));
             if (string.IsNullOrWhiteSpace(opts.ConnectionString))
             {
@@ -43,62 +47,13 @@ namespace Rota.Services
             _schedules = db.GetCollection<Schedule>("schedules");
         }
 
-        public MongoSchedulesService(IMongoCollection<Schedule> schedulesCollection, ILogger<MongoSchedulesService> logger, IShiftsService? shiftsService = null)
+        public MongoSchedulesService(IMongoCollection<Schedule> schedulesCollection, ILogger<MongoSchedulesService> logger, IShiftsService? shiftsService = null, IAbsencesService? absencesService = null, IRemindersService? remindersService = null)
         {
             _schedules = schedulesCollection;
             _logger = logger;
             _shiftsService = shiftsService;
-        }
-
-        /// <inheritdoc />
-        public async Task<Rotation> AddRotationAsync(string scheduleId, string managerId, Rotation rotation, string? managerCode = null)
-        {
-            try
-            {
-                // Ensure schedule belongs to manager
-                var filter = Builders<Schedule>.Filter.And(
-                    Builders<Schedule>.Filter.Eq(s => s.Id, scheduleId),
-                    OwnerFilter(managerId, managerCode)
-                );
-
-                // Assign id if missing
-                if (string.IsNullOrEmpty(rotation.Id)) rotation.Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
-
-                var update = Builders<Schedule>.Update.Push(s => s.Rotations, rotation);
-                var result = await _schedules.UpdateOneAsync(filter, update);
-                if (result.ModifiedCount > 0)
-                {
-                    return rotation;
-                }
-
-                throw new InvalidOperationException("Unable to add rotation (schedule not found or not authorized).");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error adding rotation to schedule {ScheduleId}", scheduleId);
-                throw;
-            }
-        }
-
-        /// <inheritdoc />
-        public async Task<bool> DeleteRotationAsync(string scheduleId, string managerId, string rotationId, string? managerCode = null)
-        {
-            try
-            {
-                var filter = Builders<Schedule>.Filter.And(
-                    Builders<Schedule>.Filter.Eq(s => s.Id, scheduleId),
-                    OwnerFilter(managerId, managerCode)
-                );
-
-                var update = Builders<Schedule>.Update.PullFilter(s => s.Rotations, Builders<Rotation>.Filter.Eq(w => w.Id, rotationId));
-                var result = await _schedules.UpdateOneAsync(filter, update);
-                return result.ModifiedCount > 0;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting rotation {RotationId} from schedule {ScheduleId}", rotationId, scheduleId);
-                throw;
-            }
+            _absencesService = absencesService;
+            _remindersService = remindersService;
         }
 
         /// <inheritdoc />
@@ -256,11 +211,12 @@ namespace Rota.Services
                     OwnerFilter(managerId, managerCode)
                 );
 
-                if (_shiftsService is null)
+                if (_shiftsService is null || _absencesService is null || _remindersService is null)
                 {
-                    throw new InvalidOperationException("The schedule could not be deleted because shift cleanup is unavailable. The schedule was not deleted.");
+                    throw new InvalidOperationException("The schedule could not be deleted because cleanup of its shifts, absences, and reminders is unavailable. The schedule was not deleted.");
                 }
 
+                // Delete associated data first; any failure aborts before the schedule itself is removed
                 try
                 {
                     await _shiftsService.DeleteShiftsByScheduleIdAsync(scheduleId);
@@ -268,6 +224,24 @@ namespace Rota.Services
                 catch (Exception ex)
                 {
                     throw new InvalidOperationException("The schedule could not be deleted because its shifts could not be deleted. The schedule was not deleted. Please try again.", ex);
+                }
+
+                try
+                {
+                    await _absencesService.DeleteAbsencesByScheduleIdAsync(scheduleId);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("The schedule could not be deleted because its absences could not be deleted. The schedule was not deleted. Please try again.", ex);
+                }
+
+                try
+                {
+                    await _remindersService.DeleteRemindersByScheduleIdAsync(scheduleId);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("The schedule could not be deleted because its reminders could not be deleted. The schedule was not deleted. Please try again.", ex);
                 }
 
                 var result = await _schedules.DeleteOneAsync(filter);
