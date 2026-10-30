@@ -2,8 +2,47 @@
 
 @* Week view: seven day cards. Day content is supplied by the owner. *@
 <div class="calendar-week">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <strong>Week of @CalendarDates.StartOfWeek(Current).ToString("d", CultureInfo.CurrentCulture)</strong>
+    <div class="calendar-header-tools mb-2">
+        <div class="calendar-header-left">
+            <div class="btn-group" role="group" aria-label="Selection mode">
+                <button class="btn btn-sm @(SelectionMode == SelectionMode.Day ? "btn-primary" : "btn-outline-secondary")"
+                        title="@(SelectionMode == SelectionMode.Day ? "Exit day selection mode" : "Click individual days to select them")"
+                        @onclick="() => OnSelectionModeChanged.InvokeAsync(SelectionMode.Day)"
+                        aria-pressed="@(SelectionMode == SelectionMode.Day)">
+                    ☑ Days
+                </button>
+                <button class="btn btn-sm @(SelectionMode == SelectionMode.Week ? "btn-primary" : "btn-outline-secondary")"
+                        title="@(SelectionMode == SelectionMode.Week ? "Exit week selection mode" : "Click any day to select its entire week")"
+                        @onclick="() => OnSelectionModeChanged.InvokeAsync(SelectionMode.Week)"
+                        aria-pressed="@(SelectionMode == SelectionMode.Week)">
+                    📅 Weeks
+                </button>
+            </div>
+        </div>
+        <div class="calendar-header-center">
+            <strong class="calendar-title">Week Of @CalendarDates.StartOfWeek(Current).ToString("d", CultureInfo.CurrentCulture)</strong>
+        </div>
+        <div class="calendar-header-actions">
+            <div class="btn-group" role="group" aria-label="View mode">
+                <button class="btn btn-sm @(View == ViewMode.Week ? "btn-primary" : "btn-outline-primary")"
+                        title="Switch to weekly calendar view"
+                        @onclick="() => OnViewChanged.InvokeAsync(ViewMode.Week)"
+                        aria-pressed="@(View == ViewMode.Week)">
+                    Week
+                </button>
+                <button class="btn btn-sm @(View == ViewMode.Month ? "btn-primary" : "btn-outline-primary")"
+                        title="Switch to monthly calendar view"
+                        @onclick="() => OnViewChanged.InvokeAsync(ViewMode.Month)"
+                        aria-pressed="@(View == ViewMode.Month)">
+                    Month
+                </button>
+            </div>
+            <div class="month-nav" role="group" aria-label="Calendar navigation">
+                <button class="btn btn-sm btn-outline-secondary" title="Go to the previous period" @onclick="OnPrev">‹</button>
+                <button class="btn btn-sm btn-outline-secondary" title="Go to the next period" @onclick="OnNext">›</button>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" title="Open the print preview for this schedule" aria-label="Print" @onclick="OnPrint">🖨️</button>
+        </div>
     </div>
 
     <div class="week-grid">
@@ -49,4 +88,25 @@
 
     /// <summary>Raised when the "+ Add" button of a day is clicked.</summary>
     [Parameter] public EventCallback<DateOnly> OnAddClick { get; set; }
+
+    /// <summary>Raised when the user clicks previous in the header.</summary>
+    [Parameter] public EventCallback OnPrev { get; set; }
+
+    /// <summary>Raised when the user clicks next in the header.</summary>
+    [Parameter] public EventCallback OnNext { get; set; }
+
+    /// <summary>Active view mode for header controls.</summary>
+    [Parameter] public ViewMode View { get; set; }
+
+    /// <summary>Raised when the user changes view mode from the header.</summary>
+    [Parameter] public EventCallback<ViewMode> OnViewChanged { get; set; }
+
+    /// <summary>Active multi-day selection mode for header controls.</summary>
+    [Parameter] public SelectionMode SelectionMode { get; set; }
+
+    /// <summary>Raised when the user changes selection mode from the header.</summary>
+    [Parameter] public EventCallback<SelectionMode> OnSelectionModeChanged { get; set; }
+
+    /// <summary>Raised when the user clicks print in the header.</summary>
+    [Parameter] public EventCallback OnPrint { get; set; }
 }

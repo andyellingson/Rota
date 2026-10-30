@@ -14,6 +14,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddSingleton<Microsoft.AspNetCore.Http.IHttpContextAccessor, Microsoft.AspNetCore.Http.HttpContextAccessor>();
+builder.Services.AddScoped<CalendarControlsState>();
 builder.Services.AddScoped<IUserService, MongoUserService>();
 builder.Services.AddScoped<IRemindersService, MongoRemindersService>();
 builder.Services.AddScoped<IShiftsService, MongoShiftsService>();

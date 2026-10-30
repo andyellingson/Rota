@@ -17,6 +17,51 @@
     color: var(--color-text-medium) !important;
 }
 
+.calendar-header-tools {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+    min-height: 3rem;
+    padding: 0.25rem 0;
+}
+
+.calendar-header-left {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.calendar-header-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.calendar-title {
+    font-size: 1.25rem;
+    line-height: 1.2;
+    text-transform: capitalize;
+}
+
+.calendar-header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.month-nav {
+    display: inline-flex;
+    width: auto;
+}
+
+.month-nav .btn {
+    min-width: 2.2rem;
+}
+
 .day-cell {
     min-height: 170px;
     min-width: 0;
@@ -115,6 +160,19 @@
 }
 
 @media (max-width: 768px) {
+    .calendar-header-tools {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        min-height: 0;
+        padding: 0.2rem 0;
+    }
+
+    .calendar-header-left,
+    .calendar-header-center,
+    .calendar-header-actions {
+        justify-content: center;
+    }
+
     .calendar-grid {
         gap: 0.25rem;
     }

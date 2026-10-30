@@ -95,10 +95,11 @@ try {
     // ignore errors applying theme
 }
 
-// Opens a new browser window containing only the schedule preview and triggers
-// the browser's native print dialog. This approach bypasses Blazor CSS isolation
-// (which mangles @media print selectors in scoped .razor.css files) by writing
-// fresh, un-scoped CSS into the print window alongside the copied preview HTML.
+// Renders only the schedule preview inside a hidden iframe and triggers the browser's
+// native print dialog for it. This bypasses Blazor CSS isolation (which mangles
+// @media print selectors in scoped .razor.css files) by supplying fresh, un-scoped CSS
+// alongside the copied preview HTML. A hidden iframe is used instead of a popup window
+// because Edge's print preview can fail to load printer capabilities for popup windows.
 window.printSchedule = function (elementId) {
     const el = document.getElementById(elementId);
     if (!el) return;
@@ -107,10 +108,11 @@ window.printSchedule = function (elementId) {
     // we target plain class names in the print window's CSS so they still match.
     const content = el.innerHTML;
 
-    const printWindow = window.open('', '_blank', 'width=960,height=720');
-    if (!printWindow) return;
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
 
-    printWindow.document.write(`<!DOCTYPE html>
+    const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -168,39 +170,42 @@ window.printSchedule = function (elementId) {
     .print-period-header  { font-size: 1rem; font-weight: 700; color: #222; margin-bottom: 0.5rem; padding-bottom: 0.25rem; border-bottom: 1px solid #dee2e6; }
     .print-period-section--pair-top { border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 0.75rem; }
 
+    /* Explicit page size (instead of orientation only) gives the browser's print preview a
+       concrete media size to use even if the destination reports none. */
+    @page { size: 11in 8.5in; margin: 0.5cm; }
+
     @media print {
       /* Remove margins when printing so content uses full page width */
-      @page { size: landscape; margin: 0.5cm; }
       html, body { margin: 0; padding: 0; }
-      .print-preview-container { transform: none; width: 100%; padding: 0.5cm; }
+      .print-preview-container
       .print-day-cell, .print-week-col { break-inside: avoid; }
       .print-period-section--break { page-break-after: always; break-after: page; }
     }
   </style>
 </head>
 <body>${content}</body>
-</html>`);
+</html>`;
 
-    printWindow.document.close();
-    printWindow.focus();
-    // Keep the print window available briefly after printing so Edge can finish
-    // updating its print-preview destination capabilities.
-    printWindow.addEventListener('afterprint', function () {
-        setTimeout(function () {
-            printWindow.close();
-        }, 1000);
-    }, { once: true });
+    // Remove the iframe once printing finishes (delayed so Edge can finish its preview).
+    const cleanup = function () {
+        setTimeout(function () { frame.remove(); }, 1000);
+    };
 
-    (async function () {
-        if (printWindow.document.fonts?.ready) {
-            await printWindow.document.fonts.ready;
+    frame.onload = async function () {
+        try {
+            const win = frame.contentWindow;
+            if (win.document.fonts?.ready) {
+                await win.document.fonts.ready;
+            }
+            win.addEventListener('afterprint', cleanup, { once: true });
+            win.focus();
+            win.print();
+        } catch (error) {
+            console.error('Unable to open the schedule print dialog.', error);
+            frame.remove();
         }
-        await new Promise(resolve => {
-            printWindow.requestAnimationFrame(() => printWindow.requestAnimationFrame(resolve));
-        });
-        printWindow.focus();
-        printWindow.print();
-    })().catch(error => {
-        console.error('Unable to open the schedule print dialog.', error);
-    });
+    };
+
+    frame.srcdoc = html;
+    document.body.appendChild(frame);
 };

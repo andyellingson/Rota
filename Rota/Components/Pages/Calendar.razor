@@ -18,9 +18,13 @@
 @inject IJSRuntime JS
 @inject IRotationTemplateService RotationTemplateService
 @inject IShiftAutoAssignService AutoAssignService
+@inject CalendarControlsState ControlsState
+@implements IDisposable
 
 <div class="schedule-page">
-    <CalendarToolbar Schedules="availableSchedules"
+    @* The toolbar is rendered in the sidebar (NavMenu) via CalendarControlsState; the fragment is built once here. *@
+    @{
+        _toolbarFragment ??= @<CalendarToolbar Schedules="availableSchedules"
                      @bind-SelectedScheduleId="selectedScheduleId" @bind-SelectedScheduleId:after="OnScheduleChanged"
                      @bind-ShowShifts="showShifts" @bind-ShowShifts:after="FilterChanged"
                      @bind-ShowAbsences="showAbsences" @bind-ShowAbsences:after="FilterChanged"
@@ -31,9 +35,10 @@
                      OnFilterChanged="FilterChanged"
                      View="view" OnViewChanged="SetView"
                      OnPrev="Prev" OnNext="Next" OnPrint="OpenPrintModal"
-                     SelectionMode="selectionMode" OnSelectionModeChanged="SetSelectionMode" />
+                     SelectionMode="selectionMode" OnSelectionModeChanged="SetSelectionMode" />;
+    }
 
-    @* ── Multi-day inline action bar ────────────────────────────────── *@
+    @* Multi-day inline action bar *@
     @if (isMultiSelectMode && selectedDays.Count > 0)
     {
         var totalShifts = GetTotalShiftsInSelectedDays();
@@ -145,7 +150,10 @@
         <div class="card-body">
             @if (view == ViewMode.Month)
             {
-                <CalendarMonthView Current="current" SelectedDays="selectedDays" OnDayClick="HandleDayClick">
+                <CalendarMonthView Current="current" SelectedDays="selectedDays" OnDayClick="HandleDayClick" OnPrev="Prev" OnNext="Next"
+                                   View="view" OnViewChanged="SetView"
+                                   SelectionMode="selectionMode" OnSelectionModeChanged="SetSelectionMode"
+                                   OnPrint="OpenPrintModal">
                     <DayContent Context="day">
                         <CalendarDayItems Items="GetSortedDayItems(day)"
                                           CanManageShifts="canManageShifts"
@@ -161,7 +169,11 @@
             }
             else
             {
-                <CalendarWeekView Current="current" SelectedDays="selectedDays" OnDayClick="HandleDayClick" OnAddClick="OpenAddReminderModal">
+                <CalendarWeekView Current="current" SelectedDays="selectedDays" OnDayClick="HandleDayClick" OnAddClick="OpenAddReminderModal"
+                                  OnPrev="Prev" OnNext="Next"
+                                  View="view" OnViewChanged="SetView"
+                                  SelectionMode="selectionMode" OnSelectionModeChanged="SetSelectionMode"
+                                  OnPrint="OpenPrintModal">
                     <DayContent Context="day">
                         <CalendarDayItems Items="GetSortedDayItems(day)"
                                           CanManageShifts="canManageShifts"
@@ -325,12 +337,35 @@
         // O(1) user-id lookup rebuilt whenever employees or linkedUsers change.
         private Dictionary<string, User> _userById = new();
 
+        // Toolbar fragment published to the sidebar (NavMenu); built once in the markup above
+        // and kept so it can be published on first render and cleared on dispose.
+        private RenderFragment? _toolbarFragment;
+
+        // Publish the toolbar on first render and refresh the sidebar after every later render.
+        protected override void OnAfterRender(bool firstRender)
+        {
+            if (firstRender && _toolbarFragment is not null)
+            {
+                ControlsState.Publish(_toolbarFragment);
+                return;
+            }
+
+            ControlsState.NotifyChanged();
+        }
+
+        public void Dispose()
+        {
+            if (_toolbarFragment is not null)
+            {
+                ControlsState.Clear(_toolbarFragment);
+            }
+        }
+
         // Modal state
         private readonly CalendarEditModalState modalState = new();
         private bool showModal { get => modalState.ShowModal; set => modalState.ShowModal = value; }
         private DateOnly? selectedDate { get => modalState.SelectedDate; set => modalState.SelectedDate = value; }
-        private ModalMode modalMode { get => modalState.ModalMode; set => modalState.ModalMode = value; }
-        private string newReminderTitle { get => modalState.NewReminderTitle; set => modalState.NewReminderTitle = value; }
+                private ModalMode modalMode { get => modalState.ModalMode; set => modalState.ModalMode = value; }        private string newReminderTitle { get => modalState.NewReminderTitle; set => modalState.NewReminderTitle = value; }
         private string? newReminderNotes { get => modalState.NewReminderNotes; set => modalState.NewReminderNotes = value; }
         private TimeOnly newReminderTime { get => modalState.NewReminderTime; set => modalState.NewReminderTime = value; }
         private string newReminderColor { get => modalState.NewReminderColor; set => modalState.NewReminderColor = value; }

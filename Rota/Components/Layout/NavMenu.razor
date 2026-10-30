@@ -1,5 +1,8 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using Rota.Models
+@using Rota.Components
+@implements IDisposable
+@inject CalendarControlsState ControlsState
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -9,7 +12,7 @@
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+<div class="nav-scrollable" onclick="if (event.target.closest('a')) document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
         <AuthorizeView>
             <NotAuthorized>
@@ -28,6 +31,14 @@
                         <span class="bi bi-calendar3-nav-menu" aria-hidden="true"></span> Schedules
                     </NavLink>
                 </div>
+
+                @* Calendar controls published by the Calendar page, shown beneath Schedules *@
+                @if (ControlsState.Controls is not null)
+                {
+                    <div class="nav-controls px-3">
+                        @ControlsState.Controls
+                    </div>
+                }
 
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="account">
@@ -71,4 +82,13 @@
 
     </nav>
 </div>
+
+@code {
+    protected override void OnInitialized() => ControlsState.Changed += OnControlsChanged;
+
+    // State changes may originate from another component, so marshal onto the renderer's context.
+    private void OnControlsChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => ControlsState.Changed -= OnControlsChanged;
+}
 

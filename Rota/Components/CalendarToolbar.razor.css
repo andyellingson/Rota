@@ -10,37 +10,79 @@
     color: var(--color-text-primary);
 }
 
-/* Worker-type / employee filter dropdown – themed for dark mode */
+/* Worker-type / employee filter dropdown – polished, theme-aware surface */
 .worker-type-dropdown-menu {
     background-color: var(--color-bg-card);
-    border-color: var(--color-border);
+    border: 1px solid var(--color-border);
+    border-radius: 0.6rem;
     color: var(--color-text-primary);
     z-index: 1050;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+.worker-type-dropdown-menu .form-check {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.35rem;
+    margin-left: 0;
+    padding: 0.2rem 0.15rem;
+    padding-left: 0;
+    border-radius: 0.35rem;
+    overflow: hidden;
+}
+
+.worker-type-dropdown-menu .form-check:hover {
+    background: color-mix(in srgb, var(--color-bg-card) 88%, var(--color-accent-primary) 12%);
+}
+
+.worker-type-dropdown-menu .form-check-input {
+    margin-top: 0;
+    margin-left: 0;
+    position: static;
+    flex: 0 0 auto;
 }
 
 .worker-type-dropdown-menu .form-check-label {
     color: var(--color-text-primary);
+    font-size: 0.86rem;
+    line-height: 1.2;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .worker-type-dropdown-menu .btn-link {
     color: var(--color-text-medium, #6c757d);
     font-size: 0.75rem;
+    font-weight: 600;
 }
 
-/* ── Schedule toolbar (horizontal bar above calendar) ── */
+.worker-type-dropdown-menu .btn-link:hover {
+    color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .worker-type-dropdown-menu,
+[data-theme="amoled"] .worker-type-dropdown-menu,
+[data-theme="nord"] .worker-type-dropdown-menu,
+[data-theme="solarized-dark"] .worker-type-dropdown-menu,
+[data-theme="forest"] .worker-type-dropdown-menu {
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Schedule toolbar (vertical stack rendered in the sidebar) ── */
 .schedule-toolbar {
-    max-width: 1600px;
-    margin-left: auto;
-    margin-right: auto;
     border-color: var(--color-border);
+    color: var(--color-text-primary);
 }
 
 .schedule-toolbar-body {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 0.75rem 1rem;
-    padding: 0.65rem 1rem !important;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+    padding: 0.5rem 0.25rem 0.75rem !important;
 }
 
 /* Each logical group: label on top, control(s) below */
@@ -59,10 +101,36 @@
     white-space: nowrap;
 }
 
-/* Schedule selector – slightly wider than the others */
+/* Active schedule trigger: identical look and interaction model as filter dropdown buttons */
 .toolbar-schedule-select {
-    min-width: 11rem;
-    max-width: 16rem;
+    justify-content: flex-start;
+    text-align: left;
+}
+
+.toolbar-schedule-dropdown-menu {
+    border-radius: 0.6rem;
+    background-color: var(--color-bg-card);
+}
+
+.toolbar-schedule-option {
+    border-radius: 0.4rem;
+    color: var(--color-text-primary);
+    font-weight: 600;
+    font-size: 0.92rem;
+    padding: 0.45rem 0.55rem;
+}
+
+.toolbar-schedule-option:hover,
+.toolbar-schedule-option:focus {
+    color: var(--color-text-primary);
+    background: color-mix(in srgb, var(--color-bg-card) 82%, var(--color-accent-primary) 18%);
+}
+
+.toolbar-schedule-option.active,
+.toolbar-schedule-option.active:hover,
+.toolbar-schedule-option.active:focus {
+    color: var(--color-text-primary);
+    background: color-mix(in srgb, var(--color-bg-card) 74%, var(--color-accent-primary) 26%);
 }
 
 /* Inline row of toggle buttons (Shifts / Absences / Reminders) */
@@ -80,53 +148,74 @@
 .toolbar-filter-row {
     display: flex;
     gap: 0.35rem;
-    flex-wrap: wrap;
+    flex-direction: column;
 }
 
 .toolbar-filter-btn {
     white-space: nowrap;
-    min-width: 9rem;
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 2.15rem;
+    border-radius: 0.5rem;
+    border-width: 1px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--color-text-primary);
+    background: color-mix(in srgb, var(--color-bg-card) 90%, transparent);
+    border-color: color-mix(in srgb, var(--color-border) 78%, var(--color-accent-primary) 22%);
+    transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
 }
 
-/* Thin vertical divider between groups */
+.toolbar-filter-btn:hover,
+.toolbar-filter-btn:focus-visible {
+    color: var(--color-text-primary);
+    border-color: var(--color-accent-primary);
+    background: color-mix(in srgb, var(--color-bg-card) 84%, var(--color-accent-primary) 16%);
+    box-shadow: 0 0 0 0.12rem color-mix(in srgb, var(--color-accent-primary) 28%, transparent);
+}
+
+.toolbar-filter-btn.active,
+.toolbar-schedule-select.active {
+    border-color: var(--color-accent-primary);
+    background: color-mix(in srgb, var(--color-bg-card) 80%, var(--color-accent-primary) 20%);
+}
+
+.toolbar-filter-btn::after {
+    margin-left: auto;
+    opacity: 0.75;
+}
+
+/* Horizontal divider between groups */
 .toolbar-sep {
-    width: 1px;
-    align-self: stretch;
+    width: 100%;
+    height: 1px;
     background-color: var(--color-border);
-    margin: 0.1rem 0;
     flex-shrink: 0;
 }
 
-/* Pushes the right-side groups to the right end */
+/* Spacer is unnecessary in the vertical layout */
 .toolbar-spacer {
-    flex: 1 1 0;
-    min-width: 0.5rem;
+    display: none;
 }
 
-/* On small screens stack everything vertically */
-@media (max-width: 767px) {
-    .schedule-toolbar-body {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.6rem;
-    }
-
-    .toolbar-sep {
-        width: 100%;
-        height: 1px;
-        align-self: auto;
-    }
-
-    .toolbar-spacer {
-        display: none;
-    }
-
-    .toolbar-schedule-select {
-        max-width: 100%;
-        width: 100%;
-    }
+/* Full-width button groups (View / Select mode) and in-flow dropdown menus so the sidebar doesn't clip them */
+.schedule-toolbar-body .btn-group {
+    width: 100%;
 }
 
+.schedule-toolbar-body .btn-group .btn {
+    flex: 1;
+}
+
+.schedule-toolbar-body .worker-type-dropdown-menu {
+    position: static;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 0.25rem;
+}
 /* ── Shifts / Absences / Reminders toggle buttons ──
    OFF state: faint outline, muted text – item is hidden
    ON  state: solid fill, bright text  – item is visible
@@ -254,4 +343,18 @@
     background-color: var(--color-accent-primary) !important;
     border-color: var(--color-accent-primary) !important;
     color: #fff !important;
+}
+
+/* Compact Shifts / Absences / Reminders toggles: smaller buttons so all three fit on one row */
+.toolbar-toggle-row {
+    flex-wrap: nowrap;
+    gap: 0.25rem;
+}
+
+.toolbar-toggle-row .toolbar-toggle-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0.15rem 0.2rem;
+    font-size: 0.7rem;
+    text-align: center;
 }
