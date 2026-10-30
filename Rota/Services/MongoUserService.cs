@@ -304,6 +304,39 @@ namespace Rota.Services
             }
         }
 
+        /// <summary>
+        /// Unlinks an employee from the specified manager by clearing ManagerCode when it matches.
+        /// </summary>
+        public async System.Threading.Tasks.Task<bool> UnlinkFromManagerAsync(string employeeUsername, string managerCode)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(employeeUsername) || string.IsNullOrWhiteSpace(managerCode))
+                {
+                    return false;
+                }
+
+                var manager = await GetByManagerCodeAsync(managerCode);
+                if (manager?.ManagerCode is null)
+                {
+                    return false;
+                }
+
+                // Scope the unlink to only employees currently linked to this manager.
+                var filter = Builders<User>.Filter.And(
+                    Builders<User>.Filter.Eq(u => u.Username, employeeUsername),
+                    Builders<User>.Filter.Eq(u => u.ManagerCode, manager.ManagerCode));
+                var update = Builders<User>.Update.Set(u => u.ManagerCode, null);
+                var result = await _users.UpdateOneAsync(filter, update);
+                return result.ModifiedCount > 0;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error unlinking employee {Employee} from manager code {ManagerCode}", employeeUsername, managerCode);
+                return false;
+            }
+        }
+
         /// <inheritdoc />
         public async System.Threading.Tasks.Task<List<User>> GetLinkedUsersForManagerAsync(string managerCode)
         {

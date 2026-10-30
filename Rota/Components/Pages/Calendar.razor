@@ -1192,21 +1192,18 @@
 
         /// <summary>
         /// Opens the day detail modal for a specific day.
-        /// Initialises the WorkWeek date range to start on the clicked date and end one week later.
+        /// Initializes template/apply ranges to just the selected day by default.
         /// </summary>
         private void OpenDayModal(DateOnly date)
         {
             dayModalDate = date;
-            // Default the range to start on the selected day and end 6 days later
-            // so the default range covers a 7-day span but the end is 1 day less
-            // than the previous implementation which used AddDays(7).
+            // Default both ranges to the clicked day so users can optionally extend the end date.
             workWeekRangeStart = date;
-            workWeekRangeEnd = date.AddDays(6);
+            workWeekRangeEnd = date;
             dayModalSelectedWorkWeekId = null;
             dayModalWorkWeekError = null;
-            // Default auto-populate range to the same week span
             autoPopulateRangeStart = date;
-            autoPopulateRangeEnd = date.AddDays(6);
+            autoPopulateRangeEnd = date;
             autoPopulateError = null;
             autoPopulateWarning = null;
             autoPopulateSuccess = null;

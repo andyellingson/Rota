@@ -351,6 +351,31 @@
     </div>
 }
 
+@if (showUnlinkConfirm && selectedMember is not null)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Unlink Employee</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseUnlinkConfirm" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">Are you sure you want to unlink <strong>@GetMemberFullName(selectedMember)</strong> from your team?</p>
+                    <p class="text-danger mb-0"><strong>Warning:</strong> The employee will lose access to your team schedules until they are linked again.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseUnlinkConfirm" disabled="@isBusy">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmUnlinkSelectedMember" disabled="@isBusy">
+                        @(isBusy ? "Unlinking..." : "Unlink Employee")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @* Combined Manage Team card: Team Code, Worker Types, Team Members all nested in one card *@
 <div class="container my-4">
     <div class="card shadow-sm">
@@ -442,9 +467,21 @@
                                 else
                                 {
                                     <div class="team-detail-header">
-                                        <div class="team-detail-name">@GetMemberFullName(selectedMember)</div>
-                                        <div class="team-detail-username text-muted small">@selectedMember.Username</div>
+                                        <div>
+                                            <div class="team-detail-name">@GetMemberFullName(selectedMember)</div>
+                                            <div class="team-detail-username text-muted small">@selectedMember.Username</div>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                @onclick="PromptUnlinkSelectedMember"
+                                                disabled="@isBusy"
+                                                title="Unlink this employee from your team">
+                                            Unlink Employee
+                                        </button>
                                     </div>
+                                    @if (!string.IsNullOrEmpty(memberUnlinkMessage))
+                                    {
+                                        <div class="team-detail-message @(memberUnlinkError ? "team-detail-message-error" : "team-detail-message-ok") mt-2">@memberUnlinkMessage</div>
+                                    }
 
                                     <div class="team-detail-info-grid mt-3">
                                         <div class="team-detail-field" style="grid-row: 1; grid-column: 1;">
@@ -689,6 +726,9 @@
     private int selectedMemberPriority = 0;
     private string? selectedMemberPriorityMessage;
     private bool selectedMemberPriorityError;
+    private string? memberUnlinkMessage;
+    private bool memberUnlinkError;
+    private bool showUnlinkConfirm = false;
 
     /// <summary>True when any of the member editable fields differ from the selected member's saved values.</summary>
     private bool HasMemberChanges =>
@@ -1236,6 +1276,8 @@
         selectedMemberOccupation = member.Occupation;
         memberOccupationMessage = null;
         memberOccupationError = false;
+        memberUnlinkMessage = null;
+        memberUnlinkError = false;
 
         // Populate editable MaxHours buffer
         selectedMemberMaxHours = member.MaxHours;
@@ -1436,6 +1478,64 @@
     }
 
     /// <summary>
+    /// Opens the styled confirmation dialog before unlinking the selected employee.
+    /// </summary>
+    private Task PromptUnlinkSelectedMember()
+    {
+        if (selectedMember is null) return Task.CompletedTask;
+        showUnlinkConfirm = true;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Closes the unlink confirmation dialog without taking action.
+    /// </summary>
+    private void CloseUnlinkConfirm() => showUnlinkConfirm = false;
+
+    /// <summary>
+    /// Unlinks the selected employee from this manager and removes them from the team list.
+    /// </summary>
+    private async Task ConfirmUnlinkSelectedMember()
+    {
+        if (selectedMember is null || string.IsNullOrEmpty(_managerCode)) return;
+
+        showUnlinkConfirm = false;
+        memberUnlinkMessage = null;
+        isBusy = true;
+        try
+        {
+            var removedUsername = selectedMember.Username;
+            var ok = await UserService.UnlinkFromManagerAsync(removedUsername, _managerCode);
+            if (!ok)
+            {
+                memberUnlinkMessage = "Could not unlink employee. Please try again.";
+                memberUnlinkError = true;
+                return;
+            }
+
+            await RefreshLinkedUsersAsync();
+
+            // Move selection to the next available member, or clear when list is empty.
+            var fallback = linkedUsers.FirstOrDefault(u => u.Username != removedUsername) ?? linkedUsers.FirstOrDefault();
+            if (fallback is null)
+            {
+                selectedMember = null;
+            }
+            else
+            {
+                await SelectMember(fallback);
+            }
+
+            memberUnlinkMessage = "Employee unlinked.";
+            memberUnlinkError = false;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    /// <summary>
     /// Persists the occupation change for the selected team member.
     /// Updates the local copy on success so the list badge stays in sync.
     /// </summary>
@@ -1608,11 +1708,7 @@
             employees = await UserService.GetUsersByRoleAsync(Roles.Employee);
 
             // Load employees linked to this manager (exclude the manager themselves)
-            if (!string.IsNullOrEmpty(_managerCode))
-            {
-                var allLinked = await UserService.GetLinkedUsersForManagerAsync(_managerCode);
-                linkedUsers = allLinked.Where(u => u.Username != _username).ToList();
-            }
+            await RefreshLinkedUsersAsync();
         }
 
         await LoadSchedules();
@@ -1626,6 +1722,21 @@
     {
         if (string.IsNullOrEmpty(_userId)) return;
         workerTypes = await WorkerTypesService.GetByOwnerAsync(_userId);
+    }
+
+    /// <summary>
+    /// Reloads linked team members for the current manager and excludes the manager account itself.
+    /// </summary>
+    private async Task RefreshLinkedUsersAsync()
+    {
+        if (string.IsNullOrEmpty(_managerCode))
+        {
+            linkedUsers = new List<User>();
+            return;
+        }
+
+        var allLinked = await UserService.GetLinkedUsersForManagerAsync(_managerCode);
+        linkedUsers = allLinked.Where(u => u.Username != _username).ToList();
     }
 
     private async Task CopyManagerCode()

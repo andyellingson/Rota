@@ -6,13 +6,13 @@
         <div class="calendar-header-left">
             <div class="btn-group" role="group" aria-label="Selection mode">
                 <button class="btn btn-sm @(SelectionMode == SelectionMode.Day ? "btn-primary" : "btn-outline-secondary")"
-                        title="@(SelectionMode == SelectionMode.Day ? "Exit day selection mode" : "Click individual days to select them")"
+                        title="@(SelectionMode == SelectionMode.Day ? "Exit day selection mode" : "Toggle multiple day selection mode")"
                         @onclick="() => OnSelectionModeChanged.InvokeAsync(SelectionMode.Day)"
                         aria-pressed="@(SelectionMode == SelectionMode.Day)">
                     ☑ Days
                 </button>
                 <button class="btn btn-sm @(SelectionMode == SelectionMode.Week ? "btn-primary" : "btn-outline-secondary")"
-                        title="@(SelectionMode == SelectionMode.Week ? "Exit week selection mode" : "Click any day to select its entire week")"
+                        title="@(SelectionMode == SelectionMode.Week ? "Exit week selection mode" : "Toggle multiple week selection mode")"
                         @onclick="() => OnSelectionModeChanged.InvokeAsync(SelectionMode.Week)"
                         aria-pressed="@(SelectionMode == SelectionMode.Week)">
                     📅 Weeks

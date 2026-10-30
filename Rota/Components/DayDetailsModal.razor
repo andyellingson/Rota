@@ -36,7 +36,7 @@
                         <span class="day-modal-section-icon day-modal-section-icon--template">📋</span>
                         <span class="day-modal-template-bar-title">Apply Template</span>
                     </div>
-                    <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+                    <div class="day-modal-bar-controls mt-2">
                         <select class="form-select form-select-sm day-modal-template-select" @bind="State.SelectedRotationId">
                             <option value="">— Select Rotation Template —</option>
                             @foreach (var ww in Rotations)
@@ -44,25 +44,27 @@
                                 <option value="@ww.Id">@ww.Name</option>
                             }
                         </select>
-                        <div class="d-flex align-items-center gap-1">
+                        <div class="day-modal-range-controls">
                             <input type="date" class="form-control form-control-sm day-modal-date-input"
                                    @bind="State.RotationRangeStart" @bind:format="yyyy-MM-dd" />
                             <span class="text-muted small px-1">→</span>
                             <input type="date" class="form-control form-control-sm day-modal-date-input"
                                    @bind="State.RotationRangeEnd" @bind:format="yyyy-MM-dd" />
                         </div>
-                        <button class="btn btn-sm btn-primary" @onclick="OnApplyTemplate"
-                                disabled="@(string.IsNullOrEmpty(State.SelectedRotationId) || State.IsApplying)">
-                            @if (State.IsApplying)
-                            {
-                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                <span>Applying…</span>
-                            }
-                            else
-                            {
-                                <span>Apply</span>
-                            }
-                        </button>
+                        <div class="day-modal-bar-action">
+                            <button class="btn btn-sm btn-primary" @onclick="OnApplyTemplate"
+                                    disabled="@(string.IsNullOrEmpty(State.SelectedRotationId) || State.IsApplying)">
+                                @if (State.IsApplying)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                    <span>Applying…</span>
+                                }
+                                else
+                                {
+                                    <span>Apply</span>
+                                }
+                            </button>
+                        </div>
                     </div>
                     @if (!string.IsNullOrEmpty(State.RotationError))
                     {
@@ -81,27 +83,29 @@
                         <span class="day-modal-section-icon day-modal-section-icon--shift">🤖</span>
                         <span class="day-modal-template-bar-title">Auto Populate Shifts</span>
                     </div>
-                    <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
-                        <div class="d-flex align-items-center gap-1">
+                    <div class="day-modal-bar-controls mt-2">
+                        <div class="day-modal-range-controls">
                             <input type="date" class="form-control form-control-sm day-modal-date-input"
                                    @bind="State.AutoRangeStart" @bind:format="yyyy-MM-dd" />
                             <span class="text-muted small px-1">→</span>
                             <input type="date" class="form-control form-control-sm day-modal-date-input"
                                    @bind="State.AutoRangeEnd" @bind:format="yyyy-MM-dd" />
                         </div>
-                        <button class="btn btn-sm btn-success" @onclick="OnAutoPopulate"
-                                disabled="@State.AutoIsRunning"
-                                title="Automatically assign eligible employees to unassigned shifts in the date range">
-                            @if (State.AutoIsRunning)
-                            {
-                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                <span>Populating…</span>
-                            }
-                            else
-                            {
-                                <span>Auto Populate</span>
-                            }
-                        </button>
+                        <div class="day-modal-bar-action">
+                            <button class="btn btn-sm btn-success" @onclick="OnAutoPopulate"
+                                    disabled="@State.AutoIsRunning"
+                                    title="Automatically assign eligible employees to unassigned shifts in the date range">
+                                @if (State.AutoIsRunning)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                    <span>Populating…</span>
+                                }
+                                else
+                                {
+                                    <span>Auto Populate</span>
+                                }
+                            </button>
+                        </div>
                     </div>
                     @if (!string.IsNullOrEmpty(State.AutoError))
                     {

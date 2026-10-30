@@ -139,6 +139,33 @@ namespace Rota.Tests
         }
 
         [Test]
+        public async Task UnlinkFromManagerAsync_ClearsManagerCodeWhenEmployeeBelongsToManager()
+        {
+            var collection = new Mock<IMongoCollection<User>>();
+            var manager = new User
+            {
+                Id = "507f1f77bcf86cd799439011",
+                Username = "manager",
+                ManagerCode = "MGR-123",
+                Roles = ["manager"]
+            };
+
+            SetupFind(collection, manager);
+
+            var updateResult = new Mock<UpdateResult>();
+            updateResult.SetupGet(r => r.ModifiedCount).Returns(1);
+            collection.Setup(c => c.UpdateOneAsync(It.IsAny<FilterDefinition<User>>(), It.IsAny<UpdateDefinition<User>>(), It.IsAny<UpdateOptions>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(updateResult.Object);
+
+            var service = new MongoUserService(collection.Object, Mock.Of<ILogger<MongoUserService>>());
+
+            var result = await service.UnlinkFromManagerAsync("employee", "MGR-123");
+
+            Assert.That(result, Is.True);
+            collection.Verify(c => c.UpdateOneAsync(It.IsAny<FilterDefinition<User>>(), It.IsAny<UpdateDefinition<User>>(), It.IsAny<UpdateOptions>(), It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Test]
         public async Task UpdateDisplayNameAsync_ReturnsFalseWhenMongoThrows()
         {
             var collection = new Mock<IMongoCollection<User>>();

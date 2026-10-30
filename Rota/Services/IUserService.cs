@@ -82,6 +82,13 @@ namespace Rota.Services
         System.Threading.Tasks.Task<bool> LinkToManagerAsync(string employeeUsername, string managerCode);
 
         /// <summary>
+        /// Unlinks an employee from the manager identified by <paramref name="managerCode"/> by
+        /// removing the employee's stored ManagerCode. Returns false when the employee is not
+        /// linked to the specified manager.
+        /// </summary>
+        System.Threading.Tasks.Task<bool> UnlinkFromManagerAsync(string employeeUsername, string managerCode);
+
+        /// <summary>
         /// Returns the manager and all linked users for the specified manager code.
         /// ManagerCode is the GUID-like code owned by managers and stored on linked users.
         /// </summary>
