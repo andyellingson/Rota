@@ -266,10 +266,10 @@ namespace Rota.Services
         {
             try
             {
-                // Ensure the user with the matching ManagerCode also has the 'manager' role
+                // Ensure the user with the matching ManagerCode also has the team leader role.
                 var filter = Builders<User>.Filter.And(
                     Builders<User>.Filter.Eq(u => u.ManagerCode, code),
-                    Builders<User>.Filter.AnyEq(u => u.Roles, "manager")
+                    Builders<User>.Filter.AnyEq(u => u.Roles, Roles.Manager)
                 );
                 return await _users.Find(filter).FirstOrDefaultAsync();
             }

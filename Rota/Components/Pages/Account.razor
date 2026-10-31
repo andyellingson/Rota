@@ -37,7 +37,7 @@
                 
                 <div class="account-field">
                     <span class="account-field-label">Role</span>
-                    <span class="account-role-badge">@(user.Roles.Length > 0 ? user.Roles[0] : "—")</span>
+                    <span class="account-role-badge">@(user.Roles.Length > 0 ? FormatRoleLabel(user.Roles[0]) : "—")</span>
                 </div>
             </div>
 
@@ -102,42 +102,42 @@
                 else
                 {
                     <div class="account-field-value">@user.Occupation</div>
-                    <div class="account-field-hint mt-1">Your occupation is controlled by your manager.</div>
+                    <div class="account-field-hint mt-1">Your occupation is controlled by your team leader.</div>
                     <label class="account-field-label mt-3 mb-1">Max hours / week</label>
                     <div class="account-field-value">@(user.MaxHours <= 0 ? "No limit" : (user.MaxHours.ToString("0.##") + " hours"))</div>
-                    <div class="account-field-hint mt-1">This value is set by your manager.</div>
+                    <div class="account-field-hint mt-1">This value is set by your team leader.</div>
                 }
             </div>
         </div>
 
         @* Manager code moved to the Manage page *@
 
-        @* ── Manager Link (employees only) ────────────────── *@
+        @* ── Team Leader Link (team members only) ────────────────── *@
         @if (user.Roles.Contains(Roles.Employee))
         {
             <div class="account-section">
-                <h5 class="account-section-title">🔗 Manager Link</h5>
+                <h5 class="account-section-title">🔗 Team Leader Link</h5>
                 <div class="account-card">
                     @if (!string.IsNullOrEmpty(user.ManagerCode))
                     {
                         <div class="account-field">
-                            <span class="account-field-label">Linked Manager</span>
+                            <span class="account-field-label">Linked Team Leader</span>
                             <span class="account-field-value">@(linkedManagerDisplayName ?? user.ManagerCode)</span>
                             </div>
                         @if (!showLinkForm)
                         {
-                            <button class="btn btn-sm btn-outline-secondary mt-2" @onclick="(() => showLinkForm = true)">Change Manager</button>
+                            <button class="btn btn-sm btn-outline-secondary mt-2" @onclick="(() => showLinkForm = true)">Change Team Leader</button>
                         }
                     }
                     else
                     {
-                        <p class="account-field-hint">You are not linked to a manager yet. Enter your manager's code below.</p>
+                        <p class="account-field-hint">You are not linked to a team leader yet. Enter your team leader's code below.</p>
                     }
 
                     @if (showLinkForm || string.IsNullOrEmpty(user.ManagerCode))
                     {
                         <div class="mt-2 d-flex gap-2 align-items-start">
-                            <input class="form-control" @bind="managerCodeInput" placeholder="Paste manager code here" />
+                            <input class="form-control" @bind="managerCodeInput" placeholder="Paste team leader code here" />
                             <button class="btn btn-primary text-nowrap" @onclick="LinkToManager" disabled="@isBusy">Link</button>
                         </div>
                     }
@@ -418,7 +418,7 @@
         linkMessage = null;
         if (string.IsNullOrWhiteSpace(managerCodeInput))
         {
-            linkMessage = "Please enter a manager code.";
+            linkMessage = "Please enter a team leader code.";
             linkError = true;
             return;
         }
@@ -436,12 +436,12 @@
                 }
                 managerCodeInput = string.Empty;
                 showLinkForm = false;
-                linkMessage = "Successfully linked to manager.";
+                linkMessage = "Successfully linked to team leader.";
                 linkError = false;
             }
             else
             {
-                linkMessage = "Manager code not found. Please check and try again.";
+                linkMessage = "Team leader code not found. Please check and try again.";
                 linkError = true;
             }
         }
@@ -651,6 +651,16 @@
             isBusy = false;
         }
     }
+
+    /// <summary>
+    /// Converts a stored role value to a user-facing role label.
+    /// </summary>
+    private static string FormatRoleLabel(string role) => role switch
+    {
+        Roles.Manager => "Team Leader",
+        Roles.Employee => "Team Member",
+        _ => role
+    };
 
     /// <summary>
     /// Converts a stored "HH:mm" 24-hour string to a 12-hour AM/PM display string (e.g. "9:00 AM").

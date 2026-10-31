@@ -1,5 +1,6 @@
 @page "/login"
 @rendermode InteractiveServer
+@using Rota.Models
 @using System.Text.Json
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
@@ -151,7 +152,7 @@
         public string DisplayName { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string ConfirmPassword { get; set; } = string.Empty;
-        public string Role { get; set; } = "employee";
+        public string Role { get; set; } = Roles.Employee;
         public string LinkManagerCode { get; set; } = string.Empty;
         public bool RememberMe { get; set; }
     }
@@ -247,17 +248,17 @@
         <div class="mb-3">
             <label class="form-label">Role</label>
             <select class="form-select" @bind="register.Role">
-                <option value="employee">Employee</option>
-                <option value="manager">Manager</option>
+                <option value="@Roles.Employee">Team Member</option>
+                <option value="@Roles.Manager">Team Leader</option>
             </select>
         </div>
 
-        @if (register.Role == "employee")
+        @if (register.Role == Roles.Employee)
         {
             <div class="mb-3">
-                <label class="form-label">Manager Code <span class="text-muted small">(optional)</span></label>
-                <input class="form-control" @bind="register.LinkManagerCode" placeholder="Enter your manager's code to link now" />
-                <div class="form-text">You can also link to a manager later from My Account.</div>
+                <label class="form-label">Team Leader Code <span class="text-muted small">(optional)</span></label>
+                <input class="form-control" @bind="register.LinkManagerCode" placeholder="Enter your team leader's code to link now" />
+                <div class="form-text">You can also link to a team leader later from My Account.</div>
             </div>
         }
 

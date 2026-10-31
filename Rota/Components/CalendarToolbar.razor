@@ -97,7 +97,7 @@
                     @if (EmployeeVisibility.Count > 0)
                     {
                         var allEmpVisible = EmployeeVisibility.Values.All(v => v);
-                        var empDropdownLabel = allEmpVisible ? "Employees" : $"Employees ({EmployeeVisibility.Values.Count(v => v)}/{EmployeeVisibility.Count})";
+                        var empDropdownLabel = allEmpVisible ? "Team Members" : $"Team Members ({EmployeeVisibility.Values.Count(v => v)}/{EmployeeVisibility.Count})";
                         <div class="dropdown" @onclick:stopPropagation="true">
                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle toolbar-filter-btn @(!allEmpVisible ? "active" : "")"
                                     type="button"

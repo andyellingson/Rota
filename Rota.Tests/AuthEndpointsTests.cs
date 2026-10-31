@@ -75,7 +75,7 @@ namespace Rota.Tests
                 Id = "manager-id",
                 Username = "manager",
                 ManagerCode = "MGR-123",
-                Roles = ["manager"]
+                Roles = [Roles.Manager]
             });
 
             mockSchedulesService
@@ -88,7 +88,7 @@ namespace Rota.Tests
             await using var factory = TestHelpers.CreateFactoryWithUserService(mockUserService.Object, mockSchedulesService.Object);
             var client = factory.CreateClient();
 
-            var payload = new { Username = "employee1", Password = "p", RememberMe = false, Role = "employee", LinkManagerCode = "MGR-123" };
+            var payload = new { Username = "employee1", Password = "p", RememberMe = false, Role = Roles.Employee, LinkManagerCode = "MGR-123" };
             var resp = await client.PostAsJsonAsync("/api/auth/register", payload);
 
             resp.EnsureSuccessStatusCode();

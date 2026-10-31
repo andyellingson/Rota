@@ -9,13 +9,13 @@ namespace Rota.Models
         /// <summary>Full administrative access, including the Admin panel.</summary>
         public const string Admin = "admin";
 
-        /// <summary>Managerial access, including the Manage tab.</summary>
-        public const string Manager = "manager";
+        /// <summary>Team leader access, including the Manage tab.</summary>
+        public const string Manager = "teamleader";
 
-        /// <summary>Standard employee access — calendar and reminders only.</summary>
-        public const string Employee = "employee";
+        /// <summary>Standard team member access — calendar and reminders only.</summary>
+        public const string Employee = "teammember";
 
-        /// <summary>Comma-separated list accepted by [Authorize(Roles=...)] and AuthorizeView for pages visible to both managers and admins.</summary>
+        /// <summary>Comma-separated list accepted by [Authorize(Roles=...)] and AuthorizeView for pages visible to both team leaders and admins.</summary>
         public const string ManagerOrAdmin = Manager + "," + Admin;
     }
 }

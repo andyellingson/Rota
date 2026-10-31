@@ -147,7 +147,7 @@ namespace Rota.Tests
                 Id = "507f1f77bcf86cd799439011",
                 Username = "manager",
                 ManagerCode = "MGR-123",
-                Roles = ["manager"]
+                Roles = [Roles.Manager]
             };
 
             SetupFind(collection, manager);

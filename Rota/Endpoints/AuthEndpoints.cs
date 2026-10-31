@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Rota.DTOs;
+using Rota.Models;
 using Rota.Services;
 using System.Security.Claims;
 
@@ -92,7 +93,7 @@ namespace Rota.Endpoints
                     if (existing is not null)
                         return Results.Json(new { ok = false, message = "User already exists", code = 409 }, statusCode: 409);
 
-                    var isManager = dto.Role?.Trim().ToLowerInvariant() == "manager";
+                    var isManager = dto.Role?.Trim().ToLowerInvariant() == Roles.Manager;
 
                     // Auto-derive display name from first/last name when not explicitly provided
                     var derivedDisplayName = string.IsNullOrWhiteSpace(dto.DisplayName)
