@@ -40,17 +40,17 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async System.Threading.Tasks.Task<List<WorkItem>> GetWorkItemsAsync(string? username, string? userId, string? managerCode, DateOnly startDate, DateOnly endDate)
+        public async System.Threading.Tasks.Task<List<WorkItem>> GetWorkItemsAsync(string? username, string? userId, string? teamCode, DateOnly startDate, DateOnly endDate)
         {
             try
             {
                 var start = startDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
                 var end = endDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
                 FilterDefinition<WorkItem> userFilter;
-                if (!string.IsNullOrEmpty(managerCode))
+                if (!string.IsNullOrEmpty(teamCode))
                 {
-                    // Primary: query by ManagerCode to return the full manager roster
-                    userFilter = Builders<WorkItem>.Filter.Eq(s => s.ManagerCode, managerCode);
+                    // Primary: query by TeamCode to return the full team roster
+                    userFilter = Builders<WorkItem>.Filter.Eq(s => s.TeamCode, teamCode);
                 }
                 else if (!string.IsNullOrEmpty(userId) || !string.IsNullOrEmpty(username))
                 {
@@ -205,13 +205,13 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async System.Threading.Tasks.Task<List<WorkItem>> GetRotationTemplateWorkItemsAsync(string rotationId, string managerCode)
+        public async System.Threading.Tasks.Task<List<WorkItem>> GetRotationTemplateWorkItemsAsync(string rotationId, string teamCode)
         {
             try
             {
                 var filter = Builders<WorkItem>.Filter.And(
                     Builders<WorkItem>.Filter.Eq(s => s.RotationId, rotationId),
-                    Builders<WorkItem>.Filter.Eq(s => s.ManagerCode, managerCode)
+                    Builders<WorkItem>.Filter.Eq(s => s.TeamCode, teamCode)
                 );
 
                 var templateWorkItems = await _WorkItems.Find(filter).ToListAsync();
@@ -225,13 +225,13 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async System.Threading.Tasks.Task<int> DeleteRotationTemplateWorkItemsAsync(string rotationId, string managerCode)
+        public async System.Threading.Tasks.Task<int> DeleteRotationTemplateWorkItemsAsync(string rotationId, string teamCode)
         {
             try
             {
                 var filter = Builders<WorkItem>.Filter.And(
                     Builders<WorkItem>.Filter.Eq(s => s.RotationId, rotationId),
-                    Builders<WorkItem>.Filter.Eq(s => s.ManagerCode, managerCode)
+                    Builders<WorkItem>.Filter.Eq(s => s.TeamCode, teamCode)
                 );
 
                 var result = await _WorkItems.DeleteManyAsync(filter);

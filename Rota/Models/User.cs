@@ -62,10 +62,10 @@ namespace Rota.Models
         /// <summary>
         /// For manager accounts: a unique code (GUID) that employees use to link themselves
         /// to this manager. Generated automatically at registration. When an employee is
-        /// linked to a manager, the employee's document stores the manager's ManagerCode.
+        /// linked to a manager, the employee's document stores the manager's TeamCode.
         /// </summary>
-        [BsonElement("managerCode")]
-        public string? ManagerCode { get; set; }
+        [BsonElement("teamCode")]
+        public string? TeamCode { get; set; }
 
         /// <summary>
         /// The user's personal weekly availability windows, embedded directly in the user document.

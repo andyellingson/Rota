@@ -118,11 +118,11 @@
             <div class="account-section">
                 <h5 class="account-section-title">🔗 Team Leader Link</h5>
                 <div class="account-card">
-                    @if (!string.IsNullOrEmpty(user.ManagerCode))
+                    @if (!string.IsNullOrEmpty(user.TeamCode))
                     {
                         <div class="account-field">
                             <span class="account-field-label">Linked Team Leader</span>
-                            <span class="account-field-value">@(linkedManagerDisplayName ?? user.ManagerCode)</span>
+                            <span class="account-field-value">@(linkedManagerDisplayName ?? user.TeamCode)</span>
                             </div>
                         @if (!showLinkForm)
                         {
@@ -134,7 +134,7 @@
                         <p class="account-field-hint">You are not linked to a team leader yet. Enter your team leader's code below.</p>
                     }
 
-                    @if (showLinkForm || string.IsNullOrEmpty(user.ManagerCode))
+                    @if (showLinkForm || string.IsNullOrEmpty(user.TeamCode))
                     {
                         <div class="mt-2 d-flex gap-2 align-items-start">
                             <input class="form-control" @bind="managerCodeInput" placeholder="Paste team leader code here" />
@@ -401,10 +401,10 @@
                 EndTime = a.EndTime
             }).ToList() ?? new();
 
-            if (!string.IsNullOrEmpty(user?.ManagerCode))
+            if (!string.IsNullOrEmpty(user?.TeamCode))
             {
-                var mgr = await UserService.GetByManagerCodeAsync(user.ManagerCode);
-                linkedManagerDisplayName = mgr?.DisplayName ?? mgr?.Username ?? user.ManagerCode;
+                var mgr = await UserService.GetByManagerCodeAsync(user.TeamCode);
+                linkedManagerDisplayName = mgr?.DisplayName ?? mgr?.Username ?? user.TeamCode;
             }
         }
         isLoading = false;
@@ -429,10 +429,10 @@
             if (ok)
             {
                 user = await UserService.GetByUsernameAsync(user.Username) ?? user;
-                if (!string.IsNullOrEmpty(user.ManagerCode))
+                if (!string.IsNullOrEmpty(user.TeamCode))
                 {
-                    var mgr = await UserService.GetByManagerCodeAsync(user.ManagerCode);
-                    linkedManagerDisplayName = mgr?.DisplayName ?? mgr?.Username ?? user.ManagerCode;
+                    var mgr = await UserService.GetByManagerCodeAsync(user.TeamCode);
+                    linkedManagerDisplayName = mgr?.DisplayName ?? mgr?.Username ?? user.TeamCode;
                 }
                 managerCodeInput = string.Empty;
                 showLinkForm = false;

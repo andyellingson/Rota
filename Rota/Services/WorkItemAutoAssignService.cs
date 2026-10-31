@@ -23,17 +23,17 @@ namespace Rota.Services
         public async Task<AutoAssignOutcome> AutoAssignAsync(
             string username,
             string? userId,
-            string managerCode,
+            string teamCode,
             DateOnly rangeStart,
             DateOnly rangeEnd,
             Func<DateOnly, bool>? includeDay,
             string noWorkItemsMessage)
         {
             // Refresh linked users so we have the latest MaxHours / priority values.
-            var linkedUsers = await _userService.GetLinkedUsersForManagerAsync(managerCode);
+            var linkedUsers = await _userService.GetLinkedUsersForManagerAsync(teamCode);
 
             // Load work items for the requested range (padded for UTC boundaries).
-            var rangeWorkItems = await _WorkItemsService.GetWorkItemsAsync(username, userId, managerCode, rangeStart.AddDays(-1), rangeEnd.AddDays(1));
+            var rangeWorkItems = await _WorkItemsService.GetWorkItemsAsync(username, userId, teamCode, rangeStart.AddDays(-1), rangeEnd.AddDays(1));
 
             var unassigned = rangeWorkItems
                 .Where(s => string.IsNullOrEmpty(s.AssignedToUserId))
@@ -54,10 +54,10 @@ namespace Rota.Services
 
             // Load all work items spanning full Sunday-Saturday weeks so pre-existing hours are counted
             // correctly when enforcing the weekly MaxHours cap.
-            var allWeekWorkItems = await LoadFullWeekWorkItemsAsync(username, userId, managerCode, weekRangeStart, weekRangeEnd);
+            var allWeekWorkItems = await LoadFullWeekWorkItemsAsync(username, userId, teamCode, weekRangeStart, weekRangeEnd);
 
             // Load approved absences for the same assignment span so overlapping requests block assignment.
-            var approvedAbsences = await LoadApprovedAbsencesAsync(managerCode, weekRangeStart, weekRangeEnd);
+            var approvedAbsences = await LoadApprovedAbsencesAsync(teamCode, weekRangeStart, weekRangeEnd);
 
             var result = await ExecuteAsync(username, linkedUsers, unassigned, allWeekWorkItems, approvedAbsences);
             var (success, warning) = BuildMessages(result, linkedUsers);
@@ -68,15 +68,15 @@ namespace Rota.Services
         /// <summary>
         /// Loads all work items spanning the supplied Sunday-Saturday week boundaries.
         /// </summary>
-        private Task<List<WorkItem>> LoadFullWeekWorkItemsAsync(string username, string? userId, string managerCode, DateOnly weekRangeStart, DateOnly weekRangeEnd)
-            => _WorkItemsService.GetWorkItemsAsync(username, userId, managerCode, weekRangeStart.AddDays(-1), weekRangeEnd.AddDays(1));
+        private Task<List<WorkItem>> LoadFullWeekWorkItemsAsync(string username, string? userId, string teamCode, DateOnly weekRangeStart, DateOnly weekRangeEnd)
+            => _WorkItemsService.GetWorkItemsAsync(username, userId, teamCode, weekRangeStart.AddDays(-1), weekRangeEnd.AddDays(1));
 
         /// <summary>
         /// Loads only approved absences for users under the manager scope.
         /// </summary>
-        private async Task<List<Absence>> LoadApprovedAbsencesAsync(string managerCode, DateOnly weekRangeStart, DateOnly weekRangeEnd)
+        private async Task<List<Absence>> LoadApprovedAbsencesAsync(string teamCode, DateOnly weekRangeStart, DateOnly weekRangeEnd)
         {
-            var absences = await _absencesService.GetAbsencesAsync(managerCode, null, weekRangeStart, weekRangeEnd) ?? [];
+            var absences = await _absencesService.GetAbsencesAsync(teamCode, null, weekRangeStart, weekRangeEnd) ?? [];
             return absences.Where(a => a.ApprovalState == AbsenceApprovalState.Approved).ToList();
         }
 

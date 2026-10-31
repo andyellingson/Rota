@@ -266,9 +266,9 @@ namespace Rota.Services
         {
             try
             {
-                // Ensure the user with the matching ManagerCode also has the team leader role.
+                // Ensure the user with the matching TeamCode also has the team leader role.
                 var filter = Builders<User>.Filter.And(
-                    Builders<User>.Filter.Eq(u => u.ManagerCode, code),
+                    Builders<User>.Filter.Eq(u => u.TeamCode, code),
                     Builders<User>.Filter.AnyEq(u => u.Roles, Roles.Manager)
                 );
                 return await _users.Find(filter).FirstOrDefaultAsync();
@@ -293,7 +293,7 @@ namespace Rota.Services
 
                 var filter = Builders<User>.Filter.Eq(u => u.Username, employeeUsername);
                 var update = Builders<User>.Update
-                    .Set(u => u.ManagerCode, manager.ManagerCode);
+                    .Set(u => u.TeamCode, manager.TeamCode);
                 await _users.UpdateOneAsync(filter, update);
                 return true;
             }
@@ -317,7 +317,7 @@ namespace Rota.Services
                 }
 
                 var manager = await GetByManagerCodeAsync(managerCode);
-                if (manager?.ManagerCode is null)
+                if (manager?.TeamCode is null)
                 {
                     return false;
                 }
@@ -325,8 +325,8 @@ namespace Rota.Services
                 // Scope the unlink to only employees currently linked to this manager.
                 var filter = Builders<User>.Filter.And(
                     Builders<User>.Filter.Eq(u => u.Username, employeeUsername),
-                    Builders<User>.Filter.Eq(u => u.ManagerCode, manager.ManagerCode));
-                var update = Builders<User>.Update.Set(u => u.ManagerCode, null);
+                    Builders<User>.Filter.Eq(u => u.TeamCode, manager.TeamCode));
+                var update = Builders<User>.Update.Set(u => u.TeamCode, null);
                 var result = await _users.UpdateOneAsync(filter, update);
                 return result.ModifiedCount > 0;
             }
@@ -350,7 +350,7 @@ namespace Rota.Services
 
                 var filter = Builders<User>.Filter.Or(
                     Builders<User>.Filter.Eq(u => u.Id, manager.Id),
-                    Builders<User>.Filter.Eq(u => u.ManagerCode, manager.ManagerCode)
+                    Builders<User>.Filter.Eq(u => u.TeamCode, manager.TeamCode)
                 );
 
                 var users = await _users.Find(filter).ToListAsync();

@@ -109,7 +109,7 @@ namespace Rota.Endpoints
                         Roles = string.IsNullOrWhiteSpace(dto.Role)
                             ? System.Array.Empty<string>()
                             : new[] { dto.Role.Trim().ToLowerInvariant() },
-                        ManagerCode = isManager ? Guid.NewGuid().ToString() : null,
+                        TeamCode = isManager ? Guid.NewGuid().ToString() : null,
                         // Employee users default to 40 max hours per week.
                         MaxHours = isManager ? 0 : 40,
                         // New users default to all-day availability for every day of the week.
@@ -128,7 +128,7 @@ namespace Rota.Endpoints
                             var manager = await users.GetByManagerCodeAsync(managerCode);
                             if (!string.IsNullOrWhiteSpace(manager?.Id))
                             {
-                                var managerSchedules = await schedules.GetSchedulesForManagerAsync(manager.Id, manager.ManagerCode);
+                                var managerSchedules = await schedules.GetSchedulesForManagerAsync(manager.Id, manager.TeamCode);
                                 var managerScheduleIds = managerSchedules
                                     .Select(s => s.Id)
                                     .Where(id => !string.IsNullOrWhiteSpace(id))

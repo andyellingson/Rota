@@ -52,13 +52,13 @@ namespace Rota.Endpoints
 
                     if (context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin))
                     {
-                        // Managers fetch their roster reminders by ManagerCode plus personal ones by OwnerId
-                        queryManagerCode = caller?.ManagerCode;
+                        // Managers fetch their roster reminders by TeamCode plus personal ones by OwnerId.
+                        queryManagerCode = caller?.TeamCode;
                     }
                     else if (context.User.IsInRole(Roles.Employee))
                     {
-                        // Employees fetch manager's reminders by ManagerCode plus their own by OwnerId
-                        queryManagerCode = caller?.ManagerCode;
+                        // Employees fetch manager reminders by TeamCode plus their own by OwnerId.
+                        queryManagerCode = caller?.TeamCode;
                     }
 
                     var startDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(-1));
@@ -98,7 +98,7 @@ namespace Rota.Endpoints
 
                     var creator = await users.GetByUsernameAsync(username);
                     var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
-                    string? managerCode = isManager ? creator?.ManagerCode : creator?.ManagerCode;
+                    string? managerCode = isManager ? creator?.TeamCode : creator?.TeamCode;
 
                     var targetUsername = string.IsNullOrWhiteSpace(dto.ForUsername) ? username : dto.ForUsername;
                     User? targetUser = null;
@@ -175,7 +175,7 @@ namespace Rota.Endpoints
 
                     var creator = await users.GetByUsernameAsync(username);
                     var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
-                    string? managerCode = isManager ? creator?.ManagerCode : creator?.ManagerCode;
+                    string? managerCode = isManager ? creator?.TeamCode : creator?.TeamCode;
 
                     var targetUsername = string.IsNullOrWhiteSpace(dto.ForUsername) ? username : dto.ForUsername;
                     User? targetUser = null;

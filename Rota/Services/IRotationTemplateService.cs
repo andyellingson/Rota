@@ -18,9 +18,9 @@ namespace Rota.Services
         /// </summary>
         /// <param name="rotationId">Identifier of the rotation whose template work items are applied.</param>
         /// <param name="username">Username recorded as the creator of the work items.</param>
-        /// <param name="managerCode">Manager code that owns the rotation and work items.</param>
+        /// <param name="teamCode">Team code that owns the rotation and work items.</param>
         /// <param name="scheduleId">Schedule the created work items belong to.</param>
         /// <param name="days">Days to apply the template to.</param>
-        Task<RotationApplyResult> ApplyAsync(string rotationId, string username, string managerCode, string scheduleId, IEnumerable<DateOnly> days);
+        Task<RotationApplyResult> ApplyAsync(string rotationId, string username, string teamCode, string scheduleId, IEnumerable<DateOnly> days);
     }
 }

@@ -1018,7 +1018,7 @@
                     WorkerType = rotationModalState.NewWorkItemWorkerType,
                     AssignedToUserId = string.IsNullOrWhiteSpace(rotationModalState.NewWorkItemAssignedTo) ? null : rotationModalState.NewWorkItemAssignedTo,
                     Username = _username ?? string.Empty,
-                    ManagerCode = _managerCode,
+                    TeamCode = _managerCode,
                     ScheduleId = null, // Template WorkItems don't have ScheduleId
                     RotationId = null  // Will be set when SaveRotation creates the Rotation
                 });
@@ -1164,7 +1164,7 @@
             foreach (var templateWorkItem in newRotationWorkItems)
             {
                 templateWorkItem.RotationId = rotationId;
-                templateWorkItem.ManagerCode = _managerCode;
+                templateWorkItem.TeamCode = _managerCode;
                 templateWorkItem.Username = _username ?? string.Empty;
                 templateWorkItem.ScheduleId = null;
                 await WorkItemsService.CreateWorkItemAsync(templateWorkItem);
@@ -1770,7 +1770,7 @@
         {
             var caller = await UserService.GetByUsernameAsync(_username);
             _userId = caller?.Id;
-            _managerCode = caller?.ManagerCode;
+            _managerCode = caller?.TeamCode;
 
             // Load employees for work item assignment in Rotation templates
             employees = await UserService.GetUsersByRoleAsync(Roles.Employee);

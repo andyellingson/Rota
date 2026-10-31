@@ -38,20 +38,20 @@ namespace Rota.Endpoints
                         return Results.Json(new { ok = false, message = "Unauthorized", code = 401 }, statusCode: 401);
 
                     var caller = await users.GetByUsernameAsync(username);
-                    string? queryManagerCode = null;
+                    string? queryTeamCode = null;
 
                     if (context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin))
                     {
-                        // Managers query their own roster by their ManagerCode
-                        queryManagerCode = caller?.ManagerCode;
+                        // Managers query their own roster by their team code.
+                        queryTeamCode = caller?.TeamCode;
                     }
                     else if (context.User.IsInRole(Roles.Employee))
                     {
-                        // Employees query their linked manager's roster
-                        if (!string.IsNullOrEmpty(caller?.ManagerCode))
+                        // Employees query their linked manager's team roster.
+                        if (!string.IsNullOrEmpty(caller?.TeamCode))
                         {
-                            var manager = await users.GetByManagerCodeAsync(caller.ManagerCode);
-                            queryManagerCode = manager?.ManagerCode;
+                            var manager = await users.GetByManagerCodeAsync(caller.TeamCode);
+                            queryTeamCode = manager?.TeamCode;
                         }
                     }
 
@@ -64,7 +64,7 @@ namespace Rota.Endpoints
                     if (!string.IsNullOrWhiteSpace(end) && !DateOnly.TryParse(end, out endDate))
                         return Results.Json(new { ok = false, message = "Invalid end date", code = 400 }, statusCode: 400);
 
-                    var items = await WorkItems.GetWorkItemsAsync(username, caller?.Id, queryManagerCode, startDate, endDate);
+                    var items = await WorkItems.GetWorkItemsAsync(username, caller?.Id, queryTeamCode, startDate, endDate);
                     return Results.Json(new { ok = true, WorkItems = items, code = 200 }, statusCode: 200);
                 }
                 catch (Exception ex)
@@ -100,7 +100,7 @@ namespace Rota.Endpoints
                         WorkerType = string.IsNullOrWhiteSpace(dto.WorkerType) ? "General" : dto.WorkerType,
                         Color = dto.Color,
                         AssignedToUserId = string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? null : dto.AssignedToUserId,
-                        ManagerCode = creator?.ManagerCode,
+                        TeamCode = creator?.TeamCode,
                         SeriesId = dto.SeriesId
                     };
 

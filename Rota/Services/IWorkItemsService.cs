@@ -10,7 +10,7 @@ namespace Rota.Services
         /// <summary>
         /// Returns work items matching the supplied user scope and date window.
         /// </summary>
-        System.Threading.Tasks.Task<List<WorkItem>> GetWorkItemsAsync(string? username, string? userId, string? managerCode, DateOnly startDate, DateOnly endDate);
+        System.Threading.Tasks.Task<List<WorkItem>> GetWorkItemsAsync(string? username, string? userId, string? teamCode, DateOnly startDate, DateOnly endDate);
 
         /// <summary>
         /// Creates a new work item.
@@ -46,11 +46,11 @@ namespace Rota.Services
         /// Gets all template work items for a specific Rotation ID.
         /// These are work items with RotationId set and are not tied to specific calendar dates.
         /// </summary>
-        System.Threading.Tasks.Task<List<WorkItem>> GetRotationTemplateWorkItemsAsync(string rotationId, string managerCode);
+        System.Threading.Tasks.Task<List<WorkItem>> GetRotationTemplateWorkItemsAsync(string rotationId, string teamCode);
 
         /// <summary>
         /// Deletes all template work items associated with a specific Rotation ID.
         /// </summary>
-        System.Threading.Tasks.Task<int> DeleteRotationTemplateWorkItemsAsync(string rotationId, string managerCode);
+        System.Threading.Tasks.Task<int> DeleteRotationTemplateWorkItemsAsync(string rotationId, string teamCode);
     }
 }

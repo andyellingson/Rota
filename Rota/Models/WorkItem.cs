@@ -62,11 +62,11 @@ namespace Rota.Models
         public string? AssignedToUserId { get; set; }
 
         /// <summary>
-        /// The manager's unique code (ManagerCode GUID). Used to group all work items for
-        /// a manager's roster and to serve the correct schedule to linked employees.
+        /// The team's unique code. Used to group all work items for
+        /// a team's roster and to serve the correct schedule to linked employees.
         /// </summary>
-        [BsonElement("managerCode")]
-        public string? ManagerCode { get; set; }
+        [BsonElement("teamCode")]
+        public string? TeamCode { get; set; }
 
         /// <summary>
         /// The schedule ID this work item belongs to (MongoDB ObjectId string).

@@ -44,12 +44,12 @@ namespace Rota.Endpoints
 
                     if (context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin))
                     {
-                        queryManagerCode = caller?.ManagerCode;
+                        queryManagerCode = caller?.TeamCode;
                     }
                     else if (context.User.IsInRole(Roles.Employee))
                     {
-                        // Employee documents store the manager's ManagerCode when linked
-                        queryManagerCode = caller?.ManagerCode;
+                        // Employee documents store the manager's TeamCode when linked.
+                        queryManagerCode = caller?.TeamCode;
                     }
 
                     var startDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(-1));
@@ -120,12 +120,12 @@ namespace Rota.Endpoints
                     string? managerCode = null;
                     if (isManager)
                     {
-                        managerCode = creator?.ManagerCode;
+                        managerCode = creator?.TeamCode;
                     }
                     else
                     {
-                        // For employees, the creator document stores the manager's ManagerCode when linked
-                        managerCode = creator?.ManagerCode;
+                        // For employees, the creator document stores the manager's TeamCode when linked.
+                        managerCode = creator?.TeamCode;
                     }
 
                     var targetUserId = string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? creator?.Id : dto.AssignedToUserId;
@@ -180,7 +180,7 @@ namespace Rota.Endpoints
                         return Results.Json(new { ok = false, message = "Unauthorized", code = 401 }, statusCode: 401);
 
                     var caller = await users.GetByUsernameAsync(username);
-                    var managerCode = context.User.IsInRole(Roles.Manager) ? caller?.ManagerCode : null;
+                    var managerCode = context.User.IsInRole(Roles.Manager) ? caller?.TeamCode : null;
                     var deleted = await absences.DeleteAbsenceAsync(id, username, managerCode);
                     if (!deleted)
                         return Results.Json(new { ok = false, message = "Not found or access denied", code = 404 }, statusCode: 404);
@@ -234,7 +234,7 @@ namespace Rota.Endpoints
                     var creator = await users.GetByUsernameAsync(username);
                     var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
 
-                    var callerManagerCode = creator?.ManagerCode;
+                    var callerManagerCode = creator?.TeamCode;
                     var managerCode = context.User.IsInRole(Roles.Manager) ? callerManagerCode : null;
 
                     var targetUserId = string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? creator?.Id : dto.AssignedToUserId;

@@ -56,7 +56,7 @@ public class CalendarRenderBenchmarks
                 Color = "#1890ff",
                 AssignedToUserId = rng.Next(0, 3) == 0 ? null : employeeIds[rng.Next(employeeIds.Count)],
                 ScheduleId = "sched001",
-                ManagerCode = "MGR001"
+                TeamCode = "MGR001"
             };
         }).ToList();
         // Generate absences

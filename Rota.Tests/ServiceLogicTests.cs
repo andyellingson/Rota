@@ -62,7 +62,7 @@ public class RotationTemplateServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(created!.Username, Is.EqualTo("owner"));
-            Assert.That(created.ManagerCode, Is.EqualTo("manager"));
+            Assert.That(created.TeamCode, Is.EqualTo("manager"));
             Assert.That(created.ScheduleId, Is.EqualTo("schedule"));
             Assert.That(created.Title, Is.EqualTo("Opening"));
             Assert.That(created.Notes, Is.EqualTo("front desk"));

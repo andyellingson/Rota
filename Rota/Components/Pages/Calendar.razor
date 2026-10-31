@@ -155,7 +155,7 @@
                         @if (!string.IsNullOrWhiteSpace(multiDayAutoError))
                         {
                             <div class="selected-days-result-item selected-days-result-item--error">
-                                <div class="selected-days-result-label">Assign work items Error</div>
+                                <div class="selected-days-result-label">Assign Work Items Error</div>
                                 <ul class="selected-days-result-list">
                                     @foreach (var line in SplitFeedbackLines(multiDayAutoError))
                                     {
@@ -167,7 +167,7 @@
                         @if (!string.IsNullOrWhiteSpace(multiDayAutoWarning))
                         {
                             <div class="selected-days-result-item selected-days-result-item--warning">
-                                <div class="selected-days-result-label">Assign work items Warning</div>
+                                <div class="selected-days-result-label">Assign Work Items Warning</div>
                                 <ul class="selected-days-result-list">
                                     @foreach (var line in SplitFeedbackLines(multiDayAutoWarning))
                                     {
@@ -179,7 +179,7 @@
                         @if (!string.IsNullOrWhiteSpace(multiDayAutoSuccess))
                         {
                             <div class="selected-days-result-item selected-days-result-item--success">
-                                <div class="selected-days-result-label">Assign work items Results</div>
+                                <div class="selected-days-result-label">Assign Work Items Results</div>
                                 <ul class="selected-days-result-list">
                                     @foreach (var line in SplitSuccessFeedbackLines(multiDayAutoSuccess))
                                     {
@@ -459,16 +459,16 @@
                 _isManagerRole = user.IsInRole(Roles.Manager);
                 if (canManageWorkItems)
                 {
-                    _managerCode = caller?.ManagerCode;
+                    _managerCode = caller?.TeamCode;
                     employees = await UserService.GetUsersByRoleAsync(Roles.Employee);
                 }
-                else if (user.IsInRole(Roles.Employee) && !string.IsNullOrEmpty(caller?.ManagerCode))
+                else if (user.IsInRole(Roles.Employee) && !string.IsNullOrEmpty(caller?.TeamCode))
                 {
-                    // Employee documents store the manager's ManagerCode when linked
-                    _managerCode = caller?.ManagerCode;
+                    // Employee documents store the manager's TeamCode when linked.
+                    _managerCode = caller?.TeamCode;
                 }
 
-                var managerCodeForLinkedUsers = caller?.ManagerCode;
+                var managerCodeForLinkedUsers = caller?.TeamCode;
 
                 if (!string.IsNullOrEmpty(managerCodeForLinkedUsers))
                 {
@@ -1680,7 +1680,7 @@
                         WorkerType = newWorkItemWorkerType,
                         Color = newWorkItemColor,
                         AssignedToUserId = string.IsNullOrEmpty(newWorkItemAssignedTo) ? null : newWorkItemAssignedTo,
-                        ManagerCode = _managerCode,
+                        TeamCode = _managerCode,
                         ScheduleId = selectedScheduleId,
                         SeriesId = seriesId
                     };

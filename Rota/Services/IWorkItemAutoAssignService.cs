@@ -22,7 +22,7 @@ namespace Rota.Services
         /// </summary>
         /// <param name="username">Current user's username.</param>
         /// <param name="userId">Current user's id used when loading scoped work items.</param>
-        /// <param name="managerCode">Manager code scoping work items and linked users.</param>
+        /// <param name="teamCode">Team code scoping work items and linked users.</param>
         /// <param name="rangeStart">Inclusive first local day to consider.</param>
         /// <param name="rangeEnd">Inclusive last local day to consider.</param>
         /// <param name="includeDay">Optional extra filter; when null every day in the range is considered.</param>
@@ -30,7 +30,7 @@ namespace Rota.Services
         Task<AutoAssignOutcome> AutoAssignAsync(
             string username,
             string? userId,
-            string managerCode,
+            string teamCode,
             DateOnly rangeStart,
             DateOnly rangeEnd,
             Func<DateOnly, bool>? includeDay,

@@ -44,7 +44,7 @@ public class MongoWorkItemsServiceTests
 
         var json = Render(captured).ToJson();
         Assert.That(json, Does.Contain("manager-code"));
-        Assert.That(json, Does.Contain("managerCode"));
+        Assert.That(json, Does.Contain("teamCode"));
         Assert.That(json, Does.Contain("start"));
         Assert.That(json, Does.Contain("end"));
     }

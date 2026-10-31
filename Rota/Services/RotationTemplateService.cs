@@ -22,18 +22,18 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async Task<RotationApplyResult> ApplyAsync(string rotationId, string username, string managerCode, string scheduleId, IEnumerable<DateOnly> days)
+        public async Task<RotationApplyResult> ApplyAsync(string rotationId, string username, string teamCode, string scheduleId, IEnumerable<DateOnly> days)
         {
             if (_rotationsService is not null)
             {
-                var rotation = await _rotationsService.GetByIdAsync(rotationId, managerCode);
+                var rotation = await _rotationsService.GetByIdAsync(rotationId, teamCode);
                 if (rotation is null || !rotation.ScheduleIds.Contains(scheduleId, StringComparer.Ordinal))
                 {
                     return new RotationApplyResult(0, "The selected rotation is not available for this schedule.");
                 }
             }
 
-            var templateWorkItems = await _WorkItemsService.GetRotationTemplateWorkItemsAsync(rotationId, managerCode);
+            var templateWorkItems = await _WorkItemsService.GetRotationTemplateWorkItemsAsync(rotationId, teamCode);
             if (templateWorkItems.Count == 0)
             {
                 return new RotationApplyResult(0, "No template work items found for the selected WorkWeek.");
@@ -65,7 +65,7 @@ namespace Rota.Services
                         Color = template.Color,
                         Notes = template.Notes,
                         AssignedToUserId = template.AssignedToUserId,
-                        ManagerCode = managerCode,
+                        TeamCode = teamCode,
                         ScheduleId = scheduleId,
                         WorkerType = template.WorkerType,
                         RotationId = null,  // Actual calendar WorkItems do not carry a rotation id

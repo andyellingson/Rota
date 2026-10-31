@@ -74,7 +74,7 @@ namespace Rota.Tests
             {
                 Id = "manager-id",
                 Username = "manager",
-                ManagerCode = "MGR-123",
+                TeamCode = "MGR-123",
                 Roles = [Roles.Manager]
             });
 
