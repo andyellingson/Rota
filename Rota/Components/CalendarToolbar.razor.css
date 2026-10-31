@@ -92,6 +92,73 @@
     gap: 0.25rem;
 }
 
+/* Selected-days action panel shown below filters when day/week selection is active. */
+.toolbar-group--selected-days {
+    gap: 0.45rem;
+}
+
+.selected-days-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.selected-days-header .toolbar-label {
+    margin: 0;
+}
+
+.selected-days-header-separator {
+    justify-self: center;
+    color: var(--color-text-medium);
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.selected-days-summary {
+    margin: 0;
+    text-align: right;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.selected-days-rotation-select {
+    min-height: 2.1rem;
+    border-radius: 0.5rem;
+    border-color: var(--color-border);
+    background: color-mix(in srgb, var(--color-bg-card) 92%, transparent);
+    color: var(--color-text-primary);
+    text-align: center;
+    text-align-last: center;
+    /* Slight right nudge to visually center text against the native dropdown arrow area. */
+    padding-left: 1rem;
+    padding-right: 2rem;
+}
+
+.selected-days-rotation-select:focus {
+    border-color: var(--color-accent-primary);
+    box-shadow: 0 0 0 0.12rem color-mix(in srgb, var(--color-accent-primary) 28%, transparent);
+}
+
+.selected-days-btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+}
+
+.selected-days-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-top: 0.1rem;
+}
+
 .toolbar-label {
     font-size: 0.7rem;
     font-weight: 700;
@@ -149,6 +216,22 @@
     display: flex;
     gap: 0.35rem;
     flex-direction: column;
+}
+
+/* Selection mode radio-style buttons in sidebar. */
+.toolbar-selection-mode {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.toolbar-selection-mode-group {
+    width: 100%;
+}
+
+.toolbar-selection-mode-group .btn {
+    flex: 1;
+    font-weight: 600;
 }
 
 .toolbar-filter-btn {

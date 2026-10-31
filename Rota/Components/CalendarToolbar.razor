@@ -130,8 +130,123 @@
                     }
                 </div>
             }
+
+            <div class="toolbar-selection-mode">
+                <div class="toolbar-label">Selection Mode</div>
+                <div class="btn-group btn-group-sm toolbar-selection-mode-group" role="radiogroup" aria-label="Selection mode">
+                    <button class="btn @(SelectionMode == SelectionMode.Off ? "btn-primary" : "btn-outline-secondary")"
+                            type="button"
+                            role="radio"
+                            aria-checked="@(SelectionMode == SelectionMode.Off)"
+                            title="Use default calendar click behavior"
+                            @onclick="() => ChangeSelectionMode(SelectionMode.Off)">
+                        Default
+                    </button>
+                    <button class="btn @(SelectionMode == SelectionMode.Day ? "btn-primary" : "btn-outline-secondary")"
+                            type="button"
+                            role="radio"
+                            aria-checked="@(SelectionMode == SelectionMode.Day)"
+                            title="Select individual days"
+                            @onclick="() => ChangeSelectionMode(SelectionMode.Day)">
+                        Days
+                    </button>
+                    <button class="btn @(SelectionMode == SelectionMode.Week ? "btn-primary" : "btn-outline-secondary")"
+                            type="button"
+                            role="radio"
+                            aria-checked="@(SelectionMode == SelectionMode.Week)"
+                            title="Select whole weeks"
+                            @onclick="() => ChangeSelectionMode(SelectionMode.Week)">
+                        Weeks
+                    </button>
+                </div>
+            </div>
         </div>
 
+        @if (ShowSelectedDaysMenu)
+        {
+            <div class="toolbar-sep" aria-hidden="true"></div>
+            <div class="toolbar-group toolbar-group--selected-days">
+                <div class="selected-days-header">
+                    <div class="toolbar-label">Selected Days</div>
+                    <div class="selected-days-header-separator" aria-hidden="true">-</div>
+                    <div class="selected-days-summary">@SelectedDayCount</div>
+                </div>
+
+                @if (CanManageShifts)
+                {
+                    @if (SelectedScheduleRotations.Count > 0)
+                    {
+                        <select class="form-select form-select-sm selected-days-rotation-select"
+                                value="@(SelectedRotationId ?? string.Empty)"
+                                @onchange="OnSelectedRotationChanged"
+                                title="Choose a rotation template to apply to selected days">
+                            <option value="">Select Template</option>
+                            @foreach (var rotation in SelectedScheduleRotations)
+                            {
+                                if (!string.IsNullOrWhiteSpace(rotation.Id))
+                                {
+                                    <option value="@rotation.Id">@rotation.Name</option>
+                                }
+                            }
+                        </select>
+
+                        <button class="btn btn-sm btn-primary selected-days-btn"
+                                @onclick="OnApplyTemplateToSelectedDays"
+                                title="Apply the selected rotation template to all selected days"
+                                disabled="@(string.IsNullOrWhiteSpace(SelectedRotationId) || IsApplyingTemplate)">
+                            @if (IsApplyingTemplate)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                <span>Applying…</span>
+                            }
+                            else
+                            {
+                                <span>Apply Template</span>
+                            }
+                        </button>
+                    }
+
+                    <button class="btn btn-sm btn-success selected-days-btn"
+                            @onclick="OnAutoAssignSelectedDays"
+                            title="Assign eligible employees to unassigned shifts on selected days"
+                            disabled="@(IsAutoAssignRunning || TotalUnassignedShiftsInSelectedDays == 0)">
+                        @if (IsAutoAssignRunning)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            <span>Assigning…</span>
+                        }
+                        else
+                        {
+                            <span>Assign Shifts</span>
+                        }
+                    </button>
+                }
+
+                @if (CanManageShifts && TotalShiftsInSelectedDays > 0)
+                {
+                    <button class="btn btn-sm btn-danger selected-days-btn" @onclick="OnDeleteSelectedDayShifts" title="Delete all shifts in selected days">
+                        Delete @TotalShiftsInSelectedDays Shift@(TotalShiftsInSelectedDays == 1 ? "" : "s")
+                    </button>
+                }
+                @if (TotalAbsencesInSelectedDays > 0)
+                {
+                    <button class="btn btn-sm btn-warning text-dark selected-days-btn" @onclick="OnDeleteSelectedDayAbsences" title="Delete all absences in selected days">
+                        Delete @TotalAbsencesInSelectedDays Absence@(TotalAbsencesInSelectedDays == 1 ? "" : "s")
+                    </button>
+                }
+                @if (TotalRemindersInSelectedDays > 0)
+                {
+                    <button class="btn btn-sm btn-info text-dark selected-days-btn" @onclick="OnDeleteSelectedDayReminders" title="Delete all reminders in selected days">
+                        Delete @TotalRemindersInSelectedDays Reminder@(TotalRemindersInSelectedDays == 1 ? "" : "s")
+                    </button>
+                }
+
+                <button class="btn btn-sm btn-outline-secondary selected-days-btn" @onclick="OnClearSelectedDays" title="Deselect all selected days">
+                    Clear Selection
+                </button>
+
+            </div>
+        }
 
     </div>
 </div>
@@ -188,11 +303,62 @@
     [Parameter] public EventCallback OnNext { get; set; }
     [Parameter] public EventCallback OnPrint { get; set; }
 
+    /// <summary>Whether the selected-days action panel is visible.</summary>
+    [Parameter] public bool ShowSelectedDaysMenu { get; set; }
+
+    /// <summary>Current number of selected days.</summary>
+    [Parameter] public int SelectedDayCount { get; set; }
+
+    /// <summary>True when the current user can perform shift-management actions.</summary>
+    [Parameter] public bool CanManageShifts { get; set; }
+
+    /// <summary>Rotation templates available for the currently selected schedule.</summary>
+    [Parameter] public List<Rotation> SelectedScheduleRotations { get; set; } = new();
+
+    /// <summary>Selected rotation template identifier used by selected-days actions.</summary>
+    [Parameter] public string? SelectedRotationId { get; set; }
+    [Parameter] public EventCallback<string?> SelectedRotationIdChanged { get; set; }
+
+    /// <summary>Selected-days apply-template operation state.</summary>
+    [Parameter] public bool IsApplyingTemplate { get; set; }
+
+    /// <summary>Selected-days auto-assign operation state.</summary>
+    [Parameter] public bool IsAutoAssignRunning { get; set; }
+
+    /// <summary>Aggregated counts for selected-days actions.</summary>
+    [Parameter] public int TotalShiftsInSelectedDays { get; set; }
+    [Parameter] public int TotalAbsencesInSelectedDays { get; set; }
+    [Parameter] public int TotalRemindersInSelectedDays { get; set; }
+    [Parameter] public int TotalUnassignedShiftsInSelectedDays { get; set; }
+
+    /// <summary>Selected-days action callbacks published by the calendar page.</summary>
+    [Parameter] public EventCallback OnApplyTemplateToSelectedDays { get; set; }
+    [Parameter] public EventCallback OnAutoAssignSelectedDays { get; set; }
+    [Parameter] public EventCallback OnDeleteSelectedDayShifts { get; set; }
+    [Parameter] public EventCallback OnDeleteSelectedDayAbsences { get; set; }
+    [Parameter] public EventCallback OnDeleteSelectedDayReminders { get; set; }
+    [Parameter] public EventCallback OnClearSelectedDays { get; set; }
+
     private Task OnScheduleSelected(string? scheduleId)
     {
         showScheduleDropdown = false;
         return SelectedScheduleIdChanged.InvokeAsync(scheduleId);
     }
+
+    /// <summary>
+    /// Updates the selected rotation template id used by selected-days actions.
+    /// </summary>
+    private Task OnSelectedRotationChanged(ChangeEventArgs args)
+    {
+        var selectedId = args.Value?.ToString()?.Trim();
+        return SelectedRotationIdChanged.InvokeAsync(string.IsNullOrWhiteSpace(selectedId) ? null : selectedId);
+    }
+
+    /// <summary>
+    /// Updates the active day selection mode from the sidebar radio-style controls.
+    /// </summary>
+    private Task ChangeSelectionMode(SelectionMode mode)
+        => OnSelectionModeChanged.InvokeAsync(mode);
 
     // Keep only one dropdown expanded at a time to avoid overlapping panels.
     private void ToggleScheduleDropdown()

@@ -3,22 +3,7 @@
 @* Month grid: six weeks of day cells. Day content is supplied by the owner. *@
 <div class="calendar-month">
     <div class="calendar-header-tools mb-2">
-        <div class="calendar-header-left">
-            <div class="btn-group" role="group" aria-label="Selection mode">
-                <button class="btn btn-sm @(SelectionMode == SelectionMode.Day ? "btn-primary" : "btn-outline-secondary")"
-                        title="@(SelectionMode == SelectionMode.Day ? "Exit day selection mode" : "Toggle multiple day selection mode")"
-                        @onclick="() => OnSelectionModeChanged.InvokeAsync(SelectionMode.Day)"
-                        aria-pressed="@(SelectionMode == SelectionMode.Day)">
-                    ☑ Days
-                </button>
-                <button class="btn btn-sm @(SelectionMode == SelectionMode.Week ? "btn-primary" : "btn-outline-secondary")"
-                        title="@(SelectionMode == SelectionMode.Week ? "Exit week selection mode" : "Toggle multiple week selection mode")"
-                        @onclick="() => OnSelectionModeChanged.InvokeAsync(SelectionMode.Week)"
-                        aria-pressed="@(SelectionMode == SelectionMode.Week)">
-                    📅 Weeks
-                </button>
-            </div>
-        </div>
+        <div class="calendar-header-left"></div>
         <div class="calendar-header-center">
             <strong class="calendar-title">@Current.ToString("MMMM yyyy", CultureInfo.CurrentCulture)</strong>
         </div>
@@ -91,12 +76,6 @@
 
     /// <summary>Raised when the user changes view mode from the header.</summary>
     [Parameter] public EventCallback<ViewMode> OnViewChanged { get; set; }
-
-    /// <summary>Active multi-day selection mode for header controls.</summary>
-    [Parameter] public SelectionMode SelectionMode { get; set; }
-
-    /// <summary>Raised when the user changes selection mode from the header.</summary>
-    [Parameter] public EventCallback<SelectionMode> OnSelectionModeChanged { get; set; }
 
     /// <summary>Raised when the user clicks print in the header.</summary>
     [Parameter] public EventCallback OnPrint { get; set; }

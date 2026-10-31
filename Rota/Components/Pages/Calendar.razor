@@ -35,114 +35,25 @@
                      OnFilterChanged="FilterChanged"
                      View="view" OnViewChanged="SetView"
                      OnPrev="Prev" OnNext="Next" OnPrint="OpenPrintModal"
-                     SelectionMode="selectionMode" OnSelectionModeChanged="SetSelectionMode" />;
-    }
-
-    @* Multi-day inline action bar *@
-    @if (isMultiSelectMode && selectedDays.Count > 0)
-    {
-        var totalShifts = GetTotalShiftsInSelectedDays();
-        var totalAbsences = GetTotalAbsencesInSelectedDays();
-        var totalReminders = GetTotalRemindersInSelectedDays();
-        var totalUnassignedShifts = GetTotalUnassignedShiftsInSelectedDays();
-        <div class="multi-day-action-bar">
-            @* ── Row 1: buttons ──────────────────────────────────────── *@
-            <div class="multi-day-action-bar-row">
-                <span class="action-bar-info">
-                    @selectedDays.Count day@(selectedDays.Count == 1 ? "" : "s") selected
-                </span>
-                <span class="action-bar-sep" aria-hidden="true"></span>
-                @if (canManageShifts)
-                {
-                    var scheduleRotations = GetRotationsForSelectedSchedule();
-                    if (scheduleRotations.Count > 0)
-                    {
-                        <select class="form-select form-select-sm d-inline-block" style="width:auto;min-width:220px;" @bind="multiDaySelectedWorkWeekId">
-                            <option value="">— Select Rotation Template —</option>
-                            @foreach (var ww in scheduleRotations)
-                            {
-                                <option value="@ww.Id">@ww.Name</option>
-                            }
-                        </select>
-                        <button class="btn btn-sm btn-primary ms-2" @onclick="ApplyWorkWeekToSelectedDays" disabled="@(string.IsNullOrEmpty(multiDaySelectedWorkWeekId) || multiDayIsApplying)">
-                            @if (multiDayIsApplying)
-                            {
-                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                <span>Applying…</span>
-                            }
-                            else
-                            {
-                                <span>Apply Template</span>
-                            }
-                        </button>
-                    }
-
-                    <button class="btn btn-sm btn-success ms-2" @onclick="AutoPopulateSelectedDays" disabled="@(multiDayAutoIsRunning || totalUnassignedShifts == 0)">
-                        @if (multiDayAutoIsRunning)
-                        {
-                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                            <span>Assigning…</span>
-                        }
-                        else
-                        {
-                            <span>Auto Assign</span>
-                        }
-                    </button>
-                }
-                @if (canManageShifts && totalShifts > 0)
-                {
-                    <button class="btn btn-sm btn-danger ms-2" @onclick="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Shifts))"
-                            title="Delete all shifts within the selected days">
-                        🗑 Delete @totalShifts Shift@(totalShifts == 1 ? "" : "s")
-                    </button>
-                }
-                @if (totalAbsences > 0)
-                {
-                    <button class="btn btn-sm btn-warning text-dark ms-2" @onclick="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Absences))"
-                            title="Delete all absences within the selected days">
-                        🗑 Delete @totalAbsences Absence@(totalAbsences == 1 ? "" : "s")
-                    </button>
-                }
-                @if (totalReminders > 0)
-                {
-                    <button class="btn btn-sm btn-info text-dark ms-2" @onclick="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Reminders))"
-                            title="Delete all reminders within the selected days">
-                        🗑 Delete @totalReminders Reminder@(totalReminders == 1 ? "" : "s")
-                    </button>
-                }
-                <span class="action-bar-sep" aria-hidden="true"></span>
-                <button class="btn btn-sm btn-outline-secondary" @onclick="ClearDaySelection"
-                        title="Deselect all days">
-                    Clear Selection
-                </button>
-            </div>
-
-            @* ── Row 2: feedback messages ─────────────────────────────── *@
-            @if (!string.IsNullOrEmpty(multiDayWorkWeekError) ||
-                 !string.IsNullOrEmpty(multiDayAutoError) ||
-                 !string.IsNullOrEmpty(multiDayAutoWarning) ||
-                 !string.IsNullOrEmpty(multiDayAutoSuccess))
-            {
-                <div class="multi-day-action-bar-messages">
-                    @if (!string.IsNullOrEmpty(multiDayWorkWeekError))
-                    {
-                        <span class="text-danger small">@multiDayWorkWeekError</span>
-                    }
-                    @if (!string.IsNullOrEmpty(multiDayAutoError))
-                    {
-                        <span class="text-danger small">@multiDayAutoError</span>
-                    }
-                    @if (!string.IsNullOrEmpty(multiDayAutoWarning))
-                    {
-                        <span class="text-warning small">@multiDayAutoWarning</span>
-                    }
-                    @if (!string.IsNullOrEmpty(multiDayAutoSuccess))
-                    {
-                        <span class="text-success small">@multiDayAutoSuccess</span>
-                    }
-                </div>
-            }
-        </div>
+                     SelectionMode="selectionMode" OnSelectionModeChanged="SetSelectionMode"
+                     ShowSelectedDaysMenu="@(isMultiSelectMode && selectedDays.Count > 0)"
+                     SelectedDayCount="@selectedDays.Count"
+                     CanManageShifts="@canManageShifts"
+                     SelectedScheduleRotations="@GetRotationsForSelectedSchedule()"
+                     SelectedRotationId="@multiDaySelectedWorkWeekId"
+                     SelectedRotationIdChanged="@OnMultiDaySelectedRotationChanged"
+                     IsApplyingTemplate="@multiDayIsApplying"
+                     IsAutoAssignRunning="@multiDayAutoIsRunning"
+                     TotalShiftsInSelectedDays="@GetTotalShiftsInSelectedDays()"
+                     TotalAbsencesInSelectedDays="@GetTotalAbsencesInSelectedDays()"
+                     TotalRemindersInSelectedDays="@GetTotalRemindersInSelectedDays()"
+                     TotalUnassignedShiftsInSelectedDays="@GetTotalUnassignedShiftsInSelectedDays()"
+                     OnApplyTemplateToSelectedDays="@ApplyWorkWeekToSelectedDays"
+                     OnAutoAssignSelectedDays="@AutoPopulateSelectedDays"
+                     OnDeleteSelectedDayShifts="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Shifts))"
+                     OnDeleteSelectedDayAbsences="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Absences))"
+                     OnDeleteSelectedDayReminders="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Reminders))"
+                     OnClearSelectedDays="ClearDaySelection" />;
     }
 
     @* ── Calendar views (replaced with component) ─────────────────────────── *@
@@ -152,7 +63,6 @@
             {
                 <CalendarMonthView Current="current" SelectedDays="selectedDays" OnDayClick="HandleDayClick" OnPrev="Prev" OnNext="Next"
                                    View="view" OnViewChanged="SetView"
-                                   SelectionMode="selectionMode" OnSelectionModeChanged="SetSelectionMode"
                                    OnPrint="OpenPrintModal">
                     <DayContent Context="day">
                         <CalendarDayItems Items="GetSortedDayItems(day)"
@@ -172,7 +82,6 @@
                 <CalendarWeekView Current="current" SelectedDays="selectedDays" OnDayClick="HandleDayClick" OnAddClick="OpenAddReminderModal"
                                   OnPrev="Prev" OnNext="Next"
                                   View="view" OnViewChanged="SetView"
-                                  SelectionMode="selectionMode" OnSelectionModeChanged="SetSelectionMode"
                                   OnPrint="OpenPrintModal">
                     <DayContent Context="day">
                         <CalendarDayItems Items="GetSortedDayItems(day)"
@@ -196,13 +105,11 @@
         var detailShifts = GetShiftsForDay(dayModalDate).OrderBy(s => s.Start).ToList();
         var detailReminders = GetRemindersForDay(dayModalDate).OrderBy(r => r.ReminderDateTime).ToList();
         var detailAbsences = GetAbsencesForDay(dayModalDate).OrderBy(a => a.StartDate).ToList();
-        var scheduleRotations = GetRotationsForSelectedSchedule();
-
         <DayDetailsModal State="dayModal"
                          Shifts="detailShifts" Absences="detailAbsences" Reminders="detailReminders"
-                         CanManageShifts="canManageShifts" Rotations="scheduleRotations"
+                         CanManageShifts="canManageShifts"
                          GetDisplayName="GetEmployeeDisplayNameById"
-                         OnClose="CloseDayModal" OnApplyTemplate="ApplyWorkWeekForDay" OnAutoPopulate="AutoPopulateShifts"
+                         OnClose="CloseDayModal"
                          OnEditShift="OpenEditShiftModal" OnEditAbsence="OpenEditAbsenceModal" OnEditReminder="OpenEditReminderModal"
                          OnAddShift="AddShiftFromDayModal" OnAddAbsence="AddAbsenceFromDayModal" OnAddReminder="AddReminderFromDayModal" />
     }
@@ -220,6 +127,74 @@
         <BulkDeleteConfirmModal Type="bulkDeleteType" Count="confirmCount" DayCount="selectedDays.Count"
                                 IsDeleting="isBulkDeleting" Error="@multiDayActionError"
                                 OnClose="CloseMultiDayConfirmModal" OnConfirm="ExecuteBulkDelete" />
+    }
+
+    @if (showSelectedDaysResultModal)
+    {
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="selected-days-result-title">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content selected-days-result-modal">
+                    <div class="modal-header selected-days-result-modal-header">
+                        <h5 class="modal-title" id="selected-days-result-title">Selected Days Update</h5>
+                        <button type="button" class="btn-close" aria-label="Close" @onclick="CloseSelectedDaysResultModal"></button>
+                    </div>
+                    <div class="modal-body selected-days-result-modal-body">
+                        @if (!string.IsNullOrWhiteSpace(multiDayWorkWeekError))
+                        {
+                            <div class="selected-days-result-item selected-days-result-item--error">
+                                <div class="selected-days-result-label">Template Issue</div>
+                                <ul class="selected-days-result-list">
+                                    @foreach (var line in SplitFeedbackLines(multiDayWorkWeekError))
+                                    {
+                                        <li>@line</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(multiDayAutoError))
+                        {
+                            <div class="selected-days-result-item selected-days-result-item--error">
+                                <div class="selected-days-result-label">Assign Shifts Error</div>
+                                <ul class="selected-days-result-list">
+                                    @foreach (var line in SplitFeedbackLines(multiDayAutoError))
+                                    {
+                                        <li>@line</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(multiDayAutoWarning))
+                        {
+                            <div class="selected-days-result-item selected-days-result-item--warning">
+                                <div class="selected-days-result-label">Assign Shifts Warning</div>
+                                <ul class="selected-days-result-list">
+                                    @foreach (var line in SplitFeedbackLines(multiDayAutoWarning))
+                                    {
+                                        <li>@line</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(multiDayAutoSuccess))
+                        {
+                            <div class="selected-days-result-item selected-days-result-item--success">
+                                <div class="selected-days-result-label">Assign Shifts Results</div>
+                                <ul class="selected-days-result-list">
+                                    @foreach (var line in SplitSuccessFeedbackLines(multiDayAutoSuccess))
+                                    {
+                                        <li>@line</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer selected-days-result-modal-footer">
+                        <button type="button" class="btn btn-primary btn-sm" @onclick="CloseSelectedDaysResultModal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     }
 
     <PrintScheduleModal IsVisible="showPrintModal"
@@ -385,21 +360,10 @@
         private string? multiDayActionError = null;
         private BulkDeleteType bulkDeleteType = BulkDeleteType.Shifts;
 
-        // Day detail modal and auto-populate state
+        // Day detail modal state
         private readonly DayModalState dayModal = new();
         private bool showDayModal { get => dayModal.IsOpen; set => dayModal.IsOpen = value; }
         private DateOnly dayModalDate { get => dayModal.Date; set => dayModal.Date = value; }
-        private string? dayModalSelectedWorkWeekId { get => dayModal.SelectedRotationId; set => dayModal.SelectedRotationId = value; }
-        private string? dayModalWorkWeekError { get => dayModal.RotationError; set => dayModal.RotationError = value; }
-        private bool dayModalIsApplying { get => dayModal.IsApplying; set => dayModal.IsApplying = value; }
-        private DateOnly workWeekRangeStart { get => dayModal.RotationRangeStart; set => dayModal.RotationRangeStart = value; }
-        private DateOnly workWeekRangeEnd { get => dayModal.RotationRangeEnd; set => dayModal.RotationRangeEnd = value; }
-        private DateOnly autoPopulateRangeStart { get => dayModal.AutoRangeStart; set => dayModal.AutoRangeStart = value; }
-        private DateOnly autoPopulateRangeEnd { get => dayModal.AutoRangeEnd; set => dayModal.AutoRangeEnd = value; }
-        private string? autoPopulateError { get => dayModal.AutoError; set => dayModal.AutoError = value; }
-        private string? autoPopulateWarning { get => dayModal.AutoWarning; set => dayModal.AutoWarning = value; }
-        private string? autoPopulateSuccess { get => dayModal.AutoSuccess; set => dayModal.AutoSuccess = value; }
-        private bool autoPopulateIsRunning { get => dayModal.AutoIsRunning; set => dayModal.AutoIsRunning = value; }
 
         // Multi-day template / auto-assign state
         private string? multiDaySelectedWorkWeekId;
@@ -410,6 +374,7 @@
         private string? multiDayAutoError;
         private string? multiDayAutoWarning;
         private string? multiDayAutoSuccess;
+        private bool showSelectedDaysResultModal = false;
 
         // Shift fields for add/edit
         private Shift? editingShift { get => modalState.EditingShift; set => modalState.EditingShift = value; }
@@ -614,80 +579,44 @@
         }
 
         /// <summary>
-        /// Applies the selected WorkWeek template across the user-defined date range.
-        /// Iterates every day from workWeekRangeStart through workWeekRangeEnd and creates a
-        /// shift for each day whose DayOfWeek matches a template entry – naturally handling
-        /// partial weeks at either end of the range.
+        /// Keeps the selected-days rotation template id in sync with the sidebar panel.
         /// </summary>
-        private async Task ApplyWorkWeekForDay()
+        private Task OnMultiDaySelectedRotationChanged(string? rotationId)
         {
-            dayModalWorkWeekError = null;
-            if (string.IsNullOrEmpty(dayModalSelectedWorkWeekId))
-            {
-                dayModalWorkWeekError = "Please select a WorkWeek template.";
-                return;
-            }
-            if (string.IsNullOrEmpty(selectedScheduleId))
-            {
-                dayModalWorkWeekError = "No schedule is selected.";
-                return;
-            }
-
-            if (string.IsNullOrEmpty(_managerCode))
-            {
-                dayModalWorkWeekError = "Your account does not have a manager code. Please contact support.";
-                return;
-            }
-
-            if (workWeekRangeEnd < workWeekRangeStart)
-            {
-                dayModalWorkWeekError = "End date must be on or after the start date.";
-                return;
-            }
-
-            try
-            {
-                dayModalIsApplying = true;
-
-                var result = await RotationTemplateService.ApplyAsync(dayModalSelectedWorkWeekId, _username, _managerCode, selectedScheduleId, Enumerable.Range(0, (workWeekRangeEnd.DayNumber - workWeekRangeStart.DayNumber) + 1).Select(d => workWeekRangeStart.AddDays(d)).ToArray());
-
-                dayModalWorkWeekError = result.Error;
-                if (dayModalWorkWeekError != null) return;
-
-                await LoadReminders();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error applying WorkWeek template over date range {Start} – {End}", workWeekRangeStart, workWeekRangeEnd);
-                dayModalWorkWeekError = "An error occurred while applying the WorkWeek template. Please try again.";
-            }
-            finally
-            {
-                dayModalIsApplying = false;
-            }
+            multiDaySelectedWorkWeekId = string.IsNullOrWhiteSpace(rotationId) ? null : rotationId;
+            return Task.CompletedTask;
         }
 
         private async Task ApplyWorkWeekToSelectedDays()
         {
             multiDayWorkWeekError = null;
+            multiDayAutoError = null;
+            multiDayAutoWarning = null;
+            multiDayAutoSuccess = null;
+            showSelectedDaysResultModal = false;
+
             if (selectedDays.Count == 0)
             {
                 multiDayWorkWeekError = "No days are selected.";
+                ShowSelectedDaysResultModal();
                 return;
             }
             if (string.IsNullOrEmpty(multiDaySelectedWorkWeekId))
             {
                 multiDayWorkWeekError = "Please select a WorkWeek template.";
+                ShowSelectedDaysResultModal();
                 return;
             }
             if (string.IsNullOrEmpty(selectedScheduleId))
             {
                 multiDayWorkWeekError = "No schedule is selected.";
+                ShowSelectedDaysResultModal();
                 return;
             }
             if (string.IsNullOrEmpty(_managerCode))
             {
                 multiDayWorkWeekError = "Your account does not have a manager code. Please contact support.";
+                ShowSelectedDaysResultModal();
                 return;
             }
 
@@ -699,14 +628,19 @@
                 if (result.Error is not null)
                 {
                     multiDayWorkWeekError = result.Error;
+                    ShowSelectedDaysResultModal();
                     return;
                 }
+
+                multiDayAutoSuccess = "Template successfully applied to selected days.";
                 await LoadReminders();
+                ShowSelectedDaysResultModal();
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error applying WorkWeek template to selected days");
                 multiDayWorkWeekError = "An error occurred while applying the template. Please try again.";
+                ShowSelectedDaysResultModal();
             }
             finally
             {
@@ -714,63 +648,25 @@
             }
         }
 
-        private async Task AutoPopulateShifts()
-        {
-            autoPopulateError = null;
-            autoPopulateWarning = null;
-            autoPopulateSuccess = null;
-
-            if (autoPopulateRangeEnd < autoPopulateRangeStart)
-            {
-                autoPopulateError = "End date must be on or after the start date.";
-                return;
-            }
-
-            if (string.IsNullOrEmpty(_managerCode))
-            {
-                autoPopulateError = "Your account does not have a manager code. Please contact support.";
-                return;
-            }
-
-            try
-            {
-                autoPopulateIsRunning = true;
-
-                var outcome = await AutoAssignService.AutoAssignAsync(_username, _userId, _managerCode,
-                    autoPopulateRangeStart, autoPopulateRangeEnd, null,
-                    "No unassigned shifts found in the selected date range.");
-                linkedUsers = outcome.LinkedUsers;
-                autoPopulateSuccess = outcome.SuccessMessage;
-                autoPopulateWarning = outcome.WarningMessage;
-                if (outcome.ShiftsChanged)
-                    await LoadReminders();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error during auto-populate shifts for range {Start}–{End}", autoPopulateRangeStart, autoPopulateRangeEnd);
-                autoPopulateError = "An error occurred while auto-populating shifts. Please try again.";
-            }
-            finally
-            {
-                autoPopulateIsRunning = false;
-            }
-        }
-
         private async Task AutoPopulateSelectedDays()
         {
+            multiDayWorkWeekError = null;
             multiDayAutoError = null;
             multiDayAutoWarning = null;
             multiDayAutoSuccess = null;
+            showSelectedDaysResultModal = false;
 
             if (selectedDays.Count == 0)
             {
                 multiDayAutoError = "No days are selected.";
+                ShowSelectedDaysResultModal();
                 return;
             }
 
             if (string.IsNullOrEmpty(_managerCode))
             {
                 multiDayAutoError = "Your account does not have a manager code. Please contact support.";
+                ShowSelectedDaysResultModal();
                 return;
             }
 
@@ -788,11 +684,13 @@
                 multiDayAutoWarning = outcome.WarningMessage;
                 if (outcome.ShiftsChanged)
                     await LoadReminders();
+                ShowSelectedDaysResultModal();
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error during auto-assign for selected days");
                 multiDayAutoError = "An error occurred while auto-assigning shifts. Please try again.";
+                ShowSelectedDaysResultModal();
             }
             finally
             {
@@ -913,25 +811,20 @@
         }
 
         /// <summary>
-        /// Sets the active selection mode. Clicking the already-active mode exits selection;
-        /// switching between modes clears the current selection.
+        /// Sets the active selection mode from sidebar radio controls.
+        /// Switching modes clears any current multi-day selection.
         /// </summary>
         private void SetSelectionMode(SelectionMode mode)
         {
+            // Radio-style behavior: selecting the active mode does nothing.
             if (selectionMode == mode)
             {
-                // Clicking the active button again exits selection mode
-                selectionMode = SelectionMode.Off;
-                selectedDays.Clear();
-                showMultiDayConfirmModal = false;
+                return;
             }
-            else
-            {
-                // Switching modes clears any existing selection
-                selectedDays.Clear();
-                showMultiDayConfirmModal = false;
-                selectionMode = mode;
-            }
+
+            selectedDays.Clear();
+            showMultiDayConfirmModal = false;
+            selectionMode = mode;
         }
 
         /// <summary>
@@ -1048,6 +941,78 @@
         {
             showMultiDayConfirmModal = false;
             multiDayActionError = null;
+        }
+
+        /// <summary>
+        /// Shows selected-days operation feedback in a dedicated modal.
+        /// </summary>
+        private void ShowSelectedDaysResultModal()
+        {
+            showSelectedDaysResultModal =
+                !string.IsNullOrWhiteSpace(multiDayWorkWeekError)
+                || !string.IsNullOrWhiteSpace(multiDayAutoError)
+                || !string.IsNullOrWhiteSpace(multiDayAutoWarning)
+                || !string.IsNullOrWhiteSpace(multiDayAutoSuccess);
+        }
+
+        /// <summary>
+        /// Splits feedback text into readable bullet lines while preserving sentence boundaries.
+        /// </summary>
+        private static IEnumerable<string> SplitFeedbackLines(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return Enumerable.Empty<string>();
+            }
+
+            // Preserve line breaks first; if no breaks exist we keep a single bullet.
+            return text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(line => line.Trim())
+                .Where(line => !string.IsNullOrWhiteSpace(line));
+        }
+
+        /// <summary>
+        /// Splits verbose auto-assign success text into summary + per-person bullets.
+        /// </summary>
+        private static IEnumerable<string> SplitSuccessFeedbackLines(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return Enumerable.Empty<string>();
+            }
+
+            var trimmed = text.Trim();
+            var lines = new List<string>();
+
+            // First sentence is the operation summary; remaining comma-delimited parts are person-level outcomes.
+            var summaryEnd = trimmed.IndexOf(". ", StringComparison.Ordinal);
+            if (summaryEnd >= 0)
+            {
+                var summary = trimmed[..(summaryEnd + 1)].Trim();
+                if (!string.IsNullOrWhiteSpace(summary))
+                {
+                    lines.Add(summary);
+                }
+
+                trimmed = trimmed[(summaryEnd + 2)..].Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(trimmed))
+            {
+                lines.AddRange(trimmed.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(part => part.Trim())
+                    .Where(part => !string.IsNullOrWhiteSpace(part)));
+            }
+
+            return lines;
+        }
+
+        /// <summary>
+        /// Closes the selected-days feedback modal.
+        /// </summary>
+        private void CloseSelectedDaysResultModal()
+        {
+            showSelectedDaysResultModal = false;
         }
 
         /// <summary>
@@ -1192,21 +1157,10 @@
 
         /// <summary>
         /// Opens the day detail modal for a specific day.
-        /// Initializes template/apply ranges to just the selected day by default.
         /// </summary>
         private void OpenDayModal(DateOnly date)
         {
             dayModalDate = date;
-            // Default both ranges to the clicked day so users can optionally extend the end date.
-            workWeekRangeStart = date;
-            workWeekRangeEnd = date;
-            dayModalSelectedWorkWeekId = null;
-            dayModalWorkWeekError = null;
-            autoPopulateRangeStart = date;
-            autoPopulateRangeEnd = date;
-            autoPopulateError = null;
-            autoPopulateWarning = null;
-            autoPopulateSuccess = null;
             showDayModal = true;
         }
 

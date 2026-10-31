@@ -48,8 +48,10 @@ namespace Rota.Services
                     // Skip templates whose WorkDay does not match the current calendar day.
                     if (template.WorkDay != day.DayOfWeek) continue;
 
-                    var templateStartTime = TimeOnly.FromDateTime(GetTemplateDateTime(template.Start));
-                    var templateEndTime = TimeOnly.FromDateTime(GetTemplateDateTime(template.End));
+                    // Template shifts store wall-clock times; preserve the clock component exactly
+                    // and do not convert between time zones when applying to calendar dates.
+                    var templateStartTime = TimeOnly.FromDateTime(template.Start);
+                    var templateEndTime = TimeOnly.FromDateTime(template.End);
                     var start = day.ToDateTime(templateStartTime, DateTimeKind.Local);
                     var endDay = templateEndTime <= templateStartTime ? day.AddDays(1) : day;
                     var end = endDay.ToDateTime(templateEndTime, DateTimeKind.Local);
@@ -80,11 +82,5 @@ namespace Rota.Services
             return new RotationApplyResult(toCreate.Count);
         }
 
-        private static DateTime GetTemplateDateTime(DateTime value) => value.Kind switch
-        {
-            DateTimeKind.Local => value.ToUniversalTime(),
-            DateTimeKind.Unspecified => DateTime.SpecifyKind(value, DateTimeKind.Utc),
-            _ => value
-        };
     }
 }

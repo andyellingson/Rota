@@ -187,7 +187,7 @@
 
                         <div class="mb-2">
                             <strong>Shifts</strong>
-                            <div class="text-muted small">Click a day to add shifts. Click an existing shift to edit it.</div>
+                            <div class="text-muted small">Click a day to open its shift list. Click an existing shift to edit it.</div>
                         </div>
 
                         @* Week view for adding shifts to weekdays *@
@@ -201,7 +201,7 @@
                             @foreach (var d in Enumerable.Range(0, 7).Select(i => start.AddDays(i)))
                             {
                                 var dow = d.DayOfWeek;
-                                <div class="week-day-card card p-2" @onclick="(() => BeginCreateShiftForDay(dow))">
+                                <div class="week-day-card card p-2" @onclick="(() => OpenRotationDayModal(dow))">
                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                         <div class="fw-bold">@d.ToString("dddd")</div>
                                     </div>
@@ -625,6 +625,47 @@
     </div>
 </div>
 
+@* Rotation day shift list modal *@
+@if (showRotationDayModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@rotationDayTitle</h5>
+                    <button type="button" class="btn-close" @onclick="CloseRotationDayModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body rotation-day-modal-body">
+                    @if (!rotationDayShifts.Any())
+                    {
+                        <div class="text-muted small">No shifts for this day yet.</div>
+                    }
+                    else
+                    {
+                        <div class="rotation-day-shift-list">
+                            @foreach (var s in rotationDayShifts.OrderBy(s => s.Start))
+                            {
+                                <div class="rotation-day-shift-item" @onclick="(() => EditRotationShift(s))">
+                                    <ShiftItem Shift="s"
+                                               UseWallClockTime="true"
+                                               AssignedToDisplayName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.DisplayName ?? employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.Username ?? string.Empty)"
+                                               AssignedToFirstName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.FirstName ?? string.Empty)"
+                                               AssignedToLastName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.LastName ?? string.Empty)"
+                                               OnEdit="@(EventCallback.Factory.Create<Shift>(this, EditRotationShift))" />
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" @onclick="AddRotationShiftFromDayModal">+ Add Shift</button>
+                    <button class="btn btn-secondary" @onclick="CloseRotationDayModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @* CalendarEditModal for adding shifts to Rotation templates *@
 <CalendarEditModal State="rotationModalState"
                    CanManageShifts="true"
@@ -695,6 +736,8 @@
     private DayOfWeek newShiftDay = DayOfWeek.Monday;
     private DayOfWeek? createShiftForDay = null;
     private Shift? editingRotationShift = null;
+    private bool showRotationDayModal = false;
+    private DayOfWeek? selectedRotationDay = null;
     private CalendarEditModalState rotationModalState = new();
     private CalendarEditModalState absenceModalState = new();
     private List<User> employees = new();
@@ -832,18 +875,50 @@
         rotationModalState.NewShiftAssignedTo = string.Empty;
         rotationModalState.NewShiftRecurrence = ShiftRecurrence.None;
         rotationModalState.ModalError = null;
-            rotationListError = null;
+        rotationListError = null;
     }
+
+    private void OpenRotationDayModal(DayOfWeek day)
+    {
+        selectedRotationDay = day;
+        showRotationDayModal = true;
+    }
+
+    private void CloseRotationDayModal()
+    {
+        showRotationDayModal = false;
+        selectedRotationDay = null;
+    }
+
+    private void AddRotationShiftFromDayModal()
+    {
+        if (!selectedRotationDay.HasValue)
+        {
+            return;
+        }
+
+        BeginCreateShiftForDay(selectedRotationDay.Value);
+    }
+
+    private List<Shift> rotationDayShifts =>
+        selectedRotationDay.HasValue
+            ? newRotationShifts.Where(s => s.WorkDay == selectedRotationDay.Value).ToList()
+            : new List<Shift>();
+
+    private string rotationDayTitle => selectedRotationDay.HasValue
+        ? $"{selectedRotationDay.Value} Shifts"
+        : "Day Shifts";
 
     private void EditRotationShift(Shift shift)
     {
+        showRotationDayModal = false;
         editingRotationShift = shift;
         createShiftForDay = shift.WorkDay;
         newShiftDay = shift.WorkDay ?? DayOfWeek.Monday;
 
-        // Extract time from the Start and End DateTimes
-        var startTime = TimeOnly.FromDateTime(GetRotationTemplateDateTime(shift.Start));
-        var endTime = TimeOnly.FromDateTime(GetRotationTemplateDateTime(shift.End));
+        // Extract template wall-clock times exactly as stored.
+        var startTime = TimeOnly.FromDateTime(shift.Start);
+        var endTime = TimeOnly.FromDateTime(shift.End);
 
         // Initialize modal state with existing shift data
         rotationModalState.ShowModal = true;
@@ -867,13 +942,6 @@
         createShiftForDay = null;
         editingRotationShift = null;
     }
-
-    private static DateTime GetRotationTemplateDateTime(DateTime value) => value.Kind switch
-    {
-        DateTimeKind.Local => value.ToUniversalTime(),
-        DateTimeKind.Unspecified => DateTime.SpecifyKind(value, DateTimeKind.Utc),
-        _ => value
-    };
 
     private async Task SaveRotationShift()
     {

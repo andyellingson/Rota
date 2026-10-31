@@ -445,6 +445,29 @@
     margin-top: 0.5rem;
 }
 
+.rotation-day-modal-body {
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+}
+
+.rotation-day-shift-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.rotation-day-shift-item {
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.25rem;
+    background: rgba(127, 127, 127, 0.06);
+}
+
+.rotation-day-shift-item:hover {
+    border-color: rgba(13,110,253,0.6);
+    box-shadow: 0 4px 16px rgba(13,110,253,0.15);
+}
+
 /* ── Shift cards inside the WorkWeek week-grid ──────────────
    Mirror the styles from Calendar.razor.css so the cards look
    identical to those rendered on the main calendar.

@@ -35,8 +35,8 @@ public class RotationTemplateServiceTests
         var mondayTemplate = new Shift
         {
             WorkDay = DayOfWeek.Monday,
-            Start = new DateTime(2000, 1, 3, 9, 30, 0),
-            End = new DateTime(2000, 1, 3, 17, 0, 0),
+            Start = new DateTime(2000, 1, 3, 9, 30, 0, DateTimeKind.Utc),
+            End = new DateTime(2000, 1, 3, 17, 0, 0, DateTimeKind.Utc),
             Title = "Opening",
             Notes = "front desk",
             Color = "#123456",

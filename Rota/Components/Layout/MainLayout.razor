@@ -19,8 +19,9 @@
                 <Authorized>
                     <div class="d-flex align-items-center">
                         <button type="button" class="btn btn-link p-0" @onclick="OnLogout">Logout</button>
-                        <a href="/account" class="ms-2 text-decoration-none" title="Settings">
-                            <span class="bi bi-account-nav-menu" aria-hidden="true"></span>
+                        <a href="/account" class="ms-2 text-decoration-none settings-avatar-link" title="Open settings">
+                            <span class="settings-avatar" aria-hidden="true">@settingsInitials</span>
+                            <span class="visually-hidden">Open settings</span>
                         </a>
                     </div>
                 </Authorized>
@@ -45,6 +46,8 @@
 <script src="/auth.js"></script>
 
 @code {
+    private string settingsInitials = "?";
+
     /// <summary>
     /// Applies the user's saved theme preference on the first interactive render.
     /// Falls back to "light" if the user is not authenticated or has no preference set.
@@ -60,6 +63,9 @@
             {
                 var user = await UserService.GetByUsernameAsync(username);
                 theme = user?.Theme ?? "light";
+                // Show user initials in the top-right settings avatar.
+                settingsInitials = BuildSettingsInitials(user, username);
+                await InvokeAsync(StateHasChanged);
             }
             await JS.InvokeVoidAsync("setTheme", theme);
         }
@@ -100,5 +106,37 @@
     private void OnLogin()
     {
         Navigation.NavigateTo("/login");
+    }
+
+    /// <summary>
+    /// Builds initials from first/last name, falling back to username when needed.
+    /// </summary>
+    private static string BuildSettingsInitials(Rota.Models.User? user, string username)
+    {
+        var firstInitial = !string.IsNullOrWhiteSpace(user?.FirstName)
+            ? char.ToUpperInvariant(user.FirstName.Trim()[0]).ToString()
+            : string.Empty;
+        var lastInitial = !string.IsNullOrWhiteSpace(user?.LastName)
+            ? char.ToUpperInvariant(user.LastName.Trim()[0]).ToString()
+            : string.Empty;
+
+        var initials = string.Concat(firstInitial, lastInitial);
+        if (!string.IsNullOrEmpty(initials))
+        {
+            return initials;
+        }
+
+        var safeUsername = username.Trim();
+        if (safeUsername.Length >= 2)
+        {
+            return safeUsername[..2].ToUpperInvariant();
+        }
+
+        if (safeUsername.Length == 1)
+        {
+            return safeUsername.ToUpperInvariant();
+        }
+
+        return "?";
     }
 }
