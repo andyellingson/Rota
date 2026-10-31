@@ -146,7 +146,7 @@
                                     <input type="time" class="form-control" @bind="State.NewShiftEndTime" />
                                 </div>
                                 <div class="compact-editor-field">
-                                    <label class="form-label">Worker type</label>
+                                    <label class="form-label">Team member type</label>
                                     <select class="form-select" @bind="State.NewShiftWorkerType">
                                         @foreach (var workerType in WorkerTypes)
                                         {
@@ -160,7 +160,7 @@
                                         <option value="">— Unassigned —</option>
                                         @foreach (var employee in Employees)
                                         {
-                                            <option value="@employee.Id">@(employee.DisplayName ?? employee.Username) (@employee.Occupation)</option>
+                                            <option value="@employee.Id">@(employee.DisplayName ?? employee.Username) (@employee.TeamMemberType)</option>
                                         }
                                     </select>
                                 </div>
@@ -195,7 +195,7 @@
                                     <input type="time" class="form-control" @bind="State.EditShiftEndTime" />
                                 </div>
                                 <div class="compact-editor-field">
-                                    <label class="form-label">Worker type</label>
+                                    <label class="form-label">Team member type</label>
                                     <select class="form-select" @bind="State.EditShiftWorkerType">
                                         @foreach (var workerType in WorkerTypes)
                                         {
@@ -209,7 +209,7 @@
                                         <option value="">— Unassigned —</option>
                                         @foreach (var employee in Employees)
                                         {
-                                            <option value="@employee.Id">@(employee.DisplayName ?? employee.Username) (@employee.Occupation)</option>
+                                            <option value="@employee.Id">@(employee.DisplayName ?? employee.Username) (@employee.TeamMemberType)</option>
                                         }
                                     </select>
                                 </div>
@@ -501,8 +501,8 @@
 
 @code {
     /// <summary>
-    /// Manager-defined worker type names passed in from the parent page.
-    /// Rendered as options in the worker type dropdown on shift forms.
+    /// Manager-defined team member type names passed in from the parent page.
+    /// Rendered as options in the team member type dropdown on shift forms.
     /// </summary>
     [Parameter]
     public IReadOnlyList<string> WorkerTypes { get; set; } = Array.Empty<string>();

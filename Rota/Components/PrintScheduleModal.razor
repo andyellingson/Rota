@@ -99,7 +99,7 @@
                                             @foreach (var s in dayShifts)
                                             {
                                                 <div class="print-event print-event-shift" style="border-left-color:@(s.Color ?? "#1890ff");">
-                                                    @* Row 1: title (left) and worker type (right), as in the Calendar *@
+                                                    @* Row 1: title (left) and team member type (right), as in the Calendar *@
                                                     <div class="print-event-header">
                                                         <div class="print-event-title">@(string.IsNullOrWhiteSpace(s.Title) ? s.WorkerType : s.Title)</div>
                                                         <div class="print-event-worker" style="color:@(s.Color ?? "#1890ff");">@s.WorkerType</div>

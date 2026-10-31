@@ -66,26 +66,26 @@
 
                 <hr class="my-3" />
 
-                <label class="account-field-label mb-1">Occupation</label>
+                <label class="account-field-label mb-1">Team Member Type</label>
                 @if (user.Roles.Contains(Roles.Manager))
                 {
                     <div class="d-flex gap-2 align-items-start">
-                        <select class="form-select" @bind="occupationInput">
-                            @foreach (var name in occupationChoices)
+                        <select class="form-select" @bind="teamMemberTypeInput">
+                            @foreach (var name in teamMemberTypeChoices)
                             {
                                 <option value="@name">@name</option>
                             }
                             @* Keep current value selectable even if it was removed from the list *@
-                            @if (!string.IsNullOrEmpty(occupationInput) && !occupationChoices.Contains(occupationInput))
+                            @if (!string.IsNullOrEmpty(teamMemberTypeInput) && !teamMemberTypeChoices.Contains(teamMemberTypeInput))
                             {
-                                <option value="@occupationInput">@occupationInput (removed)</option>
+                                <option value="@teamMemberTypeInput">@teamMemberTypeInput (removed)</option>
                             }
                         </select>
-                        <button class="btn btn-primary text-nowrap" @onclick="SaveOccupation" disabled="@(!HasOccupationChanged || isBusy)">Save</button>
+                        <button class="btn btn-primary text-nowrap" @onclick="SaveTeamMemberType" disabled="@(!HasTeamMemberTypeChanged || isBusy)">Save</button>
                     </div>
-                    @if (!string.IsNullOrEmpty(occupationMessage))
+                    @if (!string.IsNullOrEmpty(teamMemberTypeMessage))
                     {
-                        <div class="account-message @(occupationError ? "account-message-error" : "account-message-ok")">@occupationMessage</div>
+                        <div class="account-message @(teamMemberTypeError ? "account-message-error" : "account-message-ok")">@teamMemberTypeMessage</div>
                     }
                     <hr class="my-3" />
                     <label class="account-field-label mb-1">Max hours / week</label>
@@ -101,8 +101,8 @@
                 }
                 else
                 {
-                    <div class="account-field-value">@user.Occupation</div>
-                    <div class="account-field-hint mt-1">Your occupation is controlled by your team leader.</div>
+                    <div class="account-field-value">@user.TeamMemberType</div>
+                    <div class="account-field-hint mt-1">Your team member type is controlled by your team leader.</div>
                     <label class="account-field-label mt-3 mb-1">Max hours / week</label>
                     <div class="account-field-value">@(user.MaxHours <= 0 ? "No limit" : (user.MaxHours.ToString("0.##") + " hours"))</div>
                     <div class="account-field-hint mt-1">This value is set by your team leader.</div>
@@ -299,10 +299,10 @@
     private string? displayNameMessage;
     private bool displayNameError;
 
-    private string occupationInput = "General";
-    private List<string> occupationChoices = new();
-    private string? occupationMessage;
-    private bool occupationError;
+    private string teamMemberTypeInput = "General";
+    private List<string> teamMemberTypeChoices = new();
+    private string? teamMemberTypeMessage;
+    private bool teamMemberTypeError;
     
     private double maxHoursInput = 0.0;
     private string? maxHoursMessage;
@@ -360,9 +360,9 @@
         (firstNameInput.Trim() != (user?.FirstName ?? string.Empty)) ||
         (lastNameInput.Trim() != (user?.LastName ?? string.Empty));
 
-    /// <summary>True when the occupation dropdown differs from the saved value.</summary>
-    private bool HasOccupationChanged =>
-        occupationInput != (user?.Occupation ?? "General");
+    /// <summary>True when the team member type dropdown differs from the saved value.</summary>
+    private bool HasTeamMemberTypeChanged =>
+        teamMemberTypeInput != (user?.TeamMemberType ?? "General");
 
     /// <summary>True when all three password fields contain text.</summary>
     private bool HasPasswordInput =>
@@ -377,16 +377,16 @@
         {
             user = await UserService.GetByUsernameAsync(username);
             displayNameInput = user?.DisplayName ?? string.Empty;
-            occupationInput = user?.Occupation ?? "General";
+            teamMemberTypeInput = user?.TeamMemberType ?? "General";
             themeInput = user?.Theme ?? "light";
                 firstNameInput = user?.FirstName ?? string.Empty;
                 lastNameInput = user?.LastName ?? string.Empty;
 
-            // Load the manager's own worker types for the occupation dropdown
+            // Load the manager's own team member types for the team member type dropdown
             if (user is not null && user.Roles.Contains(Roles.Manager) && !string.IsNullOrEmpty(user.Id))
             {
                 var wts = await WorkerTypesService.GetByOwnerAsync(user.Id);
-                occupationChoices = wts.Select(w => w.Name).ToList();
+                teamMemberTypeChoices = wts.Select(w => w.Name).ToList();
             }
 
             // Load manager-controlled max hours
@@ -483,24 +483,24 @@
         }
     }
 
-    private async Task SaveOccupation()
+    private async Task SaveTeamMemberType()
     {
         if (user is null) return;
-        occupationMessage = null;
+        teamMemberTypeMessage = null;
         isBusy = true;
         try
         {
-            var ok = await UserService.UpdateOccupationAsync(user.Username, occupationInput);
+            var ok = await UserService.UpdateTeamMemberTypeAsync(user.Username, teamMemberTypeInput);
             if (ok)
             {
-                user.Occupation = occupationInput;
-                occupationMessage = "Occupation updated.";
-                occupationError = false;
+                user.TeamMemberType = teamMemberTypeInput;
+                teamMemberTypeMessage = "Team member type updated.";
+                teamMemberTypeError = false;
             }
             else
             {
-                occupationMessage = "Could not update occupation. Please try again.";
-                occupationError = true;
+                teamMemberTypeMessage = "Could not update team member type. Please try again.";
+                teamMemberTypeError = true;
             }
         }
         finally

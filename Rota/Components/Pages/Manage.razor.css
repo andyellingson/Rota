@@ -186,7 +186,7 @@
     color: var(--color-text-primary);
 }
 
-.team-list-occupation {
+.team-list-team-member-type {
     font-size: 0.73rem;
     color: var(--color-text-secondary);
     text-transform: uppercase;

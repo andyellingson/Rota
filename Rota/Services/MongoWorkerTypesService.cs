@@ -48,7 +48,7 @@ namespace Rota.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving worker types for owner {OwnerId}", ownerId);
+                _logger.LogError(ex, "Error retrieving team member types for owner {OwnerId}", ownerId);
                 return new List<WorkerType>();
             }
         }
@@ -63,7 +63,7 @@ namespace Rota.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating worker type '{Name}' for owner {OwnerId}", workerType.Name, workerType.OwnerId);
+                _logger.LogError(ex, "Error creating team member type '{Name}' for owner {OwnerId}", workerType.Name, workerType.OwnerId);
                 throw;
             }
         }
@@ -82,7 +82,7 @@ namespace Rota.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting worker type {Id}", id);
+                _logger.LogError(ex, "Error deleting team member type {Id}", id);
                 return false;
             }
         }

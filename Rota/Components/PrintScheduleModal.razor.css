@@ -223,7 +223,7 @@
     margin-bottom: 2px;
 }
 
-/* Header row inside an event: worker type left, time right */
+/* Header row inside an event: team member type left, time right */
 .print-event-header {
     display: flex;
     align-items: center;

@@ -41,7 +41,7 @@
         @* Separator *@
         <div class="toolbar-sep" aria-hidden="true"></div>
 
-        @* Filters: item toggles on one compact row, then the worker type / employee dropdowns *@
+        @* Filters: item toggles on one compact row, then the team member type / employee dropdowns *@
         <div class="toolbar-group">
             <div class="toolbar-label">Filters</div>
             <div class="toolbar-toggle-row">
@@ -57,15 +57,15 @@
             @if (WorkerTypeVisibility.Count > 0 || EmployeeVisibility.Count > 0)
             {
                 <div class="toolbar-filter-row">
-                    @* Worker type multi-select dropdown *@
+                    @* Team member type multi-select dropdown *@
                     @if (WorkerTypeVisibility.Count > 0)
                     {
                         var allVisible = WorkerTypeVisibility.Values.All(v => v);
-                        var dropdownLabel = allVisible ? "Worker Types" : $"Worker Types ({WorkerTypeVisibility.Values.Count(v => v)}/{WorkerTypeVisibility.Count})";
+                        var dropdownLabel = allVisible ? "Team Member Types" : $"Team Member Types ({WorkerTypeVisibility.Values.Count(v => v)}/{WorkerTypeVisibility.Count})";
                         <div class="dropdown" @onclick:stopPropagation="true">
                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle toolbar-filter-btn @(!allVisible ? "active" : "")"
                                     type="button"
-                                    title="Filter visible shifts by worker type"
+                                    title="Filter visible shifts by team member type"
                                     @onclick="ToggleWorkerTypeDropdown"
                                     aria-expanded="@showWorkerTypeDropdown.ToString().ToLowerInvariant()">
                                 @dropdownLabel
@@ -277,7 +277,7 @@
     [Parameter] public EventCallback<bool> ShowRemindersChanged { get; set; }
 
     /// <summary>
-    /// Worker type name to visibility map. The dictionary is mutated in place by the toolbar,
+    /// Team member type name to visibility map. The dictionary is mutated in place by the toolbar,
     /// so the owner reads the same instance when filtering shifts.
     /// </summary>
     [Parameter] public Dictionary<string, bool> WorkerTypeVisibility { get; set; } = new();

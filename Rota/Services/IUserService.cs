@@ -33,10 +33,10 @@ namespace Rota.Services
         System.Threading.Tasks.Task<bool> UpdateDisplayNameAsync(string username, string? displayName);
 
         /// <summary>
-        /// Updates the occupation for the specified user.
+        /// Updates the team member type for the specified user.
         /// Returns true when the document was modified.
         /// </summary>
-        System.Threading.Tasks.Task<bool> UpdateOccupationAsync(string username, string occupation);
+        System.Threading.Tasks.Task<bool> UpdateTeamMemberTypeAsync(string username, string teamMemberType);
 
         /// <summary>
         /// Updates the user's first and last name fields.

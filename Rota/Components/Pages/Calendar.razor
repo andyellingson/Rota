@@ -295,7 +295,7 @@
         private bool showAbsences = true;
         private bool showReminders = true;
 
-        // Worker type visibility for filtering calendar shifts. Keys are worker type names and
+        // Team member type visibility for filtering calendar shifts. Keys are team member type names and
         // values indicate whether that type should be shown. This map is populated from the
         // distinct WorkerType values present in the currently loaded `shifts` list.
         private Dictionary<string, bool> workerTypeVisibility = new();
@@ -430,7 +430,7 @@
         private bool newAbsenceIsApproved { get => modalState.NewAbsenceApprovalState == AbsenceApprovalState.Approved; set => modalState.NewAbsenceApprovalState = value ? AbsenceApprovalState.Approved : AbsenceApprovalState.Pending; }
         private bool editAbsenceIsApproved { get => modalState.EditAbsenceApprovalState == AbsenceApprovalState.Approved; set => modalState.EditAbsenceApprovalState = value ? AbsenceApprovalState.Approved : AbsenceApprovalState.Pending; }
 
-        // Worker type names loaded for the current manager
+        // Team member type names loaded for the current manager
         private List<string> workerTypeNames = new();
 
         // Preset palette: red, green, blue, orange, gray
@@ -493,7 +493,7 @@
                 {
                     await LoadSchedules();
 
-                    // Load worker types for the resolved manager
+                    // Load team member types for the resolved manager
                     if (canManageShifts)
                     {
                         var workerTypes = await WorkerTypesService.GetByOwnerAsync(_userId);
@@ -1507,7 +1507,7 @@
                 shifts = await ShiftService.GetShiftsAsync(_username, _userId, _managerCode, queryStart, queryEnd);
                 Logger.LogInformation("Loaded {Count} Shifts", shifts.Count);
 
-                // Determine which worker types are present in the loaded shifts and
+                // Determine which team member types are present in the loaded shifts and
                 // initialise the visibility map. Preserve existing visibility choices
                 // when possible; default new types to visible.
                 var types = shifts

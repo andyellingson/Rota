@@ -149,7 +149,7 @@ namespace Rota.Components
         public string? EditShiftNotes { get; set; }
 
         /// <summary>
-        /// Gets or sets the worker type name for the shift being edited.
+        /// Gets or sets the team member type name for the shift being edited.
         /// </summary>
         public string EditShiftWorkerType { get; set; } = "General";
 
@@ -189,7 +189,7 @@ namespace Rota.Components
         public string NewShiftColor { get; set; } = "#1890ff";
 
         /// <summary>
-        /// Gets or sets the worker type name for the shift being created.
+        /// Gets or sets the team member type name for the shift being created.
         /// </summary>
         public string NewShiftWorkerType { get; set; } = "General";
 

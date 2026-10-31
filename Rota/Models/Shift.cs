@@ -76,7 +76,7 @@ namespace Rota.Models
         public string? ScheduleId { get; set; }
 
         /// <summary>
-        /// The name of the worker type required for this shift (manager-defined string).
+        /// The name of the team member type required for this shift (manager-defined string).
         /// </summary>
         [BsonElement("workerType")]
         public string WorkerType { get; set; } = "General";

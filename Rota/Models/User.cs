@@ -53,11 +53,11 @@ namespace Rota.Models
         public string? LastName { get; set; }
 
         /// <summary>
-        /// The type of work the user performs (manager-defined name stored as string).
+        /// The team member type for the user (manager-defined name stored as string).
         /// Used when assigning employees to shifts.
         /// </summary>
-        [BsonElement("occupation")]
-        public string Occupation { get; set; } = "General";
+        [BsonElement("teamMemberType")]
+        public string TeamMemberType { get; set; } = "General";
 
         /// <summary>
         /// For manager accounts: a unique code (GUID) that employees use to link themselves

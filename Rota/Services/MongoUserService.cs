@@ -217,20 +217,20 @@ namespace Rota.Services
         }
 
         /// <summary>
-        /// Updates the occupation for the specified user.
+        /// Updates the team member type for the specified user.
         /// </summary>
-        public async System.Threading.Tasks.Task<bool> UpdateOccupationAsync(string username, string occupation)
+        public async System.Threading.Tasks.Task<bool> UpdateTeamMemberTypeAsync(string username, string teamMemberType)
         {
             try
             {
                 var filter = Builders<User>.Filter.Eq(u => u.Username, username);
-                var update = Builders<User>.Update.Set(u => u.Occupation, occupation);
+                var update = Builders<User>.Update.Set(u => u.TeamMemberType, teamMemberType);
                 var result = await _users.UpdateOneAsync(filter, update);
                 return result.ModifiedCount > 0;
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error updating occupation for user {User}", username);
+                _logger.LogError(ex, "Error updating team member type for user {User}", username);
                 return false;
             }
         }

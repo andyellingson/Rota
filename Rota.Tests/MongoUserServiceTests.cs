@@ -101,7 +101,7 @@ namespace Rota.Tests
                 Assert.That(await service.UpdateShiftAssignmentPriorityAsync("user", 4), Is.True);
                 Assert.That(await service.UpdateAssignedSchedulesAsync("user", ["schedule-a", "schedule-a", "schedule-b"]), Is.True);
                 Assert.That(await service.UpdateDisplayNameAsync("user", "Name"), Is.True);
-                Assert.That(await service.UpdateOccupationAsync("user", "Cook"), Is.True);
+                Assert.That(await service.UpdateTeamMemberTypeAsync("user", "Cook"), Is.True);
                 Assert.That(await service.UpdateAvailabilityAsync("user", availability), Is.True);
                 Assert.That(await service.UpdateThemeAsync("user", "amoled"), Is.True);
             });

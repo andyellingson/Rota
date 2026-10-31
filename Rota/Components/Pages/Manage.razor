@@ -376,7 +376,7 @@
     </div>
 }
 
-@* Combined Manage Team card: Team Code, Worker Types, Team Members all nested in one card *@
+@* Combined Manage Team card: Team Code, Team Member Types, Team Members all nested in one card *@
 <div class="container my-4">
     <div class="card shadow-sm">
         <div class="card-body">
@@ -389,7 +389,7 @@
             <div class="card mb-3">
                 <div class="card-body p-3">
                     <h6 class="mb-1">🏷️ Team Code</h6>
-                    <p class="manage-subtitle small mb-2">Share this code with employees so they can link to your schedule.</p>
+                    <p class="manage-subtitle small mb-2">Share this code with any team members you'd like to invite to the team..</p>
                     <div class="d-flex gap-2 align-items-center">
                         <input class="form-control manager-code-input" value="@(_managerCode ?? string.Empty)" readonly onclick="this.select()" />
                         <button class="btn btn-outline-secondary text-nowrap" @onclick="() => CopyManagerCode()" disabled="@codeCopied">@(codeCopied ? "Copied!" : "Copy")</button>
@@ -399,15 +399,15 @@
 
             <hr class="my-3" />
 
-            @* Worker Types (nested card) *@
+            @* Team Member Types (nested card) *@
             <div class="card mb-3">
                 <div class="card-body p-3">
-                    <h6 class="mb-1">🏷️ Worker Types</h6>
-                    <p class="manage-subtitle small mb-2">Define the roles used when creating shifts for your team. Only you can see and manage these.</p>
+                    <h6 class="mb-1">🏷️ Team Member Types</h6>
+                    <p class="manage-subtitle small mb-2">Define the types of team member categories to use when creating work items.</p>
 
                     @if (workerTypes.Count == 0)
                     {
-                        <div class="alert alert-info mb-3">No worker types defined yet. Add one below.</div>
+                        <div class="alert alert-info mb-3">No team member types defined yet. Add one below.</div>
                     }
                     else
                     {
@@ -428,7 +428,7 @@
                     }
 
                     <div class="d-flex gap-2">
-                        <input class="form-control form-control-sm" style="max-width: 240px;" placeholder="New worker type name" @bind="newWorkerTypeName" @bind:event="oninput" @onkeydown="OnWorkerTypeKeyDown" />
+                        <input class="form-control form-control-sm" style="max-width: 240px;" placeholder="New team member type name" @bind="newWorkerTypeName" @bind:event="oninput" @onkeydown="OnWorkerTypeKeyDown" />
                         <button class="btn btn-sm btn-primary" @onclick="AddWorkerType" disabled="@(isBusy || string.IsNullOrWhiteSpace(newWorkerTypeName))">Add</button>
                     </div>
                 </div>
@@ -440,7 +440,7 @@
             <div class="card mb-0">
                 <div class="card-body p-3">
                     <h6 class="mb-1">👥 Team Members</h6>
-                    <p class="manage-subtitle small mb-2">Employees currently linked to your team.</p>
+                    <p class="manage-subtitle small mb-2">Team members currently linked to your team.</p>
 
                     @if (linkedUsers.Count == 0)
                     {
@@ -454,7 +454,7 @@
                                 {
                                     <button class="team-member-list-item @(selectedMember?.Username == member.Username ? "active" : "")" @onclick="() => SelectMember(member)">
                                         <span class="team-list-name">@GetMemberFullName(member)</span>
-                                        <span class="team-list-occupation">@member.Occupation</span>
+                                        <span class="team-list-team-member-type">@member.TeamMemberType</span>
                                     </button>
                                 }
                             </div>
@@ -485,24 +485,24 @@
 
                                     <div class="team-detail-info-grid mt-3">
                                         <div class="team-detail-field" style="grid-row: 1; grid-column: 1;">
-                                            <label class="team-detail-label">Occupation</label>
+                                            <label class="team-detail-label">Team Member Type</label>
                                             <div class="d-flex gap-2 align-items-center mt-1">
-                                                <select class="form-select form-select-sm" style="min-width:220px;" @bind="selectedMemberOccupation">
+                                                <select class="form-select form-select-sm" style="min-width:220px;" @bind="selectedMemberTeamMemberType">
                                                     @foreach (var wt in workerTypes)
                                                     {
                                                         <option value="@wt.Name">@wt.Name</option>
                                                     }
-                                                    @if (!string.IsNullOrEmpty(selectedMemberOccupation) && !workerTypes.Any(w => w.Name == selectedMemberOccupation))
+                                                    @if (!string.IsNullOrEmpty(selectedMemberTeamMemberType) && !workerTypes.Any(w => w.Name == selectedMemberTeamMemberType))
                                                     {
-                                                        <option value="@selectedMemberOccupation">@selectedMemberOccupation (removed)</option>
+                                                        <option value="@selectedMemberTeamMemberType">@selectedMemberTeamMemberType (removed)</option>
                                                     }
                                                 </select>
 
-                                                <button class="btn btn-sm btn-primary" @onclick="SaveOccupationOnly" disabled="@(!HasOccupationChanged || isBusy)">Save</button>
+                                                <button class="btn btn-sm btn-primary" @onclick="SaveTeamMemberTypeOnly" disabled="@(!HasTeamMemberTypeChanged || isBusy)">Save</button>
 
-                                                @if (!string.IsNullOrEmpty(memberOccupationMessage))
+                                                @if (!string.IsNullOrEmpty(memberTeamMemberTypeMessage))
                                                 {
-                                                    <div class="team-detail-message @(memberOccupationError ? "team-detail-message-error" : "team-detail-message-ok") ms-3">@memberOccupationMessage</div>
+                                                    <div class="team-detail-message @(memberTeamMemberTypeError ? "team-detail-message-error" : "team-detail-message-ok") ms-3">@memberTeamMemberTypeMessage</div>
                                                 }
                                             </div>
                                         </div>
@@ -758,11 +758,11 @@
 
     // Currently selected team member in the master/detail panel
     private User? selectedMember = null;
-    private string selectedMemberOccupation = "General";
+    private string selectedMemberTeamMemberType = "General";
     // Local edit buffer for the selected member's MaxHours value
     private double selectedMemberMaxHours = 0.0;
-    private string? memberOccupationMessage;
-    private bool memberOccupationError;
+    private string? memberTeamMemberTypeMessage;
+    private bool memberTeamMemberTypeError;
     private string? selectedMemberMaxHoursMessage;
     private bool selectedMemberMaxHoursError;
     // Local edit buffer for the selected member's ShiftAssignmentPriority
@@ -775,7 +775,7 @@
 
     /// <summary>True when any of the member editable fields differ from the selected member's saved values.</summary>
     private bool HasMemberChanges =>
-        selectedMember is not null && (selectedMemberOccupation != selectedMember.Occupation || selectedMemberMaxHours != (selectedMember?.MaxHours ?? 0.0) || selectedMemberPriority != (selectedMember?.ShiftAssignmentPriority ?? 0));
+        selectedMember is not null && (selectedMemberTeamMemberType != selectedMember.TeamMemberType || selectedMemberMaxHours != (selectedMember?.MaxHours ?? 0.0) || selectedMemberPriority != (selectedMember?.ShiftAssignmentPriority ?? 0));
 
     // Local edit buffer for the schedules assigned to the selected member
     private HashSet<string> selectedMemberScheduleIds = new();
@@ -819,7 +819,7 @@
         }
     }
 
-    private bool HasOccupationChanged => selectedMember is not null && selectedMemberOccupation != selectedMember.Occupation;
+    private bool HasTeamMemberTypeChanged => selectedMember is not null && selectedMemberTeamMemberType != selectedMember.TeamMemberType;
 
     private bool HasMaxHoursChanged => selectedMember is not null && selectedMemberMaxHours != (selectedMember?.MaxHours ?? 0.0);
 
@@ -839,9 +839,9 @@
         return member.DisplayName ?? member.Username ?? string.Empty;
     }
 
-    
 
-    // Worker type management state
+
+    // Team member type management state
     private List<WorkerType> workerTypes = new();
     private List<string> workerTypeNames => workerTypes.Select(w => w.Name).ToList();
     private string newWorkerTypeName = string.Empty;
@@ -1335,15 +1335,15 @@
         TimeOnly.TryParse(time, out var t) ? t.ToString("h:mm tt") : time;
 
     /// <summary>
-    /// Sets the selected team member and pre-populates the occupation dropdown.
-    /// Clears any previous occupation save message.
+    /// Sets the selected team member and pre-populates the team member type dropdown.
+    /// Clears any previous team member type save message.
     /// </summary>
     private async Task SelectMember(User member)
     {
         selectedMember = member;
-        selectedMemberOccupation = member.Occupation;
-        memberOccupationMessage = null;
-        memberOccupationError = false;
+        selectedMemberTeamMemberType = member.TeamMemberType;
+        memberTeamMemberTypeMessage = null;
+        memberTeamMemberTypeError = false;
         memberUnlinkMessage = null;
         memberUnlinkError = false;
 
@@ -1604,26 +1604,26 @@
     }
 
     /// <summary>
-    /// Persists the occupation change for the selected team member.
+    /// Persists the team member type change for the selected team member.
     /// Updates the local copy on success so the list badge stays in sync.
     /// </summary>
-    private async Task SaveMemberOccupation()
+    private async Task SaveMemberTeamMemberType()
     {
         if (selectedMember is null) return;
-        memberOccupationMessage = null;
+        memberTeamMemberTypeMessage = null;
         isBusy = true;
         try
         {
             // Only call updates for fields that actually changed. Treat unchanged fields as successful.
-            var occOk = true;
+            var teamMemberTypeOk = true;
             var maxOk = true;
 
-            var occChanged = selectedMemberOccupation != selectedMember.Occupation;
+            var teamMemberTypeChanged = selectedMemberTeamMemberType != selectedMember.TeamMemberType;
             var maxChanged = selectedMemberMaxHours != (selectedMember.MaxHours);
 
-            if (occChanged)
+            if (teamMemberTypeChanged)
             {
-                occOk = await UserService.UpdateOccupationAsync(selectedMember.Username, selectedMemberOccupation);
+                teamMemberTypeOk = await UserService.UpdateTeamMemberTypeAsync(selectedMember.Username, selectedMemberTeamMemberType);
             }
 
             if (maxChanged)
@@ -1632,21 +1632,21 @@
             }
 
             // Consider operation successful if all attempted updates returned true.
-            if ((occChanged ? occOk : true) && (maxChanged ? maxOk : true))
+            if ((teamMemberTypeChanged ? teamMemberTypeOk : true) && (maxChanged ? maxOk : true))
             {
                 // Keep the in-memory list in sync so the list badge updates immediately
-                selectedMember.Occupation = selectedMemberOccupation;
+                selectedMember.TeamMemberType = selectedMemberTeamMemberType;
                 selectedMember.MaxHours = selectedMemberMaxHours;
-                memberOccupationMessage = "Member updated.";
-                memberOccupationError = false;
+                memberTeamMemberTypeMessage = "Member updated.";
+                memberTeamMemberTypeError = false;
             }
             else
             {
                 // Partial or full failure. If DB was updated but the Update call returned false
                 // (ModifiedCount == 0) treat that as success — query DB is the source of truth.
                 // However, we can't call DB here; instead provide a clearer guidance message.
-                memberOccupationMessage = "Could not update all member values. Please try again.";
-                memberOccupationError = true;
+                memberTeamMemberTypeMessage = "Could not update all member values. Please try again.";
+                memberTeamMemberTypeError = true;
             }
         }
         finally
@@ -1656,36 +1656,36 @@
     }
 
     /// <summary>
-    /// Saves the member settings (occupation and max hours). This is invoked by the controls' Save button.
-    /// Delegates to the same logic as SaveMemberOccupation for consistency.
+    /// Saves the member settings (team member type and max hours). This is invoked by the controls' Save button.
+    /// Delegates to the same logic as SaveMemberTeamMemberType for consistency.
     /// </summary>
-    private Task SaveMemberDetails() => SaveMemberOccupation();
+    private Task SaveMemberDetails() => SaveMemberTeamMemberType();
 
-    private async Task SaveOccupationOnly()
+    private async Task SaveTeamMemberTypeOnly()
     {
         if (selectedMember is null) return;
-        memberOccupationMessage = null;
+        memberTeamMemberTypeMessage = null;
         isBusy = true;
         try
         {
-            if (selectedMemberOccupation == selectedMember.Occupation)
+            if (selectedMemberTeamMemberType == selectedMember.TeamMemberType)
             {
-                memberOccupationMessage = "No changes.";
-                memberOccupationError = false;
+                memberTeamMemberTypeMessage = "No changes.";
+                memberTeamMemberTypeError = false;
                 return;
             }
 
-            var ok = await UserService.UpdateOccupationAsync(selectedMember.Username, selectedMemberOccupation);
+            var ok = await UserService.UpdateTeamMemberTypeAsync(selectedMember.Username, selectedMemberTeamMemberType);
             if (ok)
             {
-                selectedMember.Occupation = selectedMemberOccupation;
-                memberOccupationMessage = "Occupation updated.";
-                memberOccupationError = false;
+                selectedMember.TeamMemberType = selectedMemberTeamMemberType;
+                memberTeamMemberTypeMessage = "Team member type updated.";
+                memberTeamMemberTypeError = false;
             }
             else
             {
-                memberOccupationMessage = "Could not update occupation. Please try again.";
-                memberOccupationError = true;
+                memberTeamMemberTypeMessage = "Could not update team member type. Please try again.";
+                memberTeamMemberTypeError = true;
             }
         }
         finally
@@ -1784,7 +1784,7 @@
     }
 
     /// <summary>
-    /// Loads worker types owned by the current manager.
+    /// Loads team member types owned by the current manager.
     /// </summary>
     private async Task LoadWorkerTypesAsync()
     {
@@ -1825,7 +1825,7 @@
     }
 
     /// <summary>
-    /// Adds a new worker type for the current manager.
+    /// Adds a new team member type for the current manager.
     /// </summary>
     private async Task AddWorkerType()
     {
@@ -1849,8 +1849,8 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error adding worker type");
-            workerTypeError = "Failed to add worker type. Please try again.";
+            Logger.LogError(ex, "Error adding team member type");
+            workerTypeError = "Failed to add team member type. Please try again.";
         }
         finally
         {
@@ -1859,7 +1859,7 @@
     }
 
     /// <summary>
-    /// Removes a worker type scoped to the current manager.
+    /// Removes a team member type scoped to the current manager.
     /// </summary>
     private async Task RemoveWorkerType(WorkerType wt)
     {
@@ -1874,8 +1874,8 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error removing worker type {Id}", wt.Id);
-            workerTypeError = "Failed to remove worker type. Please try again.";
+            Logger.LogError(ex, "Error removing team member type {Id}", wt.Id);
+            workerTypeError = "Failed to remove team member type. Please try again.";
         }
         finally
         {
@@ -1884,7 +1884,7 @@
     }
 
     /// <summary>
-    /// Allows pressing Enter to submit a new worker type name.
+    /// Allows pressing Enter to submit a new team member type name.
     /// </summary>
     private async Task OnWorkerTypeKeyDown(KeyboardEventArgs e)
     {

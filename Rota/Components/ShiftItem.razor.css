@@ -14,7 +14,7 @@
     line-height: 1.15;
 }
 
-/* Title and worker type share the first row; assignment and time share the second. */
+/* Title and team member type share the first row; assignment and time share the second. */
 .shift-header {
     display: flex;
     align-items: center;

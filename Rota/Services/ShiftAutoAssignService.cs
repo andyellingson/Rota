@@ -92,10 +92,10 @@ namespace Rota.Services
                 List<Shift> allWeekShifts,
                 List<Absence> approvedAbsences)
         {
-            // Build lookup: occupation -> eligible roster members (including the logged-in manager)
+            // Build lookup: team-member-type -> eligible roster members (including the logged-in manager)
             // so manager shifts can also be auto-filled when manager constraints allow it.
-            var eligibleByOccupation = linkedUsers
-                .GroupBy(u => string.IsNullOrWhiteSpace(u.Occupation) ? "General" : u.Occupation, StringComparer.OrdinalIgnoreCase)
+            var eligibleByTeamMemberType = linkedUsers
+                .GroupBy(u => string.IsNullOrWhiteSpace(u.TeamMemberType) ? "General" : u.TeamMemberType, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
             var approvedAbsencesByUser = approvedAbsences
@@ -137,8 +137,8 @@ namespace Rota.Services
             var uncappedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             int assignedCount = 0;
 
-            // Assign in day + worker-type batches so when multiple shifts exist for the same
-            // worker type on one day, they are distributed by descending priority.
+            // Assign in day + team-member-type batches so when multiple shifts exist for the same
+            // team member type on one day, they are distributed by descending priority.
             var groupedUnassigned = unassigned
                 .GroupBy(s => new
                 {
@@ -151,7 +151,7 @@ namespace Rota.Services
 
             foreach (var group in groupedUnassigned)
             {
-                if (!eligibleByOccupation.TryGetValue(group.Key.WorkerType, out var candidates) || candidates.Count == 0)
+                if (!eligibleByTeamMemberType.TryGetValue(group.Key.WorkerType, out var candidates) || candidates.Count == 0)
                 {
                     continue;
                 }
@@ -256,7 +256,7 @@ namespace Rota.Services
         {
             if (result.AssignedCount == 0)
             {
-                return ("No shifts could be assigned. Check that employees with matching occupations exist and have sufficient weekly hours remaining.", null);
+                return ("No shifts could be assigned. Check that employees with matching team member types exist and have sufficient weekly hours remaining.", null);
             }
 
             var breakdown = result.AssignedThisRun

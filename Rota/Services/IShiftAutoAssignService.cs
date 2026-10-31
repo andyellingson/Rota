@@ -18,7 +18,7 @@ namespace Rota.Services
     {
         /// <summary>
         /// Assigns employees to unassigned shifts between <paramref name="rangeStart"/> and <paramref name="rangeEnd"/>,
-        /// respecting occupation, priority, one-shift-per-day and weekly MaxHours rules.
+        /// respecting team member type, priority, one-shift-per-day and weekly MaxHours rules.
         /// </summary>
         /// <param name="username">Current user's username.</param>
         /// <param name="userId">Current user's id used when loading scoped shifts.</param>

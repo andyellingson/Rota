@@ -145,9 +145,9 @@ public class ShiftAutoAssignServiceTests
     {
         var shift1 = CreateShift("shift1", Monday, "Cook");
         var shift2 = CreateShift("shift2", Monday.AddDays(1), "Cook");
-        var manager = new User { Id = "manager-id", Username = "manager", Occupation = "Cook" };
-        var employee = new User { Id = "employee-id", Username = "employee", DisplayName = "A Cook", Occupation = "cook", ShiftAssignmentPriority = 2, Availability = BuildFullWeekAvailability() };
-        var capped = new User { Id = "capped-id", Username = "capped", Occupation = "Cook", ShiftAssignmentPriority = 1, MaxHours = 8, Availability = BuildFullWeekAvailability() };
+        var manager = new User { Id = "manager-id", Username = "manager", TeamMemberType = "Cook" };
+        var employee = new User { Id = "employee-id", Username = "employee", DisplayName = "A Cook", TeamMemberType = "cook", ShiftAssignmentPriority = 2, Availability = BuildFullWeekAvailability() };
+        var capped = new User { Id = "capped-id", Username = "capped", TeamMemberType = "Cook", ShiftAssignmentPriority = 1, MaxHours = 8, Availability = BuildFullWeekAvailability() };
         var users = new Mock<IUserService>();
         var absences = new Mock<IAbsencesService>();
         users.Setup(s => s.GetLinkedUsersForManagerAsync("manager")).ReturnsAsync([manager, employee, capped]);
@@ -182,7 +182,7 @@ public class ShiftAutoAssignServiceTests
         {
             Id = "manager-id",
             Username = "owner",
-            Occupation = "Cook",
+            TeamMemberType = "Cook",
             MaxHours = 40,
             ShiftAssignmentPriority = 5,
             Availability = BuildFullWeekAvailability()
@@ -211,11 +211,11 @@ public class ShiftAutoAssignServiceTests
     }
 
     [Test]
-    public async Task AutoAssignAsync_RespectsIncludeDayAndMatchingOccupation()
+    public async Task AutoAssignAsync_RespectsIncludeDayAndMatchingTeamMemberType()
     {
         var included = CreateShift("included", Monday, "Dishwasher");
         var excluded = CreateShift("excluded", Monday.AddDays(1), "Cook");
-        var employee = new User { Id = "worker-id", Username = "worker", Occupation = "Dishwasher", MaxHours = 0, Availability = BuildFullWeekAvailability() };
+        var employee = new User { Id = "worker-id", Username = "worker", TeamMemberType = "Dishwasher", MaxHours = 0, Availability = BuildFullWeekAvailability() };
         var users = new Mock<IUserService>();
         var absences = new Mock<IAbsencesService>();
         users.Setup(s => s.GetLinkedUsersForManagerAsync("manager")).ReturnsAsync([employee]);
@@ -245,7 +245,7 @@ public class ShiftAutoAssignServiceTests
         var first = CreateShift("first", Monday, "Cook", 4);
         var sameDay = CreateShift("same-day", Monday, "Cook", 2);
         var laterDay = CreateShift("later", Monday.AddDays(1), "Cook", 4);
-        var employee = new User { Id = "worker-id", Username = "worker", Occupation = "Cook", MaxHours = 6, Availability = BuildFullWeekAvailability() };
+        var employee = new User { Id = "worker-id", Username = "worker", TeamMemberType = "Cook", MaxHours = 6, Availability = BuildFullWeekAvailability() };
         var users = new Mock<IUserService>();
         var absences = new Mock<IAbsencesService>();
         users.Setup(s => s.GetLinkedUsersForManagerAsync("manager")).ReturnsAsync([employee]);
@@ -274,7 +274,7 @@ public class ShiftAutoAssignServiceTests
         {
             Id = "worker-id",
             Username = "worker",
-            Occupation = "Cook",
+            TeamMemberType = "Cook",
             MaxHours = 40,
             Availability = [new UserAvailability { DayOfWeek = Monday.DayOfWeek, StartTime = "07:00", EndTime = "23:00" }]
         };
@@ -302,7 +302,7 @@ public class ShiftAutoAssignServiceTests
     public async Task AutoAssignAsync_DoesNotAssignWhenApprovedAbsenceOverlapsShift()
     {
         var shift = CreateShiftAtTime("shift", Monday, "Cook", new TimeOnly(9, 0), 4);
-        var employee = new User { Id = "worker-id", Username = "worker", Occupation = "Cook", Availability = BuildFullWeekAvailability(), MaxHours = 40 };
+        var employee = new User { Id = "worker-id", Username = "worker", TeamMemberType = "Cook", Availability = BuildFullWeekAvailability(), MaxHours = 40 };
 
         var approvedAbsence = new Absence
         {
@@ -337,7 +337,7 @@ public class ShiftAutoAssignServiceTests
         var saturdayShift = CreateShift("sat-shift", saturday, "Cook", 4);
         var sundayShift = CreateShift("sun-shift", sunday, "Cook", 4);
 
-        var employee = new User { Id = "worker-id", Username = "worker", Occupation = "Cook", MaxHours = 4, Availability = BuildFullWeekAvailability() };
+        var employee = new User { Id = "worker-id", Username = "worker", TeamMemberType = "Cook", MaxHours = 4, Availability = BuildFullWeekAvailability() };
 
         var users = new Mock<IUserService>();
         var absences = new Mock<IAbsencesService>();
