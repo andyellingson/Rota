@@ -82,7 +82,8 @@
     flex-direction: column;
     align-items: stretch;
     gap: 0.6rem;
-    padding: 0.5rem 0.25rem 0.75rem !important;
+    /* Keep equal horizontal insets so controls don't touch the right edge in the nav panel. */
+    padding: 0.5rem 0.6rem 0.75rem !important;
 }
 
 /* Each logical group: label on top, control(s) below */

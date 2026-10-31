@@ -9,7 +9,7 @@ namespace Rota.Components
     public enum ViewMode { Week, Month }
 
     /// <summary>
-    /// Multi-day selection modes supported by the calendar.
+    /// Day-selection modes supported by the calendar.
     /// </summary>
     public enum SelectionMode { Off, Day, Week }
 

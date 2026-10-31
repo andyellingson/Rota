@@ -46,7 +46,7 @@
             <div class="toolbar-label">Filters</div>
             <div class="toolbar-toggle-row">
                 <input type="checkbox" class="btn-check" id="filter-work-items" checked="@ShowWorkItems" @onchange="e => ShowWorkItemsChanged.InvokeAsync((bool)e.Value!)" autocomplete="off">
-                <label class="btn btn-sm btn-outline-primary toolbar-toggle-btn" for="filter-work-items" title="Show or hide work items on the calendar">Work items</label>
+                <label class="btn btn-sm btn-outline-primary toolbar-toggle-btn" for="filter-work-items" title="Show or hide work items on the calendar">Work Items</label>
 
                 <input type="checkbox" class="btn-check" id="filter-absences" checked="@ShowAbsences" @onchange="e => ShowAbsencesChanged.InvokeAsync((bool)e.Value!)" autocomplete="off">
                 <label class="btn btn-sm btn-outline-warning toolbar-toggle-btn" for="filter-absences" title="Show or hide absences on the calendar">Absences</label>
@@ -138,9 +138,9 @@
                             type="button"
                             role="radio"
                             aria-checked="@(SelectionMode == SelectionMode.Off)"
-                            title="Use default calendar click behavior"
+                            title="Select a single day using standard calendar click behavior"
                             @onclick="() => ChangeSelectionMode(SelectionMode.Off)">
-                        Default
+                        Day
                     </button>
                     <button class="btn @(SelectionMode == SelectionMode.Day ? "btn-primary" : "btn-outline-secondary")"
                             type="button"

@@ -264,8 +264,11 @@
 
 /* Schedules sub-panel wrapper so embedded controls are visually grouped and separated from main nav links. */
 .nav-controls {
-    margin: 0.15rem 0.75rem 0.85rem;
-    padding: 0.55rem 0.45rem 0.6rem;
+    /* Tighter outer margin and inner padding give the controls more horizontal room */
+    /* Right margin is larger than the left to offset the sidebar's clipped right edge so visible gutters match */
+    margin: 0.25rem;
+    padding: 0.55rem;
+    box-sizing: border-box;
     border-radius: 0.65rem;
     border: 1px solid color-mix(in srgb, var(--color-border) 72%, var(--color-accent-primary) 28%);
     background: color-mix(in srgb, var(--color-bg-card) 82%, var(--color-accent-primary) 18%);
