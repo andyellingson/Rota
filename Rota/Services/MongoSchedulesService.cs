@@ -21,10 +21,10 @@ namespace Rota.Services
         /// </summary>
         private static FilterDefinition<Schedule> OwnerFilter(string managerId, string? managerCode)
         {
-            var byManagerId = Builders<Schedule>.Filter.Eq(s => s.ManagerId, managerId);
+            var byManagerId = Builders<Schedule>.Filter.Eq(s => s.TeamLeaderId, managerId);
             return string.IsNullOrEmpty(managerCode)
                 ? byManagerId
-                : Builders<Schedule>.Filter.Or(byManagerId, Builders<Schedule>.Filter.Eq(s => s.ManagerCode, managerCode));
+                : Builders<Schedule>.Filter.Or(byManagerId, Builders<Schedule>.Filter.Eq(s => s.TeamCode, managerCode));
         }
 
         /// <summary>
@@ -98,7 +98,7 @@ namespace Rota.Services
             {
                 // Check if a schedule with this name already exists for this manager
                 var existingFilter = Builders<Schedule>.Filter.And(
-                    OwnerFilter(schedule.ManagerId, schedule.ManagerCode),
+                    OwnerFilter(schedule.TeamLeaderId, schedule.TeamCode),
                     Builders<Schedule>.Filter.Eq(s => s.Name, schedule.Name)
                 );
                 var existing = await _schedules.Find(existingFilter).FirstOrDefaultAsync();
@@ -110,14 +110,14 @@ namespace Rota.Services
                 schedule.CreatedAt = DateTime.UtcNow;
                 
                 // If this is the first schedule or marked as default, make it default
-                var managerSchedules = await GetSchedulesForManagerAsync(schedule.ManagerId, schedule.ManagerCode);
+                var managerSchedules = await GetSchedulesForManagerAsync(schedule.TeamLeaderId, schedule.TeamCode);
                 if (managerSchedules.Count == 0 || schedule.IsDefault)
                 {
                     // Clear other defaults
                     if (schedule.IsDefault)
                     {
                         var updateFilter = Builders<Schedule>.Filter.And(
-                            OwnerFilter(schedule.ManagerId, schedule.ManagerCode),
+                            OwnerFilter(schedule.TeamLeaderId, schedule.TeamCode),
                             Builders<Schedule>.Filter.Eq(s => s.IsDefault, true)
                         );
                         var update = Builders<Schedule>.Update.Set(s => s.IsDefault, false);
@@ -131,7 +131,7 @@ namespace Rota.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating schedule '{Name}' for manager {ManagerId}", schedule.Name, schedule.ManagerId);
+                _logger.LogError(ex, "Error creating schedule '{Name}' for manager {ManagerId}", schedule.Name, schedule.TeamLeaderId);
                 throw;
             }
         }
@@ -299,9 +299,9 @@ namespace Rota.Services
                 var newSchedule = new Schedule
                 {
                     Name = "Default Schedule",
-                    ManagerId = managerId,
-                    ManagerUsername = managerUsername,
-                    ManagerCode = managerCode,
+                    TeamLeaderId = managerId,
+                    TeamLeaderUserName = managerUsername,
+                    TeamCode = managerCode,
                     IsDefault = true,
                     Description = "Your default schedule"
                 };

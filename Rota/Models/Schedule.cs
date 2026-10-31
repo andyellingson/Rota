@@ -18,28 +18,28 @@ namespace Rota.Models
         public string? Id { get; set; }
 
         /// <summary>
-        /// The unique name of the schedule (must be unique per manager).
+        /// The unique name of the schedule (must be unique per team leader).
         /// </summary>
         [BsonElement("name")]
         public string Name { get; set; } = null!;
 
         /// <summary>
-        /// The ID of the manager who owns this schedule.
+        /// The ID of the team leader who owns this schedule.
         /// </summary>
-        [BsonElement("managerId")]
-        public string ManagerId { get; set; } = null!;
+        [BsonElement("teamLeaderId")]
+        public string TeamLeaderId { get; set; } = null!;
 
         /// <summary>
-        /// The username of the manager who owns this schedule.
+        /// The username of the team leader who owns this schedule.
         /// </summary>
-        [BsonElement("managerUsername")]
-        public string ManagerUsername { get; set; } = null!;
+        [BsonElement("teamLeaderUserName")]
+        public string TeamLeaderUserName { get; set; } = null!;
 
         /// <summary>
-        /// Manager's unique code — groups schedules under a manager.
+        /// Team's unique code — groups schedules under a team leader.
         /// </summary>
-        [BsonElement("managerCode")]
-        public string? ManagerCode { get; set; }
+        [BsonElement("teamCode")]
+        public string? TeamCode { get; set; }
 
         /// <summary>
         /// When the schedule was created.

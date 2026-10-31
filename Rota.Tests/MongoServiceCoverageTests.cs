@@ -269,8 +269,8 @@ public class MongoSchedulesServiceTests
         var schedulesCursor = new Mock<IAsyncCursor<Schedule>>();
         var schedules = new[]
         {
-            new Schedule { Id = "507f1f77bcf86cd799439011", ManagerId = "manager-id" },
-            new Schedule { Id = "507f1f77bcf86cd799439012", ManagerId = "manager-id" }
+            new Schedule { Id = "507f1f77bcf86cd799439011", TeamLeaderId = "manager-id" },
+            new Schedule { Id = "507f1f77bcf86cd799439012", TeamLeaderId = "manager-id" }
         };
         schedulesCursor.SetupSequence(c => c.MoveNext(It.IsAny<CancellationToken>())).Returns(true).Returns(false);
         schedulesCursor.SetupSequence(c => c.MoveNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true).ReturnsAsync(false);
@@ -302,8 +302,8 @@ public class MongoSchedulesServiceTests
         var collection = new Mock<IMongoCollection<Schedule>>();
         var schedules = new[]
         {
-            new Schedule { Id = "507f1f77bcf86cd799439011", ManagerId = "manager-id" },
-            new Schedule { Id = "507f1f77bcf86cd799439012", ManagerId = "manager-id" }
+            new Schedule { Id = "507f1f77bcf86cd799439011", TeamLeaderId = "manager-id" },
+            new Schedule { Id = "507f1f77bcf86cd799439012", TeamLeaderId = "manager-id" }
         };
         IAsyncCursor<Schedule> NewCursor(Schedule[] items)
         {

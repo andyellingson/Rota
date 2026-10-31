@@ -81,8 +81,8 @@ namespace Rota.Tests
             mockSchedulesService
                 .Setup(s => s.GetSchedulesForManagerAsync("manager-id", "MGR-123"))
                 .ReturnsAsync([
-                    new Schedule { Id = "schedule-1", Name = "Main", ManagerId = "manager-id", ManagerUsername = "manager" },
-                    new Schedule { Id = "schedule-2", Name = "Backup", ManagerId = "manager-id", ManagerUsername = "manager" }
+                    new Schedule { Id = "schedule-1", Name = "Main", TeamLeaderId = "manager-id", TeamLeaderUserName = "manager" },
+                    new Schedule { Id = "schedule-2", Name = "Backup", TeamLeaderId = "manager-id", TeamLeaderUserName = "manager" }
                 ]);
 
             await using var factory = TestHelpers.CreateFactoryWithUserService(mockUserService.Object, mockSchedulesService.Object);

@@ -99,7 +99,7 @@ namespace Rota.Services
 
         private async Task MigrateLegacyRotationsAsync(string managerCode)
         {
-            var scheduleFilter = Builders<Schedule>.Filter.Eq(schedule => schedule.ManagerCode, managerCode);
+            var scheduleFilter = Builders<Schedule>.Filter.Eq(schedule => schedule.TeamCode, managerCode);
             var legacySchedules = await _schedules.Find(scheduleFilter).ToListAsync();
             var legacyRotations = legacySchedules
                 .Where(schedule => !string.IsNullOrEmpty(schedule.Id))
