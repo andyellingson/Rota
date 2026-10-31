@@ -13,7 +13,7 @@ namespace Rota.Tests
     public class MongoAbsencesServiceTests
     {
         [Test]
-        public async Task DeleteAbsenceAsync_WithoutManagerCode_FiltersByCreatorOnly()
+        public async Task DeleteAbsenceAsync_WithoutTeamCode_FiltersByCreatorOnly()
         {
             var collection = new Mock<IMongoCollection<Absence>>();
             FilterDefinition<Absence>? capturedFilter = null;
@@ -27,11 +27,11 @@ namespace Rota.Tests
 
             var rendered = Render(capturedFilter);
             Assert.That(rendered.ToJson(), Does.Contain("creator"));
-            Assert.That(rendered.ToJson(), Does.Not.Contain("managerCode"));
+            Assert.That(rendered.ToJson(), Does.Not.Contain("teamCode"));
         }
 
         [Test]
-        public async Task DeleteAbsenceAsync_WithManagerCode_FiltersByCreatorOrManagerScope()
+        public async Task DeleteAbsenceAsync_WithTeamCode_FiltersByCreatorOrManagerScope()
         {
             var collection = new Mock<IMongoCollection<Absence>>();
             FilterDefinition<Absence>? capturedFilter = null;
@@ -46,11 +46,11 @@ namespace Rota.Tests
             var rendered = Render(capturedFilter).ToJson();
             Assert.That(rendered, Does.Contain("manager"));
             Assert.That(rendered, Does.Contain("linked-manager-code"));
-            Assert.That(rendered, Does.Contain("managerCode"));
+            Assert.That(rendered, Does.Contain("teamCode"));
         }
 
         [Test]
-        public async Task UpdateAbsenceAsync_WithoutManagerCode_FiltersByCreatorOnly()
+        public async Task UpdateAbsenceAsync_WithoutTeamCode_FiltersByCreatorOnly()
         {
             var collection = new Mock<IMongoCollection<Absence>>();
             FilterDefinition<Absence>? capturedFilter = null;
@@ -71,7 +71,7 @@ namespace Rota.Tests
 
             var rendered = Render(capturedFilter).ToJson();
             Assert.That(rendered, Does.Contain("creator"));
-            Assert.That(rendered, Does.Not.Contain("managerCode"));
+            Assert.That(rendered, Does.Not.Contain("teamCode"));
         }
 
         private sealed class TestDeleteResult : DeleteResult

@@ -8,10 +8,10 @@ namespace Rota.Services
     public interface IRemindersService
     {
         /// <summary>
-        /// Fetches calendar reminders using the manager code (for shared roster reminders)
+        /// Fetches calendar reminders using the team code (for shared roster reminders)
         /// and/or the owner's ObjectId (for personal reminders). Results are merged.
         /// </summary>
-        System.Threading.Tasks.Task<List<Reminder>> GetCalendarRemindersAsync(string? managerCode, string? ownerId, DateOnly startDate, DateOnly endDate);
+        System.Threading.Tasks.Task<List<Reminder>> GetCalendarRemindersAsync(string? teamCode, string? ownerId, DateOnly startDate, DateOnly endDate);
 
         /// <summary>
         /// Creates a new reminder for the specified user.
@@ -33,6 +33,6 @@ namespace Rota.Services
         /// Updates an existing reminder
         /// Returns the updated reminder if successful; null if not found or not owned by user.
         /// </summary>
-        System.Threading.Tasks.Task<Reminder?> UpdateReminderAsync(string id, string username, string title, string? notes, DateTime reminderDateTimeUtc, string? color, string? ownerId, string? forUsername, string? forDisplayName, string? managerCode);
+        System.Threading.Tasks.Task<Reminder?> UpdateReminderAsync(string id, string username, string title, string? notes, DateTime reminderDateTimeUtc, string? color, string? ownerId, string? forUsername, string? forDisplayName, string? teamCode);
     }
 }

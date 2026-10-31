@@ -87,7 +87,7 @@ public class CalendarRenderBenchmarks
                 Date = windowStart.AddDays(dayOffset).AddHours(rng.Next(8, 18)),
                 Title = $"Reminder {i}",
                 Color = "#ffeb3b",
-                ManagerCode = "MGR001",
+                TeamCode = "MGR001",
                 ScheduleId = "sched001"
             };
         }).ToList();

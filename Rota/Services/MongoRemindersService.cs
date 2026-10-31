@@ -60,9 +60,9 @@ namespace Rota.Services
 
         /// <summary>
         /// Fetches reminders matching
-        /// An OR filter is used so both shared (manager) and personal reminders are returned.
+        /// An OR filter is used so both shared (team) and personal reminders are returned.
         /// </summary>
-        public async System.Threading.Tasks.Task<List<Reminder>> GetCalendarRemindersAsync(string? managerCode, string? ownerId, DateOnly startDate, DateOnly endDate)
+        public async System.Threading.Tasks.Task<List<Reminder>> GetCalendarRemindersAsync(string? teamCode, string? ownerId, DateOnly startDate, DateOnly endDate)
         {
             try
             {
@@ -75,8 +75,8 @@ namespace Rota.Services
                 );
 
                 var userFilters = new List<FilterDefinition<Reminder>>();
-                if (!string.IsNullOrEmpty(managerCode))
-                    userFilters.Add(Builders<Reminder>.Filter.Eq(r => r.ManagerCode, managerCode));
+                if (!string.IsNullOrEmpty(teamCode))
+                    userFilters.Add(Builders<Reminder>.Filter.Eq(r => r.TeamCode, teamCode));
                 if (!string.IsNullOrEmpty(ownerId))
                     userFilters.Add(Builders<Reminder>.Filter.Eq(r => r.OwnerId, ownerId));
 
@@ -141,7 +141,7 @@ namespace Rota.Services
         /// Updates an existing reminder (only if it belongs to the specified user).
         /// Returns the updated reminder if successful; null if not found or not owned by user.
         /// </summary>
-        public async System.Threading.Tasks.Task<Reminder?> UpdateReminderAsync(string id, string username, string title, string? notes, DateTime reminderDateTimeUtc, string? color, string? ownerId, string? forUsername, string? forDisplayName, string? managerCode)
+        public async System.Threading.Tasks.Task<Reminder?> UpdateReminderAsync(string id, string username, string title, string? notes, DateTime reminderDateTimeUtc, string? color, string? ownerId, string? forUsername, string? forDisplayName, string? teamCode)
         {
             try
             {
@@ -158,7 +158,7 @@ namespace Rota.Services
                     .Set(r => r.OwnerId, ownerId)
                     .Set(r => r.ForUsername, forUsername)
                     .Set(r => r.ForDisplayName, forDisplayName)
-                    .Set(r => r.ManagerCode, managerCode);
+                    .Set(r => r.TeamCode, teamCode);
 
                 var options = new FindOneAndUpdateOptions<Reminder> { ReturnDocument = ReturnDocument.After };
                 var updated = await _reminders.FindOneAndUpdateAsync(filter, update, options);

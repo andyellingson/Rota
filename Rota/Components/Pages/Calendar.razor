@@ -252,7 +252,7 @@
             // Managers linked to the roster can always modify
             if (_isManagerRole
                 && !string.IsNullOrEmpty(_managerCode)
-                && absence.ManagerCode == _managerCode) return true;
+                && absence.TeamCode == _managerCode) return true;
             // The requesting employee can only modify until a manager has approved the absence
             return !string.IsNullOrEmpty(absence.Username)
                 && absence.Username == _username
@@ -1612,7 +1612,7 @@
                 {
                     Username = _username,
                     OwnerId = targetUser.Id,
-                    ManagerCode = _managerCode,
+                    TeamCode = _managerCode,
                     ScheduleId = selectedScheduleId,
                     Date = utc,
                     Title = newReminderTitle,
@@ -1873,7 +1873,7 @@
                 {
                     Username = _username,
                     UserId = targetUser.Id,
-                    ManagerCode = _managerCode,
+                    TeamCode = _managerCode,
                     ScheduleId = selectedScheduleId,
                     StartDate = startUtc,
                     EndDate = endUtc,

@@ -47,18 +47,18 @@ namespace Rota.Endpoints
                         return Results.Json(new { ok = false, message = "Unauthorized", code = 401 }, statusCode: 401);
 
                     var caller = await users.GetByUsernameAsync(username);
-                    string? queryManagerCode = null;
+                    string? queryTeamCode = null;
                     var queryOwnerId = caller?.Id;
 
                     if (context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin))
                     {
                         // Managers fetch their roster reminders by TeamCode plus personal ones by OwnerId.
-                        queryManagerCode = caller?.TeamCode;
+                        queryTeamCode = caller?.TeamCode;
                     }
                     else if (context.User.IsInRole(Roles.Employee))
                     {
                         // Employees fetch manager reminders by TeamCode plus their own by OwnerId.
-                        queryManagerCode = caller?.TeamCode;
+                        queryTeamCode = caller?.TeamCode;
                     }
 
                     var startDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(-1));
@@ -70,7 +70,7 @@ namespace Rota.Endpoints
                     if (!string.IsNullOrWhiteSpace(end) && !DateOnly.TryParse(end, out endDate))
                         return Results.Json(new { ok = false, message = "Invalid end date", code = 400 }, statusCode: 400);
 
-                    var items = await reminders.GetCalendarRemindersAsync(queryManagerCode, queryOwnerId, startDate, endDate);
+                    var items = await reminders.GetCalendarRemindersAsync(queryTeamCode, queryOwnerId, startDate, endDate);
                     return Results.Json(new { ok = true, reminders = items, code = 200 }, statusCode: 200);
                 }
                 catch (Exception ex)
@@ -98,14 +98,14 @@ namespace Rota.Endpoints
 
                     var creator = await users.GetByUsernameAsync(username);
                     var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
-                    string? managerCode = isManager ? creator?.TeamCode : creator?.TeamCode;
+                    string? teamCode = isManager ? creator?.TeamCode : creator?.TeamCode;
 
                     var targetUsername = string.IsNullOrWhiteSpace(dto.ForUsername) ? username : dto.ForUsername;
                     User? targetUser = null;
 
-                    if (!string.IsNullOrEmpty(managerCode))
+                    if (!string.IsNullOrEmpty(teamCode))
                     {
-                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(managerCode);
+                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(teamCode);
                         targetUser = linkedUsers.FirstOrDefault(u => u.Username == targetUsername);
                     }
 
@@ -117,7 +117,7 @@ namespace Rota.Endpoints
                     {
                         Username = username,
                         OwnerId = targetUser.Id,
-                        ManagerCode = managerCode,
+                        TeamCode = teamCode,
                         Date = reminderDateTimeUtc,
                         Title = dto.Title,
                         Notes = dto.Notes,
@@ -175,14 +175,14 @@ namespace Rota.Endpoints
 
                     var creator = await users.GetByUsernameAsync(username);
                     var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
-                    string? managerCode = isManager ? creator?.TeamCode : creator?.TeamCode;
+                    string? teamCode = isManager ? creator?.TeamCode : creator?.TeamCode;
 
                     var targetUsername = string.IsNullOrWhiteSpace(dto.ForUsername) ? username : dto.ForUsername;
                     User? targetUser = null;
 
-                    if (!string.IsNullOrEmpty(managerCode))
+                    if (!string.IsNullOrEmpty(teamCode))
                     {
-                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(managerCode);
+                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(teamCode);
                         targetUser = linkedUsers.FirstOrDefault(u => u.Username == targetUsername);
                     }
 
@@ -190,7 +190,7 @@ namespace Rota.Endpoints
                     if (targetUser is null)
                         return Results.Json(new { ok = false, message = "Target user not found", code = 400 }, statusCode: 400);
 
-                    var updated = await reminders.UpdateReminderAsync(id, username, dto.Title, dto.Notes, reminderDateTimeUtc, dto.Color ?? "#ffeb3b", targetUser.Id, targetUser.Username, targetUser.DisplayName ?? targetUser.Username, managerCode);
+                    var updated = await reminders.UpdateReminderAsync(id, username, dto.Title, dto.Notes, reminderDateTimeUtc, dto.Color ?? "#ffeb3b", targetUser.Id, targetUser.Username, targetUser.DisplayName ?? targetUser.Username, teamCode);
                     if (updated is null)
                         return Results.Json(new { ok = false, message = "Reminder not found or access denied", code = 404 }, statusCode: 404);
 

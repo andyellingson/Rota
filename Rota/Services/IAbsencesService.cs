@@ -8,20 +8,18 @@ namespace Rota.Services
     public interface IAbsencesService
     {
         /// <summary>
-        /// Returns absences that overlap the date range, filtered by manager code and/or user ObjectId.
+        /// Returns absences that overlap the date range, filtered by team code and/or user ObjectId.
         /// </summary>
-        System.Threading.Tasks.Task<List<Absence>> GetAbsencesAsync(string? managerCode, string? userId, DateOnly startDate, DateOnly endDate);
-
+        System.Threading.Tasks.Task<List<Absence>> GetAbsencesAsync(string? teamCode, string? userId, DateOnly startDate, DateOnly endDate);
         /// <summary>
         /// Creates a new absence document.
         /// </summary>
         System.Threading.Tasks.Task<Absence> CreateAbsenceAsync(Absence absence);
 
         /// <summary>
-        /// Deletes an absence created by the specified username or belonging to the specified manager scope.
+        /// Deletes an absence created by the specified username or belonging to the specified team scope.
         /// </summary>
-        System.Threading.Tasks.Task<bool> DeleteAbsenceAsync(string id, string username, string? managerCode = null);
-
+        System.Threading.Tasks.Task<bool> DeleteAbsenceAsync(string id, string username, string? teamCode = null);
         /// <summary>
         /// Deletes every absence belonging to the given schedule. Returns the number deleted.
         /// </summary>
@@ -30,6 +28,5 @@ namespace Rota.Services
         /// <summary>
         /// Updates an absence owned
         /// </summary>
-        System.Threading.Tasks.Task<Absence?> UpdateAbsenceAsync(string id, string username, string title, string? notes, DateTime startDateUtc, DateTime endDateUtc, int dayCount, string? color, string? userId, string? assignedToUserId, string? managerCode, string? startTime = null, string? endTime = null, AbsenceApprovalState approvalState = AbsenceApprovalState.Pending, AbsenceReason reason = AbsenceReason.Other);
-    }
+        System.Threading.Tasks.Task<Absence?> UpdateAbsenceAsync(string id, string username, string title, string? notes, DateTime startDateUtc, DateTime endDateUtc, int dayCount, string? color, string? userId, string? assignedToUserId, string? teamCode, string? startTime = null, string? endTime = null, AbsenceApprovalState approvalState = AbsenceApprovalState.Pending, AbsenceReason reason = AbsenceReason.Other);    }
 }

@@ -55,7 +55,7 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async System.Threading.Tasks.Task<List<Absence>> GetAbsencesAsync(string? managerCode, string? userId, DateOnly startDate, DateOnly endDate)
+        public async System.Threading.Tasks.Task<List<Absence>> GetAbsencesAsync(string? teamCode, string? userId, DateOnly startDate, DateOnly endDate)
         {
             try
             {
@@ -69,8 +69,8 @@ namespace Rota.Services
                 );
 
                 var userFilters = new List<FilterDefinition<Absence>>();
-                if (!string.IsNullOrEmpty(managerCode))
-                    userFilters.Add(Builders<Absence>.Filter.Eq(a => a.ManagerCode, managerCode));
+                if (!string.IsNullOrEmpty(teamCode))
+                    userFilters.Add(Builders<Absence>.Filter.Eq(a => a.TeamCode, teamCode));
                 if (!string.IsNullOrEmpty(userId))
                     userFilters.Add(Builders<Absence>.Filter.Eq(a => a.UserId, userId));
 
@@ -107,7 +107,7 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async System.Threading.Tasks.Task<bool> DeleteAbsenceAsync(string id, string username, string? managerCode = null)
+        public async System.Threading.Tasks.Task<bool> DeleteAbsenceAsync(string id, string username, string? teamCode = null)
         {
             try
             {
@@ -117,13 +117,13 @@ namespace Rota.Services
                     Builders<Absence>.Filter.Eq(a => a.Username, username),
                     Builders<Absence>.Filter.Ne(a => a.ApprovalState, AbsenceApprovalState.Approved)
                 );
-                var filter = string.IsNullOrWhiteSpace(managerCode)
+                var filter = string.IsNullOrWhiteSpace(teamCode)
                     ? ownerFilter
                     : Builders<Absence>.Filter.Or(
                         ownerFilter,
                         Builders<Absence>.Filter.And(
                             Builders<Absence>.Filter.Eq(a => a.Id, id),
-                            Builders<Absence>.Filter.Eq(a => a.ManagerCode, managerCode)));
+                            Builders<Absence>.Filter.Eq(a => a.TeamCode, teamCode)));
                 var result = await _absences.DeleteOneAsync(filter);
                 return result.DeletedCount > 0;
             }
@@ -135,7 +135,7 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async System.Threading.Tasks.Task<Absence?> UpdateAbsenceAsync(string id, string username, string title, string? notes, DateTime startDateUtc, DateTime endDateUtc, int dayCount, string? color, string? userId, string? assignedToUserId, string? managerCode, string? startTime = null, string? endTime = null, AbsenceApprovalState approvalState = AbsenceApprovalState.Pending, AbsenceReason reason = AbsenceReason.Other)
+        public async System.Threading.Tasks.Task<Absence?> UpdateAbsenceAsync(string id, string username, string title, string? notes, DateTime startDateUtc, DateTime endDateUtc, int dayCount, string? color, string? userId, string? assignedToUserId, string? teamCode, string? startTime = null, string? endTime = null, AbsenceApprovalState approvalState = AbsenceApprovalState.Pending, AbsenceReason reason = AbsenceReason.Other)
         {
             try
             {
@@ -145,13 +145,13 @@ namespace Rota.Services
                     Builders<Absence>.Filter.Eq(a => a.Username, username),
                     Builders<Absence>.Filter.Ne(a => a.ApprovalState, AbsenceApprovalState.Approved)
                 );
-                var filter = string.IsNullOrWhiteSpace(managerCode)
+                var filter = string.IsNullOrWhiteSpace(teamCode)
                     ? ownerFilter
                     : Builders<Absence>.Filter.Or(
                         ownerFilter,
                         Builders<Absence>.Filter.And(
                             Builders<Absence>.Filter.Eq(a => a.Id, id),
-                            Builders<Absence>.Filter.Eq(a => a.ManagerCode, managerCode)));
+                            Builders<Absence>.Filter.Eq(a => a.TeamCode, teamCode)));
 
                 var update = Builders<Absence>.Update
                     .Set(a => a.Title, title)

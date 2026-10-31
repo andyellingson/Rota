@@ -54,11 +54,11 @@ namespace Rota.Models
         public string? Color { get; set; } = "#ffeb3b";
 
         /// <summary>
-        /// Manager's unique code. Set when a manager creates a reminder so all linked
+        /// Team code. Set when a manager creates a reminder so all linked
         /// employees can see it on their calendar.
         /// </summary>
-        [BsonElement("managerCode")]
-        public string? ManagerCode { get; set; }
+        [BsonElement("teamCode")]
+        public string? TeamCode { get; set; }
 
         /// <summary>
         /// The schedule ID this reminder belongs to (MongoDB ObjectId string).

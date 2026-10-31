@@ -59,9 +59,9 @@ namespace Rota.Models
         [BsonElement("userId")]
         public string? UserId { get; set; }
 
-        /// <summary>Manager's unique code — groups absences under a roster.</summary>
-        [BsonElement("managerCode")]
-        public string? ManagerCode { get; set; }
+        /// <summary>Team code used to group absences under a team.</summary>
+        [BsonElement("teamCode")]
+        public string? TeamCode { get; set; }
 
         /// <summary>The schedule ID this absence belongs to (MongoDB ObjectId string).</summary>
         [BsonElement("scheduleId")]

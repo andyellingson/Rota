@@ -39,17 +39,17 @@ namespace Rota.Endpoints
                         return Results.Json(new { ok = false, message = "Unauthorized", code = 401 }, statusCode: 401);
 
                     var caller = await users.GetByUsernameAsync(username);
-                    string? queryManagerCode = null;
+                    string? queryTeamCode = null;
                     var queryUserId = caller?.Id;
 
                     if (context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin))
                     {
-                        queryManagerCode = caller?.TeamCode;
+                        queryTeamCode = caller?.TeamCode;
                     }
                     else if (context.User.IsInRole(Roles.Employee))
                     {
                         // Employee documents store the manager's TeamCode when linked.
-                        queryManagerCode = caller?.TeamCode;
+                        queryTeamCode = caller?.TeamCode;
                     }
 
                     var startDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(-1));
@@ -61,7 +61,7 @@ namespace Rota.Endpoints
                     if (!string.IsNullOrWhiteSpace(end) && !DateOnly.TryParse(end, out endDate))
                         return Results.Json(new { ok = false, message = "Invalid end date", code = 400 }, statusCode: 400);
 
-                    var items = await absences.GetAbsencesAsync(queryManagerCode, queryUserId, startDate, endDate);
+                    var items = await absences.GetAbsencesAsync(queryTeamCode, queryUserId, startDate, endDate);
                     return Results.Json(new { ok = true, absences = items, code = 200 }, statusCode: 200);
                 }
                 catch (Exception ex)
@@ -117,23 +117,23 @@ namespace Rota.Endpoints
                     var creator = await users.GetByUsernameAsync(username);
                     var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
 
-                    string? managerCode = null;
+                    string? teamCode = null;
                     if (isManager)
                     {
-                        managerCode = creator?.TeamCode;
+                        teamCode = creator?.TeamCode;
                     }
                     else
                     {
                         // For employees, the creator document stores the manager's TeamCode when linked.
-                        managerCode = creator?.TeamCode;
+                        teamCode = creator?.TeamCode;
                     }
 
                     var targetUserId = string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? creator?.Id : dto.AssignedToUserId;
                     User? targetUser = null;
 
-                    if (!string.IsNullOrEmpty(managerCode))
+                    if (!string.IsNullOrEmpty(teamCode))
                     {
-                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(managerCode);
+                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(teamCode);
                         targetUser = linkedUsers.FirstOrDefault(u => u.Id == targetUserId);
                     }
 
@@ -145,7 +145,7 @@ namespace Rota.Endpoints
                     {
                         Username = username,
                         UserId = targetUser.Id,
-                        ManagerCode = managerCode,
+                        TeamCode = teamCode,
                         StartDate = DateTime.SpecifyKind(startUtcFinal, DateTimeKind.Utc),
                         EndDate = DateTime.SpecifyKind(endUtcFinal, DateTimeKind.Utc),
                         StartTime = dayCount == 1 && !string.IsNullOrWhiteSpace(dto.StartTime) ? dto.StartTime : null,
@@ -180,8 +180,8 @@ namespace Rota.Endpoints
                         return Results.Json(new { ok = false, message = "Unauthorized", code = 401 }, statusCode: 401);
 
                     var caller = await users.GetByUsernameAsync(username);
-                    var managerCode = context.User.IsInRole(Roles.Manager) ? caller?.TeamCode : null;
-                    var deleted = await absences.DeleteAbsenceAsync(id, username, managerCode);
+                    var teamCode = context.User.IsInRole(Roles.Manager) ? caller?.TeamCode : null;
+                    var deleted = await absences.DeleteAbsenceAsync(id, username, teamCode);
                     if (!deleted)
                         return Results.Json(new { ok = false, message = "Not found or access denied", code = 404 }, statusCode: 404);
 
@@ -234,15 +234,15 @@ namespace Rota.Endpoints
                     var creator = await users.GetByUsernameAsync(username);
                     var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
 
-                    var callerManagerCode = creator?.TeamCode;
-                    var managerCode = context.User.IsInRole(Roles.Manager) ? callerManagerCode : null;
+                    var callerTeamCode = creator?.TeamCode;
+                    var teamCode = context.User.IsInRole(Roles.Manager) ? callerTeamCode : null;
 
                     var targetUserId = string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? creator?.Id : dto.AssignedToUserId;
                     User? targetUser = null;
 
-                    if (!string.IsNullOrEmpty(callerManagerCode))
+                    if (!string.IsNullOrEmpty(callerTeamCode))
                     {
-                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(callerManagerCode);
+                        var linkedUsers = await users.GetLinkedUsersForManagerAsync(callerTeamCode);
                         targetUser = linkedUsers.FirstOrDefault(u => u.Id == targetUserId);
                     }
 
@@ -256,7 +256,7 @@ namespace Rota.Endpoints
                     var updated = await absences.UpdateAbsenceAsync(id, username, title, dto.Notes,
                         DateTime.SpecifyKind(startUtcFinal, DateTimeKind.Utc),
                         DateTime.SpecifyKind(endUtcFinal, DateTimeKind.Utc),
-                        dayCount, dto.Color, targetUser.Id, targetUser.Id, managerCode,
+                        dayCount, dto.Color, targetUser.Id, targetUser.Id, teamCode,
                         dayCount == 1 && !string.IsNullOrWhiteSpace(dto.StartTime) ? dto.StartTime : null,
                         dayCount == 1 && !string.IsNullOrWhiteSpace(dto.EndTime) ? dto.EndTime : null,
                         approvalState: AbsenceApprovalState.Pending,
