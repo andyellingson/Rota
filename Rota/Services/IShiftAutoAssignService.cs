@@ -21,7 +21,7 @@ namespace Rota.Services
         /// respecting occupation, priority, one-shift-per-day and weekly MaxHours rules.
         /// </summary>
         /// <param name="username">Current user's username.</param>
-        /// <param name="userId">Current user's id (excluded from the candidate pool).</param>
+        /// <param name="userId">Current user's id used when loading scoped shifts.</param>
         /// <param name="managerCode">Manager code scoping shifts and linked users.</param>
         /// <param name="rangeStart">Inclusive first local day to consider.</param>
         /// <param name="rangeEnd">Inclusive last local day to consider.</param>

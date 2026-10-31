@@ -1,20 +1,22 @@
-using System.Globalization;
 using Rota.Models;
 
 namespace Rota.Services
 {
     /// <summary>
-    /// Default <see cref="IShiftAutoAssignService"/> backed by <see cref="IShiftsService"/> and <see cref="IUserService"/>.
+    /// Default <see cref="IShiftAutoAssignService"/> backed by <see cref="IShiftsService"/>, <see cref="IUserService"/>,
+    /// and <see cref="IAbsencesService"/>.
     /// </summary>
     public sealed class ShiftAutoAssignService : IShiftAutoAssignService
     {
         private readonly IShiftsService _shiftsService;
         private readonly IUserService _userService;
+        private readonly IAbsencesService _absencesService;
 
-        public ShiftAutoAssignService(IShiftsService shiftsService, IUserService userService)
+        public ShiftAutoAssignService(IShiftsService shiftsService, IUserService userService, IAbsencesService absencesService)
         {
             _shiftsService = shiftsService;
             _userService = userService;
+            _absencesService = absencesService;
         }
 
         /// <inheritdoc />
@@ -48,39 +50,57 @@ namespace Rota.Services
                 return new AutoAssignOutcome(false, noShiftsMessage, null, linkedUsers);
             }
 
-            // Load all shifts spanning the full calendar weeks so pre-existing hours
-            // are counted correctly when enforcing the weekly MaxHours cap.
-            var allWeekShifts = await LoadFullWeekShiftsAsync(username, userId, managerCode, rangeStart, rangeEnd);
+            var (weekRangeStart, weekRangeEnd) = GetWeekRange(rangeStart, rangeEnd);
 
-            var result = await ExecuteAsync(username, userId, linkedUsers, unassigned, allWeekShifts);
+            // Load all shifts spanning full Sunday-Saturday weeks so pre-existing hours are counted
+            // correctly when enforcing the weekly MaxHours cap.
+            var allWeekShifts = await LoadFullWeekShiftsAsync(username, userId, managerCode, weekRangeStart, weekRangeEnd);
+
+            // Load approved absences for the same assignment span so overlapping requests block assignment.
+            var approvedAbsences = await LoadApprovedAbsencesAsync(managerCode, weekRangeStart, weekRangeEnd);
+
+            var result = await ExecuteAsync(username, linkedUsers, unassigned, allWeekShifts, approvedAbsences);
             var (success, warning) = BuildMessages(result, linkedUsers);
 
             return new AutoAssignOutcome(result.AssignedCount > 0, success, warning, linkedUsers);
         }
 
         /// <summary>
-        /// Loads all shifts spanning the full calendar-week boundaries that overlap the given range.
+        /// Loads all shifts spanning the supplied Sunday-Saturday week boundaries.
         /// </summary>
-        private Task<List<Shift>> LoadFullWeekShiftsAsync(string username, string? userId, string managerCode, DateOnly rangeStart, DateOnly rangeEnd)
+        private Task<List<Shift>> LoadFullWeekShiftsAsync(string username, string? userId, string managerCode, DateOnly weekRangeStart, DateOnly weekRangeEnd)
+            => _shiftsService.GetShiftsAsync(username, userId, managerCode, weekRangeStart.AddDays(-1), weekRangeEnd.AddDays(1));
+
+        /// <summary>
+        /// Loads only approved absences for users under the manager scope.
+        /// </summary>
+        private async Task<List<Absence>> LoadApprovedAbsencesAsync(string managerCode, DateOnly weekRangeStart, DateOnly weekRangeEnd)
         {
-            var fdow = (int)CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek;
-            var startDiff = ((int)rangeStart.DayOfWeek - fdow + 7) % 7;
-            var endDiff = (fdow + 6 - (int)rangeEnd.DayOfWeek + 7) % 7;
-            var weekStart = rangeStart.AddDays(-startDiff).AddDays(-1); // pad one day for UTC
-            var weekEnd = rangeEnd.AddDays(endDiff).AddDays(1);         // pad one day for UTC
-            return _shiftsService.GetShiftsAsync(username, userId, managerCode, weekStart, weekEnd);
+            var absences = await _absencesService.GetAbsencesAsync(managerCode, null, weekRangeStart, weekRangeEnd) ?? [];
+            return absences.Where(a => a.ApprovalState == AbsenceApprovalState.Approved).ToList();
         }
 
         /// <summary>
-        /// Core priority-aware, MaxHours-respecting assignment engine.
+        /// Core priority-aware assignment engine enforcing availability windows, approved-absence overlap,
+        /// and MaxHours by Sunday-Saturday week.
         /// </summary>
         private async Task<(int AssignedCount, Dictionary<string, (int Count, double Hours)> AssignedThisRun, HashSet<string> UncappedIds)>
-            ExecuteAsync(string username, string? userId, List<User> linkedUsers, List<Shift> unassigned, List<Shift> allWeekShifts)
+            ExecuteAsync(
+                string username,
+                List<User> linkedUsers,
+                List<Shift> unassigned,
+                List<Shift> allWeekShifts,
+                List<Absence> approvedAbsences)
         {
-            // Build lookup: occupation -> eligible employees (manager excluded).
+            // Build lookup: occupation -> eligible roster members (including the logged-in manager)
+            // so manager shifts can also be auto-filled when manager constraints allow it.
             var eligibleByOccupation = linkedUsers
-                .Where(u => u.Id != userId)
                 .GroupBy(u => string.IsNullOrWhiteSpace(u.Occupation) ? "General" : u.Occupation, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+            var approvedAbsencesByUser = approvedAbsences
+                .Where(a => !string.IsNullOrWhiteSpace(a.AssignedToUserId) || !string.IsNullOrWhiteSpace(a.UserId))
+                .GroupBy(a => a.AssignedToUserId ?? a.UserId!, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
             // Seed weekly hours from already-assigned shifts so existing workload is respected.
@@ -132,7 +152,9 @@ namespace Rota.Services
             foreach (var group in groupedUnassigned)
             {
                 if (!eligibleByOccupation.TryGetValue(group.Key.WorkerType, out var candidates) || candidates.Count == 0)
+                {
                     continue;
+                }
 
                 var orderedCandidates = candidates
                     .OrderByDescending(c => c.ShiftAssignmentPriority)
@@ -149,27 +171,52 @@ namespace Rota.Services
 
                     foreach (var candidate in orderedCandidates)
                     {
-                        if (candidate.Id is null) continue;
+                        if (candidate.Id is null)
+                        {
+                            continue;
+                        }
 
                         if (assignedDaysByUser.TryGetValue(candidate.Id, out var assignedDays) && assignedDays.Contains(shiftDay))
+                        {
                             continue;
+                        }
 
-                        // Enforce MaxHours cap per calendar week.
+                        // Employee availability must fully contain the shift for that day.
+                        if (!IsShiftWithinCandidateAvailability(candidate, shift.Start, shift.End))
+                        {
+                            continue;
+                        }
+
+                        // Approved absences block any overlapping assignment windows.
+                        if (HasApprovedAbsenceConflict(candidate.Id, shift.Start, shift.End, approvedAbsencesByUser))
+                        {
+                            continue;
+                        }
+
+                        // Enforce MaxHours cap per Sunday-Saturday calendar week.
                         if (candidate.MaxHours > 0)
                         {
                             weeklyHours.TryGetValue(candidate.Id, out var empMap);
                             double hoursUsed = 0;
                             empMap?.TryGetValue(weekKey, out hoursUsed);
                             if (hoursUsed + shiftHours > candidate.MaxHours)
+                            {
                                 continue;
+                            }
                         }
 
                         chosenId = candidate.Id;
-                        if (candidate.MaxHours <= 0) uncappedIds.Add(candidate.Id);
+                        if (candidate.MaxHours <= 0)
+                        {
+                            uncappedIds.Add(candidate.Id);
+                        }
                         break;
                     }
 
-                    if (chosenId is null) continue;
+                    if (chosenId is null)
+                    {
+                        continue;
+                    }
 
                     await _shiftsService.UpdateShiftAsync(shift.Id!, username, shift.Start, shift.End,
                         shift.Title, shift.Notes, shift.WorkerType, shift.Color, chosenId);
@@ -239,15 +286,91 @@ namespace Rota.Services
         }
 
         /// <summary>
-        /// Returns a key identifying the culture-week containing the given local date/time: the date
-        /// of the week's first day (per the current culture) formatted as "yyyy-MM-dd". Using the
-        /// culture's first day of week keeps the hour cap aligned with how the calendar renders weeks.
+        /// Calculates the Sunday-Saturday week span that fully contains the requested date range.
+        /// </summary>
+        private static (DateOnly WeekStart, DateOnly WeekEnd) GetWeekRange(DateOnly rangeStart, DateOnly rangeEnd)
+        {
+            var startDiff = (int)rangeStart.DayOfWeek;
+            var endDiff = DayOfWeek.Saturday - rangeEnd.DayOfWeek;
+            return (rangeStart.AddDays(-startDiff), rangeEnd.AddDays(endDiff));
+        }
+
+        /// <summary>
+        /// Returns whether the candidate has an availability window that fully contains the shift.
+        /// </summary>
+        private static bool IsShiftWithinCandidateAvailability(User candidate, DateTime shiftStartUtc, DateTime shiftEndUtc)
+        {
+            var localShiftStart = shiftStartUtc.ToLocalTime();
+            var localShiftEnd = shiftEndUtc.ToLocalTime();
+            var shiftDay = localShiftStart.DayOfWeek;
+
+            var windowsForDay = candidate.Availability
+                .Where(a => a.DayOfWeek == shiftDay)
+                .ToList();
+
+            if (windowsForDay.Count == 0)
+            {
+                return false;
+            }
+
+            foreach (var window in windowsForDay)
+            {
+                if (!TimeOnly.TryParse(window.StartTime, out var availabilityStartTime)
+                    || !TimeOnly.TryParse(window.EndTime, out var availabilityEndTime))
+                {
+                    continue;
+                }
+
+                var availabilityStart = localShiftStart.Date.Add(availabilityStartTime.ToTimeSpan());
+                var availabilityEnd = localShiftStart.Date.Add(availabilityEndTime.ToTimeSpan());
+
+                // Support overnight availability windows such as 22:00-06:00.
+                if (availabilityEnd <= availabilityStart)
+                {
+                    availabilityEnd = availabilityEnd.AddDays(1);
+                }
+
+                if (localShiftStart >= availabilityStart && localShiftEnd <= availabilityEnd)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Returns true when the shift overlaps any approved absence for the user.
+        /// </summary>
+        private static bool HasApprovedAbsenceConflict(
+            string candidateId,
+            DateTime shiftStartUtc,
+            DateTime shiftEndUtc,
+            Dictionary<string, List<Absence>> approvedAbsencesByUser)
+        {
+            if (!approvedAbsencesByUser.TryGetValue(candidateId, out var absences) || absences.Count == 0)
+            {
+                return false;
+            }
+
+            foreach (var absence in absences)
+            {
+                if (shiftStartUtc < absence.EndDate && shiftEndUtc > absence.StartDate)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Returns a key identifying the Sunday that starts the week containing the local date/time.
         /// </summary>
         private static string GetWeekKey(DateTime localDateTime)
         {
-            var fdow = (int)CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek;
-            var diff = ((int)localDateTime.DayOfWeek - fdow + 7) % 7;
-            return localDateTime.AddDays(-diff).ToString("yyyy-MM-dd");
+            var diff = (int)localDateTime.DayOfWeek;
+            return localDateTime.Date.AddDays(-diff).ToString("yyyy-MM-dd");
         }
     }
 }

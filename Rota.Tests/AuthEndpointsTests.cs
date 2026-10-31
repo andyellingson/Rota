@@ -32,11 +32,16 @@ namespace Rota.Tests
         public async System.Threading.Tasks.Task Register_ReturnsOk_WhenNewUser()
         {
             var mockUserService = new Mock<IUserService>();
-            // No existing user
-            mockUserService.Setup(s => s.GetByUsernameAsync("newuser")).ReturnsAsync((User?)null);
-            mockUserService.Setup(s => s.CreateUserAsync(It.IsAny<User>(), It.IsAny<string>())).Returns(System.Threading.Tasks.Task.CompletedTask);
+            var mockSchedulesService = new Mock<ISchedulesService>();
+            User? createdUser = null;
 
-            await using var factory = TestHelpers.CreateFactoryWithUserService(mockUserService.Object);
+            // No existing user.
+            mockUserService.Setup(s => s.GetByUsernameAsync("newuser")).ReturnsAsync((User?)null);
+            mockUserService.Setup(s => s.CreateUserAsync(It.IsAny<User>(), It.IsAny<string>()))
+                .Callback<User, string>((user, _) => createdUser = user)
+                .Returns(System.Threading.Tasks.Task.CompletedTask);
+
+            await using var factory = TestHelpers.CreateFactoryWithUserService(mockUserService.Object, mockSchedulesService.Object);
             var client = factory.CreateClient();
 
             var payload = new { Username = "newuser", Password = "p", RememberMe = false };
@@ -44,17 +49,60 @@ namespace Rota.Tests
 
             resp.EnsureSuccessStatusCode();
             var json = await resp.Content.ReadFromJsonAsync<JsonElement>();
-            Assert.IsTrue(json.GetProperty("ok").GetBoolean());
-            Assert.AreEqual(200, json.GetProperty("code").GetInt32());
+
+            Assert.Multiple(() =>
+            {
+                Assert.IsTrue(json.GetProperty("ok").GetBoolean());
+                Assert.AreEqual(200, json.GetProperty("code").GetInt32());
+                Assert.That(createdUser, Is.Not.Null);
+                Assert.That(createdUser!.MaxHours, Is.EqualTo(40));
+                Assert.That(createdUser.Availability.Count, Is.EqualTo(7));
+                Assert.That(createdUser.Availability.All(a => a.StartTime == "00:00" && a.EndTime == "23:59"), Is.True);
+            });
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task Register_LinksEmployeeAndAssignsAllManagerSchedules()
+        {
+            var mockUserService = new Mock<IUserService>();
+            var mockSchedulesService = new Mock<ISchedulesService>();
+
+            mockUserService.Setup(s => s.GetByUsernameAsync("employee1")).ReturnsAsync((User?)null);
+            mockUserService.Setup(s => s.CreateUserAsync(It.IsAny<User>(), It.IsAny<string>())).Returns(System.Threading.Tasks.Task.CompletedTask);
+            mockUserService.Setup(s => s.LinkToManagerAsync("employee1", "MGR-123")).ReturnsAsync(true);
+            mockUserService.Setup(s => s.GetByManagerCodeAsync("MGR-123")).ReturnsAsync(new User
+            {
+                Id = "manager-id",
+                Username = "manager",
+                ManagerCode = "MGR-123",
+                Roles = ["manager"]
+            });
+
+            mockSchedulesService
+                .Setup(s => s.GetSchedulesForManagerAsync("manager-id", "MGR-123"))
+                .ReturnsAsync([
+                    new Schedule { Id = "schedule-1", Name = "Main", ManagerId = "manager-id", ManagerUsername = "manager" },
+                    new Schedule { Id = "schedule-2", Name = "Backup", ManagerId = "manager-id", ManagerUsername = "manager" }
+                ]);
+
+            await using var factory = TestHelpers.CreateFactoryWithUserService(mockUserService.Object, mockSchedulesService.Object);
+            var client = factory.CreateClient();
+
+            var payload = new { Username = "employee1", Password = "p", RememberMe = false, Role = "employee", LinkManagerCode = "MGR-123" };
+            var resp = await client.PostAsJsonAsync("/api/auth/register", payload);
+
+            resp.EnsureSuccessStatusCode();
+            mockUserService.Verify(s => s.UpdateAssignedSchedulesAsync("employee1", It.Is<IEnumerable<string>>(ids => ids.SequenceEqual(new[] { "schedule-1", "schedule-2" }))), Times.Once);
         }
 
         [Test]
         public async System.Threading.Tasks.Task Register_ReturnsConflict_WhenUserExists()
         {
             var mockUserService = new Mock<IUserService>();
+            var mockSchedulesService = new Mock<ISchedulesService>();
             mockUserService.Setup(s => s.GetByUsernameAsync("exists")).ReturnsAsync(new User { Username = "exists" });
 
-            await using var factory = TestHelpers.CreateFactoryWithUserService(mockUserService.Object);
+            await using var factory = TestHelpers.CreateFactoryWithUserService(mockUserService.Object, mockSchedulesService.Object);
             var client = factory.CreateClient();
 
             var payload = new { Username = "exists", Password = "p", RememberMe = false };

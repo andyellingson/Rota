@@ -62,9 +62,13 @@ namespace Rota.Endpoints
                         return Results.Json(new { ok = false, message = "Unable to sign in", code = 500 }, statusCode: 500);
                     }
 
-                    // Sign in using the cookie authentication handler
-                    // Persistent cookie only when the user ticked "Remember me"; otherwise a session cookie
-                    await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new Microsoft.AspNetCore.Authentication.AuthenticationProperties { IsPersistent = dto.RememberMe });
+                    // Sign in using a persistent cookie so auth survives browser navigation/restart
+                    // and automatically expires after 24 hours.
+                    await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new Microsoft.AspNetCore.Authentication.AuthenticationProperties
+                    {
+                        IsPersistent = true,
+                        ExpiresUtc = DateTimeOffset.UtcNow.AddHours(24)
+                    });
                     return Results.Json(new { ok = true, message = "OK", code = 200 }, statusCode: 200);
                 }
                 catch (Exception ex)
@@ -76,7 +80,7 @@ namespace Rota.Endpoints
             });
 
             // Register endpoint: create a new user and sign them in.
-            app.MapPost("/api/auth/register", async (Rota.DTOs.RegisterDto dto, IUserService users, Microsoft.AspNetCore.Http.IHttpContextAccessor accessor) =>
+            app.MapPost("/api/auth/register", async (Rota.DTOs.RegisterDto dto, IUserService users, ISchedulesService schedules, Microsoft.AspNetCore.Http.IHttpContextAccessor accessor) =>
             {
                 try
                 {
@@ -104,13 +108,35 @@ namespace Rota.Endpoints
                         Roles = string.IsNullOrWhiteSpace(dto.Role)
                             ? System.Array.Empty<string>()
                             : new[] { dto.Role.Trim().ToLowerInvariant() },
-                        ManagerCode = isManager ? Guid.NewGuid().ToString() : null
+                        ManagerCode = isManager ? Guid.NewGuid().ToString() : null,
+                        // Employee users default to 40 max hours per week.
+                        MaxHours = isManager ? 0 : 40,
+                        // New users default to all-day availability for every day of the week.
+                        Availability = BuildDefaultAvailability()
                     };
                     await users.CreateUserAsync(newUser, dto.Password);
 
-                    // If an employee provided a manager code, link them now
+                    // If an employee provided a manager code, link them now and default schedule
+                    // assignments to every schedule currently owned by that manager.
                     if (!isManager && !string.IsNullOrWhiteSpace(dto.LinkManagerCode))
-                        await users.LinkToManagerAsync(newUser.Username, dto.LinkManagerCode.Trim());
+                    {
+                        var managerCode = dto.LinkManagerCode.Trim();
+                        var linked = await users.LinkToManagerAsync(newUser.Username, managerCode);
+                        if (linked)
+                        {
+                            var manager = await users.GetByManagerCodeAsync(managerCode);
+                            if (!string.IsNullOrWhiteSpace(manager?.Id))
+                            {
+                                var managerSchedules = await schedules.GetSchedulesForManagerAsync(manager.Id, manager.ManagerCode);
+                                var managerScheduleIds = managerSchedules
+                                    .Select(s => s.Id)
+                                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                                    .Select(id => id!)
+                                    .ToList();
+                                await users.UpdateAssignedSchedulesAsync(newUser.Username, managerScheduleIds);
+                            }
+                        }
+                    }
 
                     // Reload so ManagerUsername is reflected in claims if linking succeeded
                     newUser = await users.GetByUsernameAsync(newUser.Username) ?? newUser;
@@ -136,7 +162,12 @@ namespace Rota.Endpoints
                         return Results.Json(new { ok = false, message = "Unable to sign in", code = 500 }, statusCode: 500);
                     }
 
-                    await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new Microsoft.AspNetCore.Authentication.AuthenticationProperties { IsPersistent = dto.RememberMe });
+                    // Registration also signs in with the same persistent 24-hour auth cookie policy.
+                    await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, new Microsoft.AspNetCore.Authentication.AuthenticationProperties
+                    {
+                        IsPersistent = true,
+                        ExpiresUtc = DateTimeOffset.UtcNow.AddHours(24)
+                    });
                     return Results.Json(new { ok = true, message = "OK", code = 200 }, statusCode: 200);
                 }
                 catch (Exception ex)
@@ -169,6 +200,21 @@ namespace Rota.Endpoints
             });
 
             return app;
+        }
+
+        /// <summary>
+        /// Builds a default all-day availability window for each day of the week.
+        /// </summary>
+        private static List<Rota.Models.UserAvailability> BuildDefaultAvailability()
+        {
+            return Enum.GetValues<DayOfWeek>()
+                .Select(day => new Rota.Models.UserAvailability
+                {
+                    DayOfWeek = day,
+                    StartTime = "00:00",
+                    EndTime = "23:59"
+                })
+                .ToList();
         }
 
         /// <summary>

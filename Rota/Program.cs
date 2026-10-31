@@ -39,7 +39,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/login";
         options.AccessDeniedPath = "/login"; // redirect to login instead of a non-existent page
         options.Cookie.HttpOnly = true;
-        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        // Keep users signed in for up to 24 hours unless they explicitly log out.
+        options.ExpireTimeSpan = TimeSpan.FromHours(24);
         options.SlidingExpiration = false;
     });
 
