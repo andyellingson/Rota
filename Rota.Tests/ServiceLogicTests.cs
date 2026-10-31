@@ -9,22 +9,22 @@ using Rota.Services;
 namespace Rota.Tests;
 
 [TestFixture]
-public class RotationTemplateServiceTests
+public class WorkItemTemplateApplyServiceTests
 {
     [Test]
     public async Task ApplyAsync_ReturnsErrorWhenNoTemplateWorkItemsExist()
     {
         var WorkItems = new Mock<IWorkItemsService>();
-        WorkItems.Setup(s => s.GetRotationTemplateWorkItemsAsync("rotation", "manager"))
+        WorkItems.Setup(s => s.GetWorkItemTemplateWorkItemsAsync("rotation", "manager"))
             .ReturnsAsync(new List<WorkItem>());
-        var service = new RotationTemplateService(WorkItems.Object);
+        var service = new WorkItemTemplateApplyService(WorkItems.Object);
 
         var result = await service.ApplyAsync("rotation", "owner", "manager", "schedule", [new DateOnly(2026, 10, 5)]);
 
         Assert.Multiple(() =>
         {
             Assert.That(result.CreatedCount, Is.Zero);
-            Assert.That(result.Error, Is.EqualTo("No template work items found for the selected WorkWeek."));
+            Assert.That(result.Error, Is.EqualTo("No template work items found for the selected Work Item Template."));
         });
         WorkItems.Verify(s => s.CreateWorkItemAsync(It.IsAny<WorkItem>()), Times.Never);
     }
@@ -45,19 +45,19 @@ public class RotationTemplateServiceTests
             RotationId = "507f1f77bcf86cd799439012",
         };
         var WorkItems = new Mock<IWorkItemsService>();
-        WorkItems.Setup(s => s.GetRotationTemplateWorkItemsAsync("rotation", "manager"))
+        WorkItems.Setup(s => s.GetWorkItemTemplateWorkItemsAsync("rotation", "manager"))
             .ReturnsAsync([mondayTemplate]);
         WorkItem? created = null;
         WorkItems.Setup(s => s.CreateWorkItemAsync(It.IsAny<WorkItem>()))
             .Callback<WorkItem>(WorkItem => created = WorkItem)
             .ReturnsAsync((WorkItem WorkItem) => WorkItem);
-        var service = new RotationTemplateService(WorkItems.Object);
+        var service = new WorkItemTemplateApplyService(WorkItems.Object);
         var monday = new DateOnly(2026, 10, 5);
         var tuesday = monday.AddDays(1);
 
         var result = await service.ApplyAsync("rotation", "owner", "manager", "schedule", [monday, tuesday]);
 
-        Assert.That(result, Is.EqualTo(new RotationApplyResult(1)));
+        Assert.That(result, Is.EqualTo(new WorkItemTemplateApplyResult(1)));
         Assert.That(created, Is.Not.Null);
         Assert.Multiple(() =>
         {
@@ -87,13 +87,13 @@ public class RotationTemplateServiceTests
             End = new DateTime(2000, 1, 2, 0, 0, 0, DateTimeKind.Utc)
         };
         var WorkItems = new Mock<IWorkItemsService>();
-        WorkItems.Setup(s => s.GetRotationTemplateWorkItemsAsync("rotation", "manager"))
+        WorkItems.Setup(s => s.GetWorkItemTemplateWorkItemsAsync("rotation", "manager"))
             .ReturnsAsync([template]);
         WorkItem? created = null;
         WorkItems.Setup(s => s.CreateWorkItemAsync(It.IsAny<WorkItem>()))
             .Callback<WorkItem>(WorkItem => created = WorkItem)
             .ReturnsAsync((WorkItem WorkItem) => WorkItem);
-        var service = new RotationTemplateService(WorkItems.Object);
+        var service = new WorkItemTemplateApplyService(WorkItems.Object);
         var sunday = new DateOnly(2026, 10, 4);
 
         var result = await service.ApplyAsync("rotation", "owner", "manager", "schedule", [sunday]);

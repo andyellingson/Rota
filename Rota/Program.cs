@@ -20,9 +20,9 @@ builder.Services.AddScoped<IRemindersService, MongoRemindersService>();
 builder.Services.AddScoped<IWorkItemsService, MongoWorkItemsService>();
 builder.Services.AddScoped<IAbsencesService, MongoAbsencesService>();
 builder.Services.AddScoped<ISchedulesService, MongoSchedulesService>();
-builder.Services.AddScoped<IRotationsService, MongoRotationsService>();
+builder.Services.AddScoped<IWorkItemTemplatesService, MongoWorkItemTemplatesService>();
 builder.Services.AddScoped<IWorkerTypesService, MongoWorkerTypesService>();
-builder.Services.AddScoped<IRotationTemplateService, RotationTemplateService>();
+builder.Services.AddScoped<IWorkItemTemplateApplyService, WorkItemTemplateApplyService>();
 builder.Services.AddScoped<IWorkItemAutoAssignService, WorkItemAutoAssignService>();
 builder.Services.AddScoped<AuthenticationStateProvider, HttpContextAuthenticationStateProvider>();
 

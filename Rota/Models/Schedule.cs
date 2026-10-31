@@ -61,10 +61,10 @@ namespace Rota.Models
         public bool IsDefault { get; set; }
 
         /// <summary>
-        /// Optional list of named rotation templates that can be applied to a calendar.
-        /// Each Rotation contains zero or more work item definitions assigned to days of the week.
+        /// Optional list of named Work Item Templates that can be applied to a calendar.
+        /// Each WorkItemTemplate contains zero or more work item definitions assigned to days of the week.
         /// </summary>
         [BsonElement("rotations")]
-        public List<Rotation> Rotations { get; set; } = new();
+        public List<WorkItemTemplate> WorkItemTemplates { get; set; } = new();
     }
 }

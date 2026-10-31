@@ -12,11 +12,11 @@
 @inject IAbsencesService AbsenceService
 @inject IUserService UserService
 @inject ISchedulesService SchedulesService
-@inject IRotationsService RotationsService
+@inject IWorkItemTemplatesService WorkItemTemplatesService
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
 @inject IWorkerTypesService WorkerTypesService
 @inject IJSRuntime JS
-@inject IRotationTemplateService RotationTemplateService
+@inject IWorkItemTemplateApplyService WorkItemTemplateApplyService
 @inject IWorkItemAutoAssignService AutoAssignService
 @inject CalendarControlsState ControlsState
 @implements IDisposable
@@ -39,9 +39,9 @@
                      ShowSelectedDaysMenu="@(isMultiSelectMode && selectedDays.Count > 0)"
                      SelectedDayCount="@selectedDays.Count"
                      CanManageWorkItems="@canManageWorkItems"
-                     SelectedScheduleRotations="@GetRotationsForSelectedSchedule()"
-                     SelectedRotationId="@multiDaySelectedWorkWeekId"
-                     SelectedRotationIdChanged="@OnMultiDaySelectedRotationChanged"
+                     SelectedScheduleWorkItemTemplates="@GetWorkItemTemplatesForSelectedSchedule()"
+                     SelectedWorkItemTemplateId="@multiDaySelectedWorkItemTemplateId"
+                     SelectedWorkItemTemplateIdChanged="@OnMultiDaySelectedWorkItemTemplateChanged"
                      IsApplyingTemplate="@multiDayIsApplying"
                      IsAutoAssignRunning="@multiDayAutoIsRunning"
                      TotalWorkItemsInSelectedDays="@GetTotalWorkItemsInSelectedDays()"
@@ -285,7 +285,7 @@
 
         // Schedule selection state
         private List<Schedule> availableSchedules = new();
-        private List<Rotation> rotations = new();
+        private List<WorkItemTemplate> workItemTemplates = new();
         private string? selectedScheduleId;
         [SupplyParameterFromQuery(Name = "scheduleId")]
         private string? QueryScheduleId { get; set; }
@@ -366,7 +366,7 @@
         private DateOnly dayModalDate { get => dayModal.Date; set => dayModal.Date = value; }
 
         // Multi-day template / auto-assign state
-        private string? multiDaySelectedWorkWeekId;
+        private string? multiDaySelectedWorkItemTemplateId;
         private string? multiDayWorkWeekError;
         private bool multiDayIsApplying = false;
 
@@ -523,9 +523,9 @@
                 if (canManageWorkItems)
                 {
                     availableSchedules = await SchedulesService.GetSchedulesForManagerAsync(_userId, _managerCode);
-                    rotations = string.IsNullOrEmpty(_managerCode)
-                        ? new List<Rotation>()
-                        : await RotationsService.GetForManagerAsync(_managerCode);
+                    workItemTemplates = string.IsNullOrEmpty(_managerCode)
+                        ? new List<WorkItemTemplate>()
+                        : await WorkItemTemplatesService.GetForTeamAsync(_managerCode);
 
                     // Ensure at least one schedule exists for managers
                     if (availableSchedules.Count == 0 && !string.IsNullOrEmpty(_username))
@@ -560,10 +560,10 @@
             }
         }
 
-        private List<Rotation> GetRotationsForSelectedSchedule() =>
+        private List<WorkItemTemplate> GetWorkItemTemplatesForSelectedSchedule() =>
             string.IsNullOrEmpty(selectedScheduleId)
-                ? new List<Rotation>()
-                : rotations.Where(rotation => rotation.ScheduleIds.Contains(selectedScheduleId, StringComparer.Ordinal)).ToList();
+                ? new List<WorkItemTemplate>()
+                : workItemTemplates.Where(workItemTemplate => workItemTemplate.ScheduleIds.Contains(selectedScheduleId, StringComparer.Ordinal)).ToList();
 
         /// <summary>
         /// Called when the selected schedule changes
@@ -579,11 +579,11 @@
         }
 
         /// <summary>
-        /// Keeps the selected-days rotation template id in sync with the sidebar panel.
+        /// Keeps the selected-days Work Item Template id in sync with the sidebar panel.
         /// </summary>
-        private Task OnMultiDaySelectedRotationChanged(string? rotationId)
+        private Task OnMultiDaySelectedWorkItemTemplateChanged(string? workItemTemplateId)
         {
-            multiDaySelectedWorkWeekId = string.IsNullOrWhiteSpace(rotationId) ? null : rotationId;
+            multiDaySelectedWorkItemTemplateId = string.IsNullOrWhiteSpace(workItemTemplateId) ? null : workItemTemplateId;
             return Task.CompletedTask;
         }
 
@@ -601,9 +601,9 @@
                 ShowSelectedDaysResultModal();
                 return;
             }
-            if (string.IsNullOrEmpty(multiDaySelectedWorkWeekId))
+            if (string.IsNullOrEmpty(multiDaySelectedWorkItemTemplateId))
             {
-                multiDayWorkWeekError = "Please select a WorkWeek template.";
+                multiDayWorkWeekError = "Please select a Work Item Template.";
                 ShowSelectedDaysResultModal();
                 return;
             }
@@ -623,7 +623,7 @@
             try
             {
                 multiDayIsApplying = true;
-                var result = await RotationTemplateService.ApplyAsync(multiDaySelectedWorkWeekId, _username,
+                var result = await WorkItemTemplateApplyService.ApplyAsync(multiDaySelectedWorkItemTemplateId, _username,
                     _managerCode, selectedScheduleId, selectedDays.OrderBy(day => day));
                 if (result.Error is not null)
                 {

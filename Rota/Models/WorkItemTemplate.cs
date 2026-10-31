@@ -4,11 +4,11 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace Rota.Models
 {
     /// <summary>
-    /// Represents a reusable weekly rotation template containing work item definitions.
+    /// Represents a reusable weekly Work Item Template containing work item definitions.
     /// </summary>
     // Ignore legacy elements (e.g. 'work items') that no longer map to a property
     [BsonIgnoreExtraElements]
-    public class Rotation
+    public class WorkItemTemplate
     {
         /// <summary>
         /// Document id (MongoDB ObjectId string representation).
@@ -18,19 +18,19 @@ namespace Rota.Models
         public string? Id { get; set; }
 
         /// <summary>
-        /// Human-readable name of the rotation template.
+        /// Human-readable name of the Work Item Template.
         /// </summary>
         [BsonElement("name")]
         public string Name { get; set; } = null!;
 
         /// <summary>
-        /// Manager code that owns this reusable rotation template.
+        /// Team code that owns this reusable Work Item Template.
         /// </summary>
-        [BsonElement("managerCode")]
-        public string? ManagerCode { get; set; }
+        [BsonElement("teamCode")]
+        public string? TeamCode { get; set; }
 
         /// <summary>
-        /// Schedule IDs that are allowed to use this rotation template.
+        /// Schedule IDs that are allowed to use this Work Item Template.
         /// </summary>
         [BsonElement("scheduleIds")]
         public List<string> ScheduleIds { get; set; } = new();

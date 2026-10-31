@@ -6,7 +6,7 @@
     color: var(--color-text-primary);
 }
 
-.rotation-schedule-options {
+.work-item-template-schedule-options {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 0.4rem;
@@ -16,7 +16,7 @@
     background: var(--color-bg-card);
 }
 
-.rotation-schedule-option {
+.work-item-template-schedule-option {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -445,25 +445,25 @@
     margin-top: 0.5rem;
 }
 
-.rotation-day-modal-body {
+.work-item-template-day-modal-body {
     background: var(--color-bg-card);
     color: var(--color-text-primary);
 }
 
-.rotation-day-work-item-list {
+.work-item-template-day-work-item-list {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
-.rotation-day-work-item {
+.work-item-template-day-work-item {
     border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 0.25rem;
     background: rgba(127, 127, 127, 0.06);
 }
 
-.rotation-day-work-item:hover {
+.work-item-template-day-work-item:hover {
     border-color: rgba(13,110,253,0.6);
     box-shadow: 0 4px 16px rgba(13,110,253,0.15);
 }
@@ -525,7 +525,7 @@
 /* ── Modal theming ────────────────────────────────────────────────────
    Bootstrap modals rendered in Manage.razor use hard-coded light
    colours by default. Override with app theme variables so every
-   modal (rotation, schedule, delete confirm) follows the active theme.  */
+   modal (Work Item Template, schedule, delete confirm) follows the active theme.  */
 
 .modal-content {
     background: var(--color-bg-card);

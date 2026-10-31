@@ -174,26 +174,26 @@
 
                 @if (CanManageWorkItems)
                 {
-                    @if (SelectedScheduleRotations.Count > 0)
+                    @if (SelectedScheduleWorkItemTemplates.Count > 0)
                     {
-                        <select class="form-select form-select-sm selected-days-rotation-select"
-                                value="@(SelectedRotationId ?? string.Empty)"
-                                @onchange="OnSelectedRotationChanged"
-                                title="Choose a rotation template to apply to selected days">
+                        <select class="form-select form-select-sm selected-days-work-item-template-select"
+                                value="@(SelectedWorkItemTemplateId ?? string.Empty)"
+                                @onchange="OnSelectedWorkItemTemplateChanged"
+                                title="Choose a Work Item Template to apply to selected days">
                             <option value="">Select Template</option>
-                            @foreach (var rotation in SelectedScheduleRotations)
+                            @foreach (var workItemTemplate in SelectedScheduleWorkItemTemplates)
                             {
-                                if (!string.IsNullOrWhiteSpace(rotation.Id))
+                                if (!string.IsNullOrWhiteSpace(workItemTemplate.Id))
                                 {
-                                    <option value="@rotation.Id">@rotation.Name</option>
+                                    <option value="@workItemTemplate.Id">@workItemTemplate.Name</option>
                                 }
                             }
                         </select>
 
                         <button class="btn btn-sm btn-primary selected-days-btn"
                                 @onclick="OnApplyTemplateToSelectedDays"
-                                title="Apply the selected rotation template to all selected days"
-                                disabled="@(string.IsNullOrWhiteSpace(SelectedRotationId) || IsApplyingTemplate)">
+                                title="Apply the selected Work Item Template to all selected days"
+                                disabled="@(string.IsNullOrWhiteSpace(SelectedWorkItemTemplateId) || IsApplyingTemplate)">
                             @if (IsApplyingTemplate)
                             {
                                 <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
@@ -312,12 +312,12 @@
     /// <summary>True when the current user can perform work-item-management actions.</summary>
     [Parameter] public bool CanManageWorkItems { get; set; }
 
-    /// <summary>Rotation templates available for the currently selected schedule.</summary>
-    [Parameter] public List<Rotation> SelectedScheduleRotations { get; set; } = new();
+    /// <summary>Work Item Templates available for the currently selected schedule.</summary>
+    [Parameter] public List<WorkItemTemplate> SelectedScheduleWorkItemTemplates { get; set; } = new();
 
-    /// <summary>Selected rotation template identifier used by selected-days actions.</summary>
-    [Parameter] public string? SelectedRotationId { get; set; }
-    [Parameter] public EventCallback<string?> SelectedRotationIdChanged { get; set; }
+    /// <summary>Selected Work Item Template identifier used by selected-days actions.</summary>
+    [Parameter] public string? SelectedWorkItemTemplateId { get; set; }
+    [Parameter] public EventCallback<string?> SelectedWorkItemTemplateIdChanged { get; set; }
 
     /// <summary>Selected-days apply-template operation state.</summary>
     [Parameter] public bool IsApplyingTemplate { get; set; }
@@ -346,12 +346,12 @@
     }
 
     /// <summary>
-    /// Updates the selected rotation template id used by selected-days actions.
+    /// Updates the selected Work Item Template id used by selected-days actions.
     /// </summary>
-    private Task OnSelectedRotationChanged(ChangeEventArgs args)
+    private Task OnSelectedWorkItemTemplateChanged(ChangeEventArgs args)
     {
         var selectedId = args.Value?.ToString()?.Trim();
-        return SelectedRotationIdChanged.InvokeAsync(string.IsNullOrWhiteSpace(selectedId) ? null : selectedId);
+        return SelectedWorkItemTemplateIdChanged.InvokeAsync(string.IsNullOrWhiteSpace(selectedId) ? null : selectedId);
     }
 
     /// <summary>

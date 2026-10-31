@@ -205,12 +205,12 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async System.Threading.Tasks.Task<List<WorkItem>> GetRotationTemplateWorkItemsAsync(string rotationId, string teamCode)
+        public async System.Threading.Tasks.Task<List<WorkItem>> GetWorkItemTemplateWorkItemsAsync(string workItemTemplateId, string teamCode)
         {
             try
             {
                 var filter = Builders<WorkItem>.Filter.And(
-                    Builders<WorkItem>.Filter.Eq(s => s.RotationId, rotationId),
+                    Builders<WorkItem>.Filter.Eq(s => s.RotationId, workItemTemplateId),
                     Builders<WorkItem>.Filter.Eq(s => s.TeamCode, teamCode)
                 );
 
@@ -219,18 +219,18 @@ namespace Rota.Services
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error getting template WorkItems for Rotation {RotationId}", rotationId);
+                _logger.LogError(ex, "Error getting template WorkItems for Work Item Template {WorkItemTemplateId}", workItemTemplateId);
                 return new List<WorkItem>();
             }
         }
 
         /// <inheritdoc />
-        public async System.Threading.Tasks.Task<int> DeleteRotationTemplateWorkItemsAsync(string rotationId, string teamCode)
+        public async System.Threading.Tasks.Task<int> DeleteWorkItemTemplateWorkItemsAsync(string workItemTemplateId, string teamCode)
         {
             try
             {
                 var filter = Builders<WorkItem>.Filter.And(
-                    Builders<WorkItem>.Filter.Eq(s => s.RotationId, rotationId),
+                    Builders<WorkItem>.Filter.Eq(s => s.RotationId, workItemTemplateId),
                     Builders<WorkItem>.Filter.Eq(s => s.TeamCode, teamCode)
                 );
 
@@ -239,7 +239,7 @@ namespace Rota.Services
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error deleting template WorkItems for Rotation {RotationId}", rotationId);
+                _logger.LogError(ex, "Error deleting template WorkItems for Work Item Template {WorkItemTemplateId}", workItemTemplateId);
                 throw;
             }
         }

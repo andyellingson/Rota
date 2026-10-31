@@ -13,7 +13,7 @@
 @inject Microsoft.Extensions.Logging.ILogger<Manage> Logger
 @inject IAbsencesService AbsencesService
 @inject IWorkerTypesService WorkerTypesService
-@inject IRotationsService RotationsService
+@inject IWorkItemTemplatesService WorkItemTemplatesService
 @inject IJSRuntime JS
 
 <div class="container my-4">
@@ -99,11 +99,11 @@
         <div class="card-body">
             <div class="d-flex align-items-center mb-3">
                 <div class="me-auto">
-                    <h4 class="mb-0">Rotations</h4>
-                    <small class="manage-subtitle">Create reusable templates and choose which schedules can use them</small>
+                    <h4 class="mb-0">Work Item Templates</h4>
+                    <small class="manage-subtitle">Create customized templates that contain desired work items</small>
                 </div>
                 <button class="btn btn-primary" @onclick="OpenCreateRotation" disabled="@(schedules.Count == 0)">
-                    <span class="me-1">+</span> New Rotation
+                    <span class="me-1">+</span> New Work Item Template
                 </button>
             </div>
 
@@ -111,28 +111,28 @@
             {
                 <div class="text-center py-3">
                     <div class="spinner-border spinner-border-sm text-primary" role="status">
-                        <span class="visually-hidden">Loading rotations...</span>
+                        <span class="visually-hidden">Loading Work Item Templates...</span>
                     </div>
                 </div>
             }
-            else if (rotations.Count == 0)
+            else if (workItemTemplates.Count == 0)
             {
-                <div class="alert alert-info mb-0">No rotations yet. Create a rotation to use it on one or more schedules.</div>
+                <div class="alert alert-info mb-0">No Work Item Templates yet. Create a Work Item Template to use it on one or more schedules.</div>
             }
             else
             {
                 <div class="schedule-list">
-                    @foreach (var rotation in rotations)
+                    @foreach (var workItemTemplate in workItemTemplates)
                     {
                         <div class="schedule-card">
                             <div class="schedule-card-body">
-                                <div class="schedule-card-title">@rotation.Name</div>
-                                <div class="schedule-card-desc">Available on @rotation.ScheduleIds.Count schedule(s)</div>
-                                <div class="schedule-card-meta">@(rotationWorkItemCounts.GetValueOrDefault(rotation.Id ?? string.Empty, 0)) template WorkItem(s)</div>
+                                <div class="schedule-card-title">@workItemTemplate.Name</div>
+                                <div class="schedule-card-desc">Available on @workItemTemplate.ScheduleIds.Count schedule(s)</div>
+                                <div class="schedule-card-meta">@(rotationWorkItemCounts.GetValueOrDefault(workItemTemplate.Id ?? string.Empty, 0)) template WorkItem(s)</div>
                             </div>
                             <div class="schedule-card-actions">
-                                <button class="btn btn-sm btn-outline-warning" @onclick="(() => OpenEditRotation(rotation))">Edit</button>
-                                <button class="btn btn-sm btn-outline-danger" @onclick="(() => DeleteRotationFromList(rotation))" disabled="@isBusy">Delete</button>
+                                <button class="btn btn-sm btn-outline-warning" @onclick="(() => OpenEditRotation(workItemTemplate))">Edit</button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="(() => DeleteRotationFromList(workItemTemplate))" disabled="@isBusy">Delete</button>
                             </div>
                         </div>
                     }
@@ -142,7 +142,7 @@
     </div>
 </div>
 
-@* Rotation edit modal *@
+@* Work Item Template edit modal *@
 @if (showRotationModal)
 {
     <div class="modal-backdrop fade show"></div>
@@ -150,7 +150,7 @@
         <div class="modal-dialog modal-dialog-centered ww-modal-dialog modal-dialog-scrollable" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">@(editingRotation == null ? "Create New Rotation" : "Edit Rotation")</h5>
+                    <h5 class="modal-title">@(editingRotation == null ? "Create New Work Item Template" : "Edit Work Item Template")</h5>
                     <button type="button" class="btn-close" @onclick="CloseRotationModal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -162,17 +162,17 @@
                         }
 
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">Rotation Name</label>
+                            <label class="form-label fw-semibold">Work Item Template Name</label>
                             <input class="form-control" @bind="newRotationName" @bind:after="OnRotationChanged" />
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Available Schedules</label>
-                            <div class="rotation-schedule-options">
+                            <div class="work-item-template-schedule-options">
                                 @foreach (var schedule in schedules)
                                 {
-                                    <label class="form-check rotation-schedule-option" for="rotation-schedule-@schedule.Id">
-                                        <input class="form-check-input" type="checkbox" id="rotation-schedule-@schedule.Id"
+                                    <label class="form-check work-item-template-schedule-option" for="work-item-template-schedule-@schedule.Id">
+                                        <input class="form-check-input" type="checkbox" id="work-item-template-schedule-@schedule.Id"
                                                checked="@selectedRotationScheduleIds.Contains(schedule.Id ?? string.Empty)"
                                                @onchange="(e => ToggleRotationSchedule(schedule.Id, e.Value is bool selected && selected))" />
                                         <span class="form-check-label">@schedule.Name</span>
@@ -228,13 +228,13 @@
                         @if (editingRotation != null)
                         {
                             <button class="btn btn-outline-danger" @onclick="DeleteCurrentRotation" disabled="@isBusy">
-                                Delete Rotation
+                                Delete Work Item Template
                             </button>
                         }
                     </div>
                     <button class="btn btn-secondary" @onclick="CancelCreateRotation" disabled="@isBusy">Cancel</button>
                     <button class="btn btn-primary" @onclick="SaveRotation" disabled="@(!hasRotationChanges || isBusy)">
-                        @(isBusy ? "Saving…" : "Save Rotation")
+                        @(isBusy ? "Saving…" : "Save Work Item Template")
                     </button>
                 </div>
             </div>
@@ -329,7 +329,7 @@
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title">Delete Rotation</h5>
+                    <h5 class="modal-title">Delete Work Item Template</h5>
                     <button type="button" class="btn-close btn-close-white" @onclick="CloseDeleteRotationConfirm" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -337,13 +337,13 @@
                     {
                         <div class="alert alert-danger">@rotationListError</div>
                     }
-                    <p>Are you sure you want to delete the rotation <strong>@rotationToDelete.Name</strong>?</p>
-                    <p class="text-danger mb-0"><strong>Warning:</strong> All template WorkItems associated with this rotation will be permanently deleted.</p>
+                    <p>Are you sure you want to delete the Work Item Template <strong>@rotationToDelete.Name</strong>?</p>
+                    <p class="text-danger mb-0"><strong>Warning:</strong> All template WorkItems associated with this Work Item Template will be permanently deleted.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CloseDeleteRotationConfirm" disabled="@isBusy">Cancel</button>
                     <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteRotation" disabled="@isBusy">
-                        @(isBusy ? "Deleting..." : "Delete Rotation")
+                        @(isBusy ? "Deleting..." : "Delete Work Item Template")
                     </button>
                 </div>
             </div>
@@ -625,7 +625,7 @@
     </div>
 </div>
 
-@* Rotation day work item list modal *@
+@* Work Item Template day work item list modal *@
 @if (showRotationDayModal)
 {
     <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.5)">
@@ -635,17 +635,17 @@
                     <h5 class="modal-title">@rotationDayTitle</h5>
                     <button type="button" class="btn-close" @onclick="CloseRotationDayModal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body rotation-day-modal-body">
+                <div class="modal-body work-item-template-day-modal-body">
                     @if (!rotationDayWorkItems.Any())
                     {
                         <div class="text-muted small">No work items for this day yet.</div>
                     }
                     else
                     {
-                        <div class="rotation-day-work-item-list">
+                        <div class="work-item-template-day-work-item-list">
                             @foreach (var s in rotationDayWorkItems.OrderBy(s => s.Start))
                             {
-                                <div class="rotation-day-work-item" @onclick="(() => EditRotationWorkItem(s))">
+                                <div class="work-item-template-day-work-item" @onclick="(() => EditRotationWorkItem(s))">
                                     <WorkItemCard WorkItem="s"
                                                UseWallClockTime="true"
                                                AssignedToDisplayName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.DisplayName ?? employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.Username ?? string.Empty)"
@@ -666,7 +666,7 @@
     </div>
 }
 
-@* CalendarEditModal for adding work items to Rotation templates *@
+@* CalendarEditModal for adding work items to Work Item Templates *@
 <CalendarEditModal State="rotationModalState"
                    CanManageWorkItems="true"
                    Employees="employees"
@@ -706,7 +706,7 @@
 
 @code {
     private List<Schedule> schedules = new();
-    private List<Rotation> rotations = new();
+    private List<WorkItemTemplate> workItemTemplates = new();
     private bool isLoading = false;
     private string? _userId;
     private string? _username;
@@ -719,17 +719,17 @@
     private bool showDeleteRotationConfirm = false;
     private Schedule? editingSchedule;
     private Schedule? scheduleToDelete;
-    private Rotation? rotationToDelete;
+    private WorkItemTemplate? rotationToDelete;
     private string scheduleName = string.Empty;
     private string? scheduleDescription;
     private bool setAsDefault = false;
     private string? modalError;
     private bool isBusy = false;
 
-    // Rotation management state
+    // Work Item Template management state
     private bool showRotationModal = false;
     private bool showCreateRotation = false;
-    private Rotation? editingRotation = null;
+    private WorkItemTemplate? editingRotation = null;
     private string newRotationName = string.Empty;
     private HashSet<string> selectedRotationScheduleIds = new(StringComparer.Ordinal);
     private List<WorkItem> newRotationWorkItems = new();
@@ -743,7 +743,7 @@
     private List<User> employees = new();
     private readonly string[] ColorChoices = new[] { "#ff4d4f", "#52c41a", "#1890ff", "#fa8c16", "#d3d3d3" };
 
-    // Stores the template-work-item count per Rotation ID, loaded from the work items collection
+    // Stores the template-work-item count per Work Item Template ID, loaded from the work items collection
     private Dictionary<string, int> rotationWorkItemCounts = new();
     private string? rotationListError;
 
@@ -847,7 +847,7 @@
     private string newWorkerTypeName = string.Empty;
     private string? workerTypeError;
 
-    // Change tracking for Rotation
+    // Change tracking for Work Item Template
     private string originalRotationName = string.Empty;
     private List<WorkItem> originalRotationWorkItems = new();
     private bool hasRotationChanges => CheckRotationChanges();
@@ -1020,7 +1020,7 @@
                     Username = _username ?? string.Empty,
                     TeamCode = _managerCode,
                     ScheduleId = null, // Template WorkItems don't have ScheduleId
-                    RotationId = null  // Will be set when SaveRotation creates the Rotation
+                    RotationId = null  // Will be set when SaveRotation creates the Work Item Template
                 });
             }
         }
@@ -1068,7 +1068,7 @@
         rotationModalState.ModalError = null;
     }
 
-    private async Task OpenEditRotation(Rotation ww)
+    private async Task OpenEditRotation(WorkItemTemplate ww)
     {
         if (ww == null || string.IsNullOrEmpty(ww.Id) || string.IsNullOrEmpty(_managerCode)) return;
 
@@ -1079,10 +1079,10 @@
         showRotationModal = true;
         rotationModalState.ModalError = null;
 
-        // Load existing template work items for this rotation
+        // Load existing template work items for this Work Item Template
         try
         {
-            newRotationWorkItems = await WorkItemsService.GetRotationTemplateWorkItemsAsync(ww.Id, _managerCode);
+            newRotationWorkItems = await WorkItemsService.GetWorkItemTemplateWorkItemsAsync(ww.Id, _managerCode);
             // Store original values for change detection
             originalRotationName = ww.Name;
             originalRotationWorkItems = newRotationWorkItems.Select(s => new WorkItem
@@ -1100,7 +1100,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading rotation work items");
+            Logger.LogError(ex, "Error loading Work Item Template work items");
             newRotationWorkItems = new List<WorkItem>();
             originalRotationWorkItems = new List<WorkItem>();
         }
@@ -1128,12 +1128,12 @@
         }
         if (string.IsNullOrWhiteSpace(newRotationName))
         {
-            rotationModalState.ModalError = "Rotation name is required.";
+            rotationModalState.ModalError = "Work Item Template name is required.";
             return;
         }
         if (selectedRotationScheduleIds.Count == 0)
         {
-            rotationModalState.ModalError = "Select at least one schedule for this rotation.";
+            rotationModalState.ModalError = "Select at least one schedule for this Work Item Template.";
             return;
         }
 
@@ -1144,16 +1144,16 @@
 
             if (editingRotation != null)
             {
-                await WorkItemsService.DeleteRotationTemplateWorkItemsAsync(editingRotation.Id!, _managerCode);
-                var updated = await RotationsService.UpdateAsync(editingRotation.Id!, _managerCode, newRotationName.Trim(), selectedRotationScheduleIds);
+                await WorkItemsService.DeleteWorkItemTemplateWorkItemsAsync(editingRotation.Id!, _managerCode);
+                var updated = await WorkItemTemplatesService.UpdateAsync(editingRotation.Id!, _managerCode, newRotationName.Trim(), selectedRotationScheduleIds);
                 if (updated is null)
                 {
-                    throw new InvalidOperationException("The rotation could not be updated. Its template work items were deleted; please retry saving the rotation.");
+                    throw new InvalidOperationException("The Work Item Template could not be updated. Its template work items were deleted; please retry saving the Work Item Template.");
                 }
             }
             else
             {
-                var added = await RotationsService.CreateAsync(new Rotation
+                var added = await WorkItemTemplatesService.CreateAsync(new WorkItemTemplate
                 {
                     Name = newRotationName.Trim(),
                     ScheduleIds = selectedRotationScheduleIds.ToList()
@@ -1170,7 +1170,7 @@
                 await WorkItemsService.CreateWorkItemAsync(templateWorkItem);
             }
 
-            await LoadRotationsAsync();
+            await LoadWorkItemTemplatesAsync();
             showCreateRotation = false;
             showRotationModal = false;
             editingRotation = null;
@@ -1182,8 +1182,8 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error saving rotation");
-            rotationModalState.ModalError = "The rotation could not be saved. Please try again.";
+            Logger.LogError(ex, "Error saving Work Item Template");
+            rotationModalState.ModalError = "The Work Item Template could not be saved. Please try again.";
         }
         finally
         {
@@ -1191,7 +1191,7 @@
         }
     }
 
-    private async Task<bool> DeleteRotation(Rotation ww)
+    private async Task<bool> DeleteRotation(WorkItemTemplate ww)
     {
         if (string.IsNullOrEmpty(_managerCode) || string.IsNullOrEmpty(ww.Id)) return false;
 
@@ -1200,24 +1200,24 @@
             isBusy = true;
             rotationModalState.ModalError = null;
             rotationListError = null;
-            // Delete all template work items associated with this Rotation
-            await WorkItemsService.DeleteRotationTemplateWorkItemsAsync(ww.Id!, _managerCode);
+            // Delete all template work items associated with this Work Item Template
+            await WorkItemsService.DeleteWorkItemTemplateWorkItemsAsync(ww.Id!, _managerCode);
 
-            var removed = await RotationsService.DeleteAsync(ww.Id, _managerCode);
+            var removed = await WorkItemTemplatesService.DeleteAsync(ww.Id, _managerCode);
             if (!removed)
             {
-                throw new InvalidOperationException("The rotation could not be deleted. Its template work items were deleted, but its rotation record remains.");
+                throw new InvalidOperationException("The Work Item Template could not be deleted. Its template work items were deleted, but its template record remains.");
             }
 
-            await LoadRotationsAsync();
+            await LoadWorkItemTemplatesAsync();
             return true;
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error deleting rotation");
+            Logger.LogError(ex, "Error deleting Work Item Template");
             rotationModalState.ModalError = ex is InvalidOperationException
                 ? ex.Message
-                : "The rotation could not be deleted because its template work items failed to delete. Please try again.";
+                : "The Work Item Template could not be deleted because its template work items failed to delete. Please try again.";
             rotationListError = rotationModalState.ModalError;
             return false;
         }
@@ -1227,10 +1227,10 @@
         }
     }
 
-    private async Task DeleteRotationFromList(Rotation rotation)
+    private async Task DeleteRotationFromList(WorkItemTemplate workItemTemplate)
     {
         rotationListError = null;
-        rotationToDelete = rotation;
+        rotationToDelete = workItemTemplate;
         showDeleteRotationConfirm = true;
     }
 
@@ -1268,13 +1268,13 @@
 
     private bool CheckRotationChanges()
     {
-        // For new rotations, enable save if name is not empty
+        // For new Work Item Templates, enable save if name is not empty
         if (editingRotation == null)
         {
             return !string.IsNullOrWhiteSpace(newRotationName);
         }
 
-        // For existing rotations, check if name or work items changed
+        // For existing Work Item Templates, check if name or work items changed
         if (newRotationName != originalRotationName)
         {
             return true;
@@ -1772,7 +1772,7 @@
             _userId = caller?.Id;
             _managerCode = caller?.TeamCode;
 
-            // Load employees for work item assignment in Rotation templates
+            // Load employees for work item assignment in Work Item Templates
             employees = await UserService.GetUsersByRoleAsync(Roles.Employee);
 
             // Load employees linked to this manager (exclude the manager themselves)
@@ -1921,27 +1921,27 @@
 
         // Load upcoming absences for each schedule after the schedule list is ready
         await LoadScheduleAbsencesAsync();
-        await LoadRotationsAsync();
+        await LoadWorkItemTemplatesAsync();
     }
 
-    private async Task LoadRotationsAsync()
+    private async Task LoadWorkItemTemplatesAsync()
     {
-        rotations.Clear();
+        workItemTemplates.Clear();
         rotationWorkItemCounts.Clear();
         if (string.IsNullOrEmpty(_managerCode)) return;
 
         try
         {
-            rotations = await RotationsService.GetForManagerAsync(_managerCode);
-            foreach (var rotation in rotations.Where(rotation => !string.IsNullOrEmpty(rotation.Id)))
+            workItemTemplates = await WorkItemTemplatesService.GetForTeamAsync(_managerCode);
+            foreach (var workItemTemplate in workItemTemplates.Where(workItemTemplate => !string.IsNullOrEmpty(workItemTemplate.Id)))
             {
-                var WorkItems = await WorkItemsService.GetRotationTemplateWorkItemsAsync(rotation.Id!, _managerCode);
-                rotationWorkItemCounts[rotation.Id!] = WorkItems.Count;
+                var workItems = await WorkItemsService.GetWorkItemTemplateWorkItemsAsync(workItemTemplate.Id!, _managerCode);
+                rotationWorkItemCounts[workItemTemplate.Id!] = workItems.Count;
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading rotations");
+            Logger.LogError(ex, "Error loading Work Item Templates");
         }
     }
 

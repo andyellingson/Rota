@@ -125,7 +125,7 @@
     color: var(--color-text-primary);
 }
 
-.selected-days-rotation-select {
+.selected-days-work-item-template-select {
     min-height: 2.1rem;
     border-radius: 0.5rem;
     border-color: var(--color-border);
@@ -138,7 +138,7 @@
     padding-right: 2rem;
 }
 
-.selected-days-rotation-select:focus {
+.selected-days-work-item-template-select:focus {
     border-color: var(--color-accent-primary);
     box-shadow: 0 0 0 0.12rem color-mix(in srgb, var(--color-accent-primary) 28%, transparent);
 }

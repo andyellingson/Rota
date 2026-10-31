@@ -43,14 +43,14 @@ namespace Rota.Services
         System.Threading.Tasks.Task<List<string>> GetDistinctScheduleIdsForUserAsync(string userId);
 
         /// <summary>
-        /// Gets all template work items for a specific Rotation ID.
+        /// Gets all template work items for a specific Work Item Template ID.
         /// These are work items with RotationId set and are not tied to specific calendar dates.
         /// </summary>
-        System.Threading.Tasks.Task<List<WorkItem>> GetRotationTemplateWorkItemsAsync(string rotationId, string teamCode);
+        System.Threading.Tasks.Task<List<WorkItem>> GetWorkItemTemplateWorkItemsAsync(string workItemTemplateId, string teamCode);
 
         /// <summary>
-        /// Deletes all template work items associated with a specific Rotation ID.
+        /// Deletes all template work items associated with a specific Work Item Template ID.
         /// </summary>
-        System.Threading.Tasks.Task<int> DeleteRotationTemplateWorkItemsAsync(string rotationId, string teamCode);
+        System.Threading.Tasks.Task<int> DeleteWorkItemTemplateWorkItemsAsync(string workItemTemplateId, string teamCode);
     }
 }

@@ -129,23 +129,23 @@ public class MongoWorkItemsServiceTests
     }
 
     [Test]
-    public async Task GetRotationTemplateWorkItemsAsync_ReturnsEmptyWhenMongoFails()
+    public async Task GetWorkItemTemplateWorkItemsAsync_ReturnsEmptyWhenMongoFails()
     {
         var collection = new Mock<IMongoCollection<WorkItem>>();
         collection.Setup(c => c.FindAsync(It.IsAny<FilterDefinition<WorkItem>>(), It.IsAny<FindOptions<WorkItem, WorkItem>>(), It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException());
         var service = CreateService(collection);
 
-        Assert.That(await service.GetRotationTemplateWorkItemsAsync("rotation", "manager"), Is.Empty);
+        Assert.That(await service.GetWorkItemTemplateWorkItemsAsync("rotation", "manager"), Is.Empty);
     }
 
     [Test]
-    public void DeleteRotationTemplateWorkItemsAsync_ThrowsWhenMongoFails()
+    public void DeleteWorkItemTemplateWorkItemsAsync_ThrowsWhenMongoFails()
     {
         var collection = new Mock<IMongoCollection<WorkItem>>();
         collection.Setup(c => c.DeleteManyAsync(It.IsAny<FilterDefinition<WorkItem>>(), It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException());
         var service = CreateService(collection);
 
-        Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteRotationTemplateWorkItemsAsync("rotation", "manager"));
+        Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteWorkItemTemplateWorkItemsAsync("rotation", "manager"));
     }
 
     private static MongoWorkItemsService CreateService(Mock<IMongoCollection<WorkItem>> collection) => new(collection.Object, Mock.Of<ILogger<MongoWorkItemsService>>());

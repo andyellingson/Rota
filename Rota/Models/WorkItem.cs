@@ -89,9 +89,9 @@ namespace Rota.Models
             public Guid? SeriesId { get; set; }
 
             /// <summary>
-            /// Optional Rotation ID (MongoDB ObjectId string) that this work item belongs to.
+            /// Optional Work Item Template ID (MongoDB ObjectId string) that this work item belongs to.
             /// When set, this work item acts as a template and is not tied to a specific calendar date.
-            /// ScheduleId should NOT be set for rotation template work items.
+            /// ScheduleId should NOT be set for Work Item Template work items.
             /// </summary>
             [BsonElement("rotationId")]
             [BsonRepresentation(BsonType.ObjectId)]
