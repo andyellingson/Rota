@@ -45,8 +45,8 @@
         <div class="toolbar-group">
             <div class="toolbar-label">Filters</div>
             <div class="toolbar-toggle-row">
-                <input type="checkbox" class="btn-check" id="filter-shifts" checked="@ShowShifts" @onchange="e => ShowShiftsChanged.InvokeAsync((bool)e.Value!)" autocomplete="off">
-                <label class="btn btn-sm btn-outline-primary toolbar-toggle-btn" for="filter-shifts" title="Show or hide shifts on the calendar">Shifts</label>
+                <input type="checkbox" class="btn-check" id="filter-work-items" checked="@ShowWorkItems" @onchange="e => ShowWorkItemsChanged.InvokeAsync((bool)e.Value!)" autocomplete="off">
+                <label class="btn btn-sm btn-outline-primary toolbar-toggle-btn" for="filter-work-items" title="Show or hide work items on the calendar">Work items</label>
 
                 <input type="checkbox" class="btn-check" id="filter-absences" checked="@ShowAbsences" @onchange="e => ShowAbsencesChanged.InvokeAsync((bool)e.Value!)" autocomplete="off">
                 <label class="btn btn-sm btn-outline-warning toolbar-toggle-btn" for="filter-absences" title="Show or hide absences on the calendar">Absences</label>
@@ -65,7 +65,7 @@
                         <div class="dropdown" @onclick:stopPropagation="true">
                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle toolbar-filter-btn @(!allVisible ? "active" : "")"
                                     type="button"
-                                    title="Filter visible shifts by team member type"
+                                    title="Filter visible work items by team member type"
                                     @onclick="ToggleWorkerTypeDropdown"
                                     aria-expanded="@showWorkerTypeDropdown.ToString().ToLowerInvariant()">
                                 @dropdownLabel
@@ -101,7 +101,7 @@
                         <div class="dropdown" @onclick:stopPropagation="true">
                             <button class="btn btn-sm btn-outline-secondary dropdown-toggle toolbar-filter-btn @(!allEmpVisible ? "active" : "")"
                                     type="button"
-                                    title="Filter visible shifts by assigned employee"
+                                    title="Filter visible work items by assigned employee"
                                     @onclick="ToggleEmployeeDropdown"
                                     aria-expanded="@showEmployeeDropdown.ToString().ToLowerInvariant()">
                                 @empDropdownLabel
@@ -172,7 +172,7 @@
                     <div class="selected-days-summary">@SelectedDayCount</div>
                 </div>
 
-                @if (CanManageShifts)
+                @if (CanManageWorkItems)
                 {
                     @if (SelectedScheduleRotations.Count > 0)
                     {
@@ -197,7 +197,7 @@
                             @if (IsApplyingTemplate)
                             {
                                 <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                                <span>Applying…</span>
+                                <span>Applyingï¿½</span>
                             }
                             else
                             {
@@ -208,24 +208,24 @@
 
                     <button class="btn btn-sm btn-success selected-days-btn"
                             @onclick="OnAutoAssignSelectedDays"
-                            title="Assign eligible employees to unassigned shifts on selected days"
-                            disabled="@(IsAutoAssignRunning || TotalUnassignedShiftsInSelectedDays == 0)">
+                            title="Assign eligible employees to unassigned work items on selected days"
+                            disabled="@(IsAutoAssignRunning || TotalUnassignedWorkItemsInSelectedDays == 0)">
                         @if (IsAutoAssignRunning)
                         {
                             <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                            <span>Assigning…</span>
+                            <span>Assigningï¿½</span>
                         }
                         else
                         {
-                            <span>Assign Shifts</span>
+                            <span>Assign work items</span>
                         }
                     </button>
                 }
 
-                @if (CanManageShifts && TotalShiftsInSelectedDays > 0)
+                @if (CanManageWorkItems && TotalWorkItemsInSelectedDays > 0)
                 {
-                    <button class="btn btn-sm btn-danger selected-days-btn" @onclick="OnDeleteSelectedDayShifts" title="Delete all shifts in selected days">
-                        Delete @TotalShiftsInSelectedDays Shift@(TotalShiftsInSelectedDays == 1 ? "" : "s")
+                    <button class="btn btn-sm btn-danger selected-days-btn" @onclick="OnDeleteSelectedDayWorkItems" title="Delete all work items in selected days">
+                        Delete @TotalWorkItemsInSelectedDays WorkItem@(TotalWorkItemsInSelectedDays == 1 ? "" : "s")
                     </button>
                 }
                 @if (TotalAbsencesInSelectedDays > 0)
@@ -264,9 +264,9 @@
     [Parameter] public string? SelectedScheduleId { get; set; }
     [Parameter] public EventCallback<string?> SelectedScheduleIdChanged { get; set; }
 
-    /// <summary>Whether shifts are shown (two-way bindable).</summary>
-    [Parameter] public bool ShowShifts { get; set; }
-    [Parameter] public EventCallback<bool> ShowShiftsChanged { get; set; }
+    /// <summary>Whether work items are shown (two-way bindable).</summary>
+    [Parameter] public bool ShowWorkItems { get; set; }
+    [Parameter] public EventCallback<bool> ShowWorkItemsChanged { get; set; }
 
     /// <summary>Whether absences are shown (two-way bindable).</summary>
     [Parameter] public bool ShowAbsences { get; set; }
@@ -278,7 +278,7 @@
 
     /// <summary>
     /// Team member type name to visibility map. The dictionary is mutated in place by the toolbar,
-    /// so the owner reads the same instance when filtering shifts.
+    /// so the owner reads the same instance when filtering work items.
     /// </summary>
     [Parameter] public Dictionary<string, bool> WorkerTypeVisibility { get; set; } = new();
 
@@ -309,8 +309,8 @@
     /// <summary>Current number of selected days.</summary>
     [Parameter] public int SelectedDayCount { get; set; }
 
-    /// <summary>True when the current user can perform shift-management actions.</summary>
-    [Parameter] public bool CanManageShifts { get; set; }
+    /// <summary>True when the current user can perform work-item-management actions.</summary>
+    [Parameter] public bool CanManageWorkItems { get; set; }
 
     /// <summary>Rotation templates available for the currently selected schedule.</summary>
     [Parameter] public List<Rotation> SelectedScheduleRotations { get; set; } = new();
@@ -326,15 +326,15 @@
     [Parameter] public bool IsAutoAssignRunning { get; set; }
 
     /// <summary>Aggregated counts for selected-days actions.</summary>
-    [Parameter] public int TotalShiftsInSelectedDays { get; set; }
+    [Parameter] public int TotalWorkItemsInSelectedDays { get; set; }
     [Parameter] public int TotalAbsencesInSelectedDays { get; set; }
     [Parameter] public int TotalRemindersInSelectedDays { get; set; }
-    [Parameter] public int TotalUnassignedShiftsInSelectedDays { get; set; }
+    [Parameter] public int TotalUnassignedWorkItemsInSelectedDays { get; set; }
 
     /// <summary>Selected-days action callbacks published by the calendar page.</summary>
     [Parameter] public EventCallback OnApplyTemplateToSelectedDays { get; set; }
     [Parameter] public EventCallback OnAutoAssignSelectedDays { get; set; }
-    [Parameter] public EventCallback OnDeleteSelectedDayShifts { get; set; }
+    [Parameter] public EventCallback OnDeleteSelectedDayWorkItems { get; set; }
     [Parameter] public EventCallback OnDeleteSelectedDayAbsences { get; set; }
     [Parameter] public EventCallback OnDeleteSelectedDayReminders { get; set; }
     [Parameter] public EventCallback OnClearSelectedDays { get; set; }

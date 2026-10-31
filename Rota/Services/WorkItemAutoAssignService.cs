@@ -3,18 +3,18 @@ using Rota.Models;
 namespace Rota.Services
 {
     /// <summary>
-    /// Default <see cref="IShiftAutoAssignService"/> backed by <see cref="IShiftsService"/>, <see cref="IUserService"/>,
+    /// Default <see cref="IWorkItemAutoAssignService"/> backed by <see cref="IWorkItemsService"/>, <see cref="IUserService"/>,
     /// and <see cref="IAbsencesService"/>.
     /// </summary>
-    public sealed class ShiftAutoAssignService : IShiftAutoAssignService
+    public sealed class WorkItemAutoAssignService : IWorkItemAutoAssignService
     {
-        private readonly IShiftsService _shiftsService;
+        private readonly IWorkItemsService _WorkItemsService;
         private readonly IUserService _userService;
         private readonly IAbsencesService _absencesService;
 
-        public ShiftAutoAssignService(IShiftsService shiftsService, IUserService userService, IAbsencesService absencesService)
+        public WorkItemAutoAssignService(IWorkItemsService WorkItemsService, IUserService userService, IAbsencesService absencesService)
         {
-            _shiftsService = shiftsService;
+            _WorkItemsService = WorkItemsService;
             _userService = userService;
             _absencesService = absencesService;
         }
@@ -27,15 +27,15 @@ namespace Rota.Services
             DateOnly rangeStart,
             DateOnly rangeEnd,
             Func<DateOnly, bool>? includeDay,
-            string noShiftsMessage)
+            string noWorkItemsMessage)
         {
             // Refresh linked users so we have the latest MaxHours / priority values.
             var linkedUsers = await _userService.GetLinkedUsersForManagerAsync(managerCode);
 
-            // Load shifts for the requested range (padded for UTC boundaries).
-            var rangeShifts = await _shiftsService.GetShiftsAsync(username, userId, managerCode, rangeStart.AddDays(-1), rangeEnd.AddDays(1));
+            // Load work items for the requested range (padded for UTC boundaries).
+            var rangeWorkItems = await _WorkItemsService.GetWorkItemsAsync(username, userId, managerCode, rangeStart.AddDays(-1), rangeEnd.AddDays(1));
 
-            var unassigned = rangeShifts
+            var unassigned = rangeWorkItems
                 .Where(s => string.IsNullOrEmpty(s.AssignedToUserId))
                 .Where(s =>
                 {
@@ -47,29 +47,29 @@ namespace Rota.Services
 
             if (unassigned.Count == 0)
             {
-                return new AutoAssignOutcome(false, noShiftsMessage, null, linkedUsers);
+                return new AutoAssignOutcome(false, noWorkItemsMessage, null, linkedUsers);
             }
 
             var (weekRangeStart, weekRangeEnd) = GetWeekRange(rangeStart, rangeEnd);
 
-            // Load all shifts spanning full Sunday-Saturday weeks so pre-existing hours are counted
+            // Load all work items spanning full Sunday-Saturday weeks so pre-existing hours are counted
             // correctly when enforcing the weekly MaxHours cap.
-            var allWeekShifts = await LoadFullWeekShiftsAsync(username, userId, managerCode, weekRangeStart, weekRangeEnd);
+            var allWeekWorkItems = await LoadFullWeekWorkItemsAsync(username, userId, managerCode, weekRangeStart, weekRangeEnd);
 
             // Load approved absences for the same assignment span so overlapping requests block assignment.
             var approvedAbsences = await LoadApprovedAbsencesAsync(managerCode, weekRangeStart, weekRangeEnd);
 
-            var result = await ExecuteAsync(username, linkedUsers, unassigned, allWeekShifts, approvedAbsences);
+            var result = await ExecuteAsync(username, linkedUsers, unassigned, allWeekWorkItems, approvedAbsences);
             var (success, warning) = BuildMessages(result, linkedUsers);
 
             return new AutoAssignOutcome(result.AssignedCount > 0, success, warning, linkedUsers);
         }
 
         /// <summary>
-        /// Loads all shifts spanning the supplied Sunday-Saturday week boundaries.
+        /// Loads all work items spanning the supplied Sunday-Saturday week boundaries.
         /// </summary>
-        private Task<List<Shift>> LoadFullWeekShiftsAsync(string username, string? userId, string managerCode, DateOnly weekRangeStart, DateOnly weekRangeEnd)
-            => _shiftsService.GetShiftsAsync(username, userId, managerCode, weekRangeStart.AddDays(-1), weekRangeEnd.AddDays(1));
+        private Task<List<WorkItem>> LoadFullWeekWorkItemsAsync(string username, string? userId, string managerCode, DateOnly weekRangeStart, DateOnly weekRangeEnd)
+            => _WorkItemsService.GetWorkItemsAsync(username, userId, managerCode, weekRangeStart.AddDays(-1), weekRangeEnd.AddDays(1));
 
         /// <summary>
         /// Loads only approved absences for users under the manager scope.
@@ -88,12 +88,12 @@ namespace Rota.Services
             ExecuteAsync(
                 string username,
                 List<User> linkedUsers,
-                List<Shift> unassigned,
-                List<Shift> allWeekShifts,
+                List<WorkItem> unassigned,
+                List<WorkItem> allWeekWorkItems,
                 List<Absence> approvedAbsences)
         {
             // Build lookup: team-member-type -> eligible roster members (including the logged-in manager)
-            // so manager shifts can also be auto-filled when manager constraints allow it.
+            // so manager work items can also be auto-filled when manager constraints allow it.
             var eligibleByTeamMemberType = linkedUsers
                 .GroupBy(u => string.IsNullOrWhiteSpace(u.TeamMemberType) ? "General" : u.TeamMemberType, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
@@ -103,11 +103,11 @@ namespace Rota.Services
                 .GroupBy(a => a.AssignedToUserId ?? a.UserId!, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
-            // Seed weekly hours from already-assigned shifts so existing workload is respected.
+            // Seed weekly hours from already-assigned work items so existing workload is respected.
             // Key: employeeId -> (weekKey -> hoursAssigned)
             var weeklyHours = new Dictionary<string, Dictionary<string, double>>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var s in allWeekShifts.Where(s => !string.IsNullOrEmpty(s.AssignedToUserId)))
+            foreach (var s in allWeekWorkItems.Where(s => !string.IsNullOrEmpty(s.AssignedToUserId)))
             {
                 var wk = GetWeekKey(s.Start.ToLocalTime());
                 if (!weeklyHours.TryGetValue(s.AssignedToUserId!, out var empMap))
@@ -120,9 +120,9 @@ namespace Rota.Services
             }
 
             // Track days already assigned per employee so auto-assign never gives more than
-            // one shift to the same person on a single day.
+            // one work item to the same person on a single day.
             var assignedDaysByUser = new Dictionary<string, HashSet<DateOnly>>(StringComparer.OrdinalIgnoreCase);
-            foreach (var s in allWeekShifts.Where(s => !string.IsNullOrEmpty(s.AssignedToUserId)))
+            foreach (var s in allWeekWorkItems.Where(s => !string.IsNullOrEmpty(s.AssignedToUserId)))
             {
                 var day = DateOnly.FromDateTime(s.Start.ToLocalTime());
                 if (!assignedDaysByUser.TryGetValue(s.AssignedToUserId!, out var daySet))
@@ -137,7 +137,7 @@ namespace Rota.Services
             var uncappedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             int assignedCount = 0;
 
-            // Assign in day + team-member-type batches so when multiple shifts exist for the same
+            // Assign in day + team-member-type batches so when multiple work items exist for the same
             // team member type on one day, they are distributed by descending priority.
             var groupedUnassigned = unassigned
                 .GroupBy(s => new
@@ -157,15 +157,15 @@ namespace Rota.Services
                 }
 
                 var orderedCandidates = candidates
-                    .OrderByDescending(c => c.ShiftAssignmentPriority)
+                    .OrderByDescending(c => c.WorkItemAssignmentPriority)
                     .ThenBy(c => c.DisplayName ?? c.Username ?? c.Id)
                     .ToList();
 
-                foreach (var shift in group.OrderBy(s => s.Start))
+                foreach (var WorkItem in group.OrderBy(s => s.Start))
                 {
-                    var shiftHours = (shift.End - shift.Start).TotalHours;
-                    var weekKey = GetWeekKey(shift.Start.ToLocalTime());
-                    var shiftDay = group.Key.Day;
+                    var WorkItemHours = (WorkItem.End - WorkItem.Start).TotalHours;
+                    var weekKey = GetWeekKey(WorkItem.Start.ToLocalTime());
+                    var WorkItemDay = group.Key.Day;
 
                     string? chosenId = null;
 
@@ -176,19 +176,19 @@ namespace Rota.Services
                             continue;
                         }
 
-                        if (assignedDaysByUser.TryGetValue(candidate.Id, out var assignedDays) && assignedDays.Contains(shiftDay))
+                        if (assignedDaysByUser.TryGetValue(candidate.Id, out var assignedDays) && assignedDays.Contains(WorkItemDay))
                         {
                             continue;
                         }
 
-                        // Employee availability must fully contain the shift for that day.
-                        if (!IsShiftWithinCandidateAvailability(candidate, shift.Start, shift.End))
+                        // Employee availability must fully contain the work item for that day.
+                        if (!IsWorkItemWithinCandidateAvailability(candidate, WorkItem.Start, WorkItem.End))
                         {
                             continue;
                         }
 
                         // Approved absences block any overlapping assignment windows.
-                        if (HasApprovedAbsenceConflict(candidate.Id, shift.Start, shift.End, approvedAbsencesByUser))
+                        if (HasApprovedAbsenceConflict(candidate.Id, WorkItem.Start, WorkItem.End, approvedAbsencesByUser))
                         {
                             continue;
                         }
@@ -199,7 +199,7 @@ namespace Rota.Services
                             weeklyHours.TryGetValue(candidate.Id, out var empMap);
                             double hoursUsed = 0;
                             empMap?.TryGetValue(weekKey, out hoursUsed);
-                            if (hoursUsed + shiftHours > candidate.MaxHours)
+                            if (hoursUsed + WorkItemHours > candidate.MaxHours)
                             {
                                 continue;
                             }
@@ -218,8 +218,8 @@ namespace Rota.Services
                         continue;
                     }
 
-                    await _shiftsService.UpdateShiftAsync(shift.Id!, username, shift.Start, shift.End,
-                        shift.Title, shift.Notes, shift.WorkerType, shift.Color, chosenId);
+                    await _WorkItemsService.UpdateWorkItemAsync(WorkItem.Id!, username, WorkItem.Start, WorkItem.End,
+                        WorkItem.Title, WorkItem.Notes, WorkItem.WorkerType, WorkItem.Color, chosenId);
 
                     // Immediately update in-memory weekly hours so the next iteration in the same
                     // week sees the hours just committed.
@@ -229,17 +229,17 @@ namespace Rota.Services
                         weeklyHours[chosenId] = chosenWeeks;
                     }
                     chosenWeeks.TryGetValue(weekKey, out var currentHours);
-                    chosenWeeks[weekKey] = currentHours + shiftHours;
+                    chosenWeeks[weekKey] = currentHours + WorkItemHours;
 
                     if (!assignedDaysByUser.TryGetValue(chosenId, out var chosenDays))
                     {
                         chosenDays = new HashSet<DateOnly>();
                         assignedDaysByUser[chosenId] = chosenDays;
                     }
-                    chosenDays.Add(shiftDay);
+                    chosenDays.Add(WorkItemDay);
 
                     assignedThisRun.TryGetValue(chosenId, out var runPrev);
-                    assignedThisRun[chosenId] = (runPrev.Count + 1, runPrev.Hours + shiftHours);
+                    assignedThisRun[chosenId] = (runPrev.Count + 1, runPrev.Hours + WorkItemHours);
                     assignedCount++;
                 }
             }
@@ -256,7 +256,7 @@ namespace Rota.Services
         {
             if (result.AssignedCount == 0)
             {
-                return ("No shifts could be assigned. Check that employees with matching team member types exist and have sufficient weekly hours remaining.", null);
+                return ("No work items could be assigned. Check that employees with matching team member types exist and have sufficient weekly hours remaining.", null);
             }
 
             var breakdown = result.AssignedThisRun
@@ -264,11 +264,11 @@ namespace Rota.Services
                 {
                     var emp = linkedUsers.FirstOrDefault(u => u.Id == kvp.Key);
                     var name = emp?.DisplayName ?? emp?.Username ?? kvp.Key;
-                    return $"{name}: {kvp.Value.Count} shift{(kvp.Value.Count == 1 ? "" : "s")} ({kvp.Value.Hours:0.#}h assigned)";
+                    return $"{name}: {kvp.Value.Count} work item{(kvp.Value.Count == 1 ? "" : "s")} ({kvp.Value.Hours:0.#}h assigned)";
                 })
                 .ToList();
 
-            var success = $"Successfully assigned {result.AssignedCount} shift{(result.AssignedCount == 1 ? "" : "s")}. {string.Join(", ", breakdown)}";
+            var success = $"Successfully assigned {result.AssignedCount} work item{(result.AssignedCount == 1 ? "" : "s")}. {string.Join(", ", breakdown)}";
 
             string? warning = null;
             if (result.UncappedIds.Count > 0)
@@ -278,7 +278,7 @@ namespace Rota.Services
                     .Where(u => u is not null)
                     .Select(u => u!.DisplayName ?? u.Username)
                     .ToList();
-                warning = $"⚠️ The following employee(s) have no weekly hour limit set (Max Hours = 0) and were assigned shifts without a cap: {string.Join(", ", names)}. " +
+                warning = $"⚠️ The following employee(s) have no weekly hour limit set (Max Hours = 0) and were assigned work items without a cap: {string.Join(", ", names)}. " +
                     "Set their Max Hours in the Manage page to enforce a weekly limit.";
             }
 
@@ -296,16 +296,16 @@ namespace Rota.Services
         }
 
         /// <summary>
-        /// Returns whether the candidate has an availability window that fully contains the shift.
+        /// Returns whether the candidate has an availability window that fully contains the work item.
         /// </summary>
-        private static bool IsShiftWithinCandidateAvailability(User candidate, DateTime shiftStartUtc, DateTime shiftEndUtc)
+        private static bool IsWorkItemWithinCandidateAvailability(User candidate, DateTime WorkItemstartUtc, DateTime WorkItemEndUtc)
         {
-            var localShiftStart = shiftStartUtc.ToLocalTime();
-            var localShiftEnd = shiftEndUtc.ToLocalTime();
-            var shiftDay = localShiftStart.DayOfWeek;
+            var localWorkItemstart = WorkItemstartUtc.ToLocalTime();
+            var localWorkItemEnd = WorkItemEndUtc.ToLocalTime();
+            var WorkItemDay = localWorkItemstart.DayOfWeek;
 
             var windowsForDay = candidate.Availability
-                .Where(a => a.DayOfWeek == shiftDay)
+                .Where(a => a.DayOfWeek == WorkItemDay)
                 .ToList();
 
             if (windowsForDay.Count == 0)
@@ -321,8 +321,8 @@ namespace Rota.Services
                     continue;
                 }
 
-                var availabilityStart = localShiftStart.Date.Add(availabilityStartTime.ToTimeSpan());
-                var availabilityEnd = localShiftStart.Date.Add(availabilityEndTime.ToTimeSpan());
+                var availabilityStart = localWorkItemstart.Date.Add(availabilityStartTime.ToTimeSpan());
+                var availabilityEnd = localWorkItemstart.Date.Add(availabilityEndTime.ToTimeSpan());
 
                 // Support overnight availability windows such as 22:00-06:00.
                 if (availabilityEnd <= availabilityStart)
@@ -330,7 +330,7 @@ namespace Rota.Services
                     availabilityEnd = availabilityEnd.AddDays(1);
                 }
 
-                if (localShiftStart >= availabilityStart && localShiftEnd <= availabilityEnd)
+                if (localWorkItemstart >= availabilityStart && localWorkItemEnd <= availabilityEnd)
                 {
                     return true;
                 }
@@ -340,12 +340,12 @@ namespace Rota.Services
         }
 
         /// <summary>
-        /// Returns true when the shift overlaps any approved absence for the user.
+        /// Returns true when the work item overlaps any approved absence for the user.
         /// </summary>
         private static bool HasApprovedAbsenceConflict(
             string candidateId,
-            DateTime shiftStartUtc,
-            DateTime shiftEndUtc,
+            DateTime WorkItemstartUtc,
+            DateTime WorkItemEndUtc,
             Dictionary<string, List<Absence>> approvedAbsencesByUser)
         {
             if (!approvedAbsencesByUser.TryGetValue(candidateId, out var absences) || absences.Count == 0)
@@ -355,7 +355,7 @@ namespace Rota.Services
 
             foreach (var absence in absences)
             {
-                if (shiftStartUtc < absence.EndDate && shiftEndUtc > absence.StartDate)
+                if (WorkItemstartUtc < absence.EndDate && WorkItemEndUtc > absence.StartDate)
                 {
                     return true;
                 }

@@ -1,5 +1,5 @@
-/* Compact shift chip displayed in calendar grid cells and week view cards */
-.shift-item {
+﻿/* Compact WorkItem chip displayed in calendar grid cells and week view cards */
+.work-item {
     background: rgba(24, 144, 255, 0.06);
     border-left: 3px solid rgba(24, 144, 255, 0.6);
     padding: 0.2rem 0.42rem;
@@ -15,7 +15,7 @@
 }
 
 /* Title and team member type share the first row; assignment and time share the second. */
-.shift-header {
+.work-item-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -23,7 +23,7 @@
     width: 100%;
 }
 
-.shift-title {
+.work-item-title {
     font-weight: 600;
     font-size: 0.72rem;
     color: var(--color-text-primary);
@@ -35,7 +35,7 @@
     text-align: left;
 }
 
-.shift-worker-type {
+.work-item-worker-type {
     font-weight: 500;
     font-size: 0.66rem;
     color: var(--color-text-medium, #1890ff);
@@ -47,7 +47,7 @@
     text-align: right;
 }
 
-.shift-details-row {
+.work-item-details-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -56,7 +56,7 @@
     min-width: 0;
 }
 
-.shift-time-inline {
+.work-item-time-inline {
     font-size: 0.68rem;
     color: var(--color-time-text, var(--color-text-secondary));
     flex: 0 0 auto;
@@ -68,25 +68,25 @@
     font-weight: 500;
 }
 
-.shift-time {
+.work-item-time {
     font-size: 0.68rem;
     color: var(--color-text-secondary);
     margin-top: 0.08rem;
 }
 
-/* Unassigned future shift — subtle red left border pulse to draw manager attention */
-.shift-item--unassigned {
+/* Unassigned future WorkItem — subtle red left border pulse to draw manager attention */
+.work-item--unassigned {
     border-left-color: #ff4d4f !important;
-    animation: shift-unassigned-pulse 2s ease-in-out infinite;
+    animation: work-item-unassigned-pulse 2s ease-in-out infinite;
 }
 
-@keyframes shift-unassigned-pulse {
+@keyframes work-item-unassigned-pulse {
     0%, 100% { box-shadow: none; }
     50% { box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.25); }
 }
 
 /* Muted italic label shown in place of an assigned name */
-.shift-unassigned-label {
+.work-item-unassigned-label {
     font-size: 0.66rem;
     color: #ff4d4f;
     font-style: italic;
@@ -95,7 +95,7 @@
     text-overflow: ellipsis;
 }
 
-.shift-details-row .shift-assigned {
+.work-item-details-row .work-item-assigned {
     margin-top: 0;
 }
 
@@ -105,7 +105,7 @@
 }
 
 /* Assigned-to name row — make more prominent */
-.shift-assigned {
+.work-item-assigned {
     font-size: 0.68rem;
     color: var(--color-text-primary);
     font-weight: 700;
@@ -117,7 +117,7 @@
 }
 
 /* Overtime warning badge — amber/orange to draw attention without alarming red */
-.shift-overtime {
+.work-item-overtime {
     font-size: 0.65rem;
     font-weight: 700;
     color: #b45309;
@@ -131,8 +131,8 @@
     max-width: 100%;
 }
 
-:global([data-bs-theme="dark"]) .shift-overtime,
-:root[data-theme="dark"] .shift-overtime {
+:global([data-bs-theme="dark"]) .work-item-overtime,
+:root[data-theme="dark"] .work-item-overtime {
     color: #fbbf24;
     background: rgba(245, 158, 11, 0.2);
 }

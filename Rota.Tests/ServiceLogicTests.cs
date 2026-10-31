@@ -12,27 +12,27 @@ namespace Rota.Tests;
 public class RotationTemplateServiceTests
 {
     [Test]
-    public async Task ApplyAsync_ReturnsErrorWhenNoTemplateShiftsExist()
+    public async Task ApplyAsync_ReturnsErrorWhenNoTemplateWorkItemsExist()
     {
-        var shifts = new Mock<IShiftsService>();
-        shifts.Setup(s => s.GetRotationTemplateShiftsAsync("rotation", "manager"))
-            .ReturnsAsync(new List<Shift>());
-        var service = new RotationTemplateService(shifts.Object);
+        var WorkItems = new Mock<IWorkItemsService>();
+        WorkItems.Setup(s => s.GetRotationTemplateWorkItemsAsync("rotation", "manager"))
+            .ReturnsAsync(new List<WorkItem>());
+        var service = new RotationTemplateService(WorkItems.Object);
 
         var result = await service.ApplyAsync("rotation", "owner", "manager", "schedule", [new DateOnly(2026, 10, 5)]);
 
         Assert.Multiple(() =>
         {
             Assert.That(result.CreatedCount, Is.Zero);
-            Assert.That(result.Error, Is.EqualTo("No template shifts found for the selected WorkWeek."));
+            Assert.That(result.Error, Is.EqualTo("No template work items found for the selected WorkWeek."));
         });
-        shifts.Verify(s => s.CreateShiftAsync(It.IsAny<Shift>()), Times.Never);
+        WorkItems.Verify(s => s.CreateWorkItemAsync(It.IsAny<WorkItem>()), Times.Never);
     }
 
     [Test]
     public async Task ApplyAsync_CreatesOnlyMatchingDayTemplatesAndCopiesFields()
     {
-        var mondayTemplate = new Shift
+        var mondayTemplate = new WorkItem
         {
             WorkDay = DayOfWeek.Monday,
             Start = new DateTime(2000, 1, 3, 9, 30, 0, DateTimeKind.Utc),
@@ -44,14 +44,14 @@ public class RotationTemplateServiceTests
             AssignedToUserId = "507f1f77bcf86cd799439011",
             RotationId = "507f1f77bcf86cd799439012",
         };
-        var shifts = new Mock<IShiftsService>();
-        shifts.Setup(s => s.GetRotationTemplateShiftsAsync("rotation", "manager"))
+        var WorkItems = new Mock<IWorkItemsService>();
+        WorkItems.Setup(s => s.GetRotationTemplateWorkItemsAsync("rotation", "manager"))
             .ReturnsAsync([mondayTemplate]);
-        Shift? created = null;
-        shifts.Setup(s => s.CreateShiftAsync(It.IsAny<Shift>()))
-            .Callback<Shift>(shift => created = shift)
-            .ReturnsAsync((Shift shift) => shift);
-        var service = new RotationTemplateService(shifts.Object);
+        WorkItem? created = null;
+        WorkItems.Setup(s => s.CreateWorkItemAsync(It.IsAny<WorkItem>()))
+            .Callback<WorkItem>(WorkItem => created = WorkItem)
+            .ReturnsAsync((WorkItem WorkItem) => WorkItem);
+        var service = new RotationTemplateService(WorkItems.Object);
         var monday = new DateOnly(2026, 10, 5);
         var tuesday = monday.AddDays(1);
 
@@ -74,26 +74,26 @@ public class RotationTemplateServiceTests
             Assert.That(created.Start.ToLocalTime().TimeOfDay, Is.EqualTo(new TimeSpan(9, 30, 0)));
             Assert.That(created.Start.ToLocalTime().Date, Is.EqualTo(monday.ToDateTime(TimeOnly.MinValue).Date));
         });
-        shifts.Verify(s => s.CreateShiftAsync(It.IsAny<Shift>()), Times.Once);
+        WorkItems.Verify(s => s.CreateWorkItemAsync(It.IsAny<WorkItem>()), Times.Once);
     }
 
     [Test]
     public async Task ApplyAsync_TreatsTemplateEndTimeAtMidnightAsNextDay()
     {
-        var template = new Shift
+        var template = new WorkItem
         {
             WorkDay = DayOfWeek.Sunday,
             Start = new DateTime(2000, 1, 2, 16, 0, 0, DateTimeKind.Utc),
             End = new DateTime(2000, 1, 2, 0, 0, 0, DateTimeKind.Utc)
         };
-        var shifts = new Mock<IShiftsService>();
-        shifts.Setup(s => s.GetRotationTemplateShiftsAsync("rotation", "manager"))
+        var WorkItems = new Mock<IWorkItemsService>();
+        WorkItems.Setup(s => s.GetRotationTemplateWorkItemsAsync("rotation", "manager"))
             .ReturnsAsync([template]);
-        Shift? created = null;
-        shifts.Setup(s => s.CreateShiftAsync(It.IsAny<Shift>()))
-            .Callback<Shift>(shift => created = shift)
-            .ReturnsAsync((Shift shift) => shift);
-        var service = new RotationTemplateService(shifts.Object);
+        WorkItem? created = null;
+        WorkItems.Setup(s => s.CreateWorkItemAsync(It.IsAny<WorkItem>()))
+            .Callback<WorkItem>(WorkItem => created = WorkItem)
+            .ReturnsAsync((WorkItem WorkItem) => WorkItem);
+        var service = new RotationTemplateService(WorkItems.Object);
         var sunday = new DateOnly(2026, 10, 4);
 
         var result = await service.ApplyAsync("rotation", "owner", "manager", "schedule", [sunday]);
@@ -111,80 +111,80 @@ public class RotationTemplateServiceTests
 }
 
 [TestFixture]
-public class ShiftAutoAssignServiceTests
+public class WorkItemAutoAssignServiceTests
 {
     private static readonly DateOnly Monday = new(2026, 10, 5);
 
     [Test]
-    public async Task AutoAssignAsync_ReturnsProvidedMessageWhenNoEligibleUnassignedShifts()
+    public async Task AutoAssignAsync_ReturnsProvidedMessageWhenNoEligibleUnassignedWorkItems()
     {
-        var shifts = new Mock<IShiftsService>();
+        var WorkItems = new Mock<IWorkItemsService>();
         var users = new Mock<IUserService>();
         var absences = new Mock<IAbsencesService>();
         users.Setup(s => s.GetLinkedUsersForManagerAsync("manager")).ReturnsAsync([]);
-        shifts.Setup(s => s.GetShiftsAsync("owner", "owner-id", "manager", It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
+        WorkItems.Setup(s => s.GetWorkItemsAsync("owner", "owner-id", "manager", It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
             .ReturnsAsync([]);
         absences.Setup(s => s.GetAbsencesAsync("manager", null, It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
             .ReturnsAsync([]);
-        var service = new ShiftAutoAssignService(shifts.Object, users.Object, absences.Object);
+        var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
 
         var outcome = await service.AutoAssignAsync("owner", "owner-id", "manager", Monday, Monday, null, "Nothing to do");
 
         Assert.Multiple(() =>
         {
-            Assert.That(outcome.ShiftsChanged, Is.False);
+            Assert.That(outcome.WorkItemsChanged, Is.False);
             Assert.That(outcome.SuccessMessage, Is.EqualTo("Nothing to do"));
             Assert.That(outcome.WarningMessage, Is.Null);
             Assert.That(outcome.LinkedUsers, Is.Empty);
         });
-        shifts.Verify(s => s.GetShiftsAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>()), Times.Once);
+        WorkItems.Verify(s => s.GetWorkItemsAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>()), Times.Once);
     }
 
     [Test]
     public async Task AutoAssignAsync_AssignsByPriorityAndReportsUncappedUsers()
     {
-        var shift1 = CreateShift("shift1", Monday, "Cook");
-        var shift2 = CreateShift("shift2", Monday.AddDays(1), "Cook");
+        var WorkItem1 = CreateWorkItem("Work item1", Monday, "Cook");
+        var WorkItem2 = CreateWorkItem("Work item2", Monday.AddDays(1), "Cook");
         var manager = new User { Id = "manager-id", Username = "manager", TeamMemberType = "Cook" };
-        var employee = new User { Id = "employee-id", Username = "employee", DisplayName = "A Cook", TeamMemberType = "cook", ShiftAssignmentPriority = 2, Availability = BuildFullWeekAvailability() };
-        var capped = new User { Id = "capped-id", Username = "capped", TeamMemberType = "Cook", ShiftAssignmentPriority = 1, MaxHours = 8, Availability = BuildFullWeekAvailability() };
+        var employee = new User { Id = "employee-id", Username = "employee", DisplayName = "A Cook", TeamMemberType = "cook", WorkItemAssignmentPriority = 2, Availability = BuildFullWeekAvailability() };
+        var capped = new User { Id = "capped-id", Username = "capped", TeamMemberType = "Cook", WorkItemAssignmentPriority = 1, MaxHours = 8, Availability = BuildFullWeekAvailability() };
         var users = new Mock<IUserService>();
         var absences = new Mock<IAbsencesService>();
         users.Setup(s => s.GetLinkedUsersForManagerAsync("manager")).ReturnsAsync([manager, employee, capped]);
         absences.Setup(s => s.GetAbsencesAsync("manager", null, It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
             .ReturnsAsync([]);
-        var shifts = new Mock<IShiftsService>();
-        SetupShiftLoads(shifts, [shift1, shift2], []);
+        var WorkItems = new Mock<IWorkItemsService>();
+        SetupWorkItemLoads(WorkItems, [WorkItem1, WorkItem2], []);
         var assignedIds = new List<string?>();
-        shifts.Setup(s => s.UpdateShiftAsync(It.IsAny<string>(), "owner", It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
+        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), "owner", It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
             .Callback<string, string, DateTime, DateTime, string?, string?, string, string?, string?>((_, _, _, _, _, _, _, _, assignedId) => assignedIds.Add(assignedId))
-            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId) => new Shift { Id = id, AssignedToUserId = assignedId });
-        var service = new ShiftAutoAssignService(shifts.Object, users.Object, absences.Object);
+            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId) => new WorkItem { Id = id, AssignedToUserId = assignedId });
+        var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
 
-        var outcome = await service.AutoAssignAsync("owner", "manager-id", "manager", Monday, Monday.AddDays(1), null, "No shifts");
+        var outcome = await service.AutoAssignAsync("owner", "manager-id", "manager", Monday, Monday.AddDays(1), null, "No work items");
 
         Assert.Multiple(() =>
         {
-            Assert.That(outcome.ShiftsChanged, Is.True);
-            Assert.That(outcome.SuccessMessage, Does.Contain("Successfully assigned 2 shifts"));
-            Assert.That(outcome.SuccessMessage, Does.Contain("A Cook: 2 shifts (8h assigned)"));
+            Assert.That(outcome.WorkItemsChanged, Is.True);
+            Assert.That(outcome.SuccessMessage, Does.Contain("Successfully assigned 2 work items"));
+            Assert.That(outcome.SuccessMessage, Does.Contain("A Cook: 2 work items (8h assigned)"));
             Assert.That(outcome.WarningMessage, Does.Contain("A Cook"));
             Assert.That(assignedIds, Is.EqualTo(new[] { "employee-id", "employee-id" }));
         });
-        shifts.Verify(s => s.GetShiftsAsync("owner", "manager-id", "manager", It.IsAny<DateOnly>(), It.IsAny<DateOnly>()), Times.Exactly(2));
+        WorkItems.Verify(s => s.GetWorkItemsAsync("owner", "manager-id", "manager", It.IsAny<DateOnly>(), It.IsAny<DateOnly>()), Times.Exactly(2));
     }
 
     [Test]
-    public async Task AutoAssignAsync_AssignsManagerWhenManagerMatchesShiftConstraints()
+    public async Task AutoAssignAsync_AssignsManagerWhenManagerMatchesWorkItemConstraints()
     {
-        var managerShift = CreateShift("manager-shift", Monday, "Cook", 4);
+        var managerWorkItem = CreateWorkItem("manager-work-item", Monday, "Cook", 4);
         var manager = new User
         {
             Id = "manager-id",
             Username = "owner",
             TeamMemberType = "Cook",
             MaxHours = 40,
-            ShiftAssignmentPriority = 5,
+            WorkItemAssignmentPriority = 5,
             Availability = BuildFullWeekAvailability()
         };
 
@@ -193,83 +193,83 @@ public class ShiftAutoAssignServiceTests
         users.Setup(s => s.GetLinkedUsersForManagerAsync("manager")).ReturnsAsync([manager]);
         absences.Setup(s => s.GetAbsencesAsync("manager", null, It.IsAny<DateOnly>(), It.IsAny<DateOnly>())).ReturnsAsync([]);
 
-        var shifts = new Mock<IShiftsService>();
-        SetupShiftLoads(shifts, [managerShift], []);
-        shifts.Setup(s => s.UpdateShiftAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId) => new Shift { Id = id, AssignedToUserId = assignedId });
-        var service = new ShiftAutoAssignService(shifts.Object, users.Object, absences.Object);
+        var WorkItems = new Mock<IWorkItemsService>();
+        SetupWorkItemLoads(WorkItems, [managerWorkItem], []);
+        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId) => new WorkItem { Id = id, AssignedToUserId = assignedId });
+        var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
 
-        var outcome = await service.AutoAssignAsync("owner", "manager-id", "manager", Monday, Monday, null, "No shifts");
+        var outcome = await service.AutoAssignAsync("owner", "manager-id", "manager", Monday, Monday, null, "No work items");
 
         Assert.Multiple(() =>
         {
-            Assert.That(outcome.ShiftsChanged, Is.True);
-            Assert.That(outcome.SuccessMessage, Does.Contain("Successfully assigned 1 shift"));
+            Assert.That(outcome.WorkItemsChanged, Is.True);
+            Assert.That(outcome.SuccessMessage, Does.Contain("Successfully assigned 1 work item"));
             Assert.That(outcome.WarningMessage, Is.Null);
         });
-        shifts.Verify(s => s.UpdateShiftAsync("manager-shift", "owner", It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), "Cook", It.IsAny<string?>(), "manager-id"), Times.Once);
+        WorkItems.Verify(s => s.UpdateWorkItemAsync("manager-work-item", "owner", It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), "Cook", It.IsAny<string?>(), "manager-id"), Times.Once);
     }
 
     [Test]
     public async Task AutoAssignAsync_RespectsIncludeDayAndMatchingTeamMemberType()
     {
-        var included = CreateShift("included", Monday, "Dishwasher");
-        var excluded = CreateShift("excluded", Monday.AddDays(1), "Cook");
+        var included = CreateWorkItem("included", Monday, "Dishwasher");
+        var excluded = CreateWorkItem("excluded", Monday.AddDays(1), "Cook");
         var employee = new User { Id = "worker-id", Username = "worker", TeamMemberType = "Dishwasher", MaxHours = 0, Availability = BuildFullWeekAvailability() };
         var users = new Mock<IUserService>();
         var absences = new Mock<IAbsencesService>();
         users.Setup(s => s.GetLinkedUsersForManagerAsync("manager")).ReturnsAsync([employee]);
         absences.Setup(s => s.GetAbsencesAsync("manager", null, It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
             .ReturnsAsync([]);
-        var shifts = new Mock<IShiftsService>();
-        SetupShiftLoads(shifts, [included, excluded], []);
-        shifts.Setup(s => s.UpdateShiftAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId) => new Shift { Id = id, AssignedToUserId = assignedId });
-        var service = new ShiftAutoAssignService(shifts.Object, users.Object, absences.Object);
+        var WorkItems = new Mock<IWorkItemsService>();
+        SetupWorkItemLoads(WorkItems, [included, excluded], []);
+        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId) => new WorkItem { Id = id, AssignedToUserId = assignedId });
+        var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
 
-        var outcome = await service.AutoAssignAsync("owner", null, "manager", Monday, Monday.AddDays(1), day => day == Monday, "No shifts");
+        var outcome = await service.AutoAssignAsync("owner", null, "manager", Monday, Monday.AddDays(1), day => day == Monday, "No work items");
 
         Assert.Multiple(() =>
         {
-            Assert.That(outcome.ShiftsChanged, Is.True);
-            Assert.That(outcome.SuccessMessage, Does.Contain("Successfully assigned 1 shift"));
+            Assert.That(outcome.WorkItemsChanged, Is.True);
+            Assert.That(outcome.SuccessMessage, Does.Contain("Successfully assigned 1 work item"));
             Assert.That(outcome.WarningMessage, Does.Contain("worker"));
         });
-        shifts.Verify(s => s.UpdateShiftAsync("included", "owner", It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), "Dishwasher", It.IsAny<string?>(), "worker-id"), Times.Once);
-        shifts.Verify(s => s.UpdateShiftAsync("excluded", It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
+        WorkItems.Verify(s => s.UpdateWorkItemAsync("included", "owner", It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), "Dishwasher", It.IsAny<string?>(), "worker-id"), Times.Once);
+        WorkItems.Verify(s => s.UpdateWorkItemAsync("excluded", It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
     }
 
     [Test]
     public async Task AutoAssignAsync_DoesNotExceedWeeklyHoursOrAssignSameEmployeeTwiceInADay()
     {
-        var first = CreateShift("first", Monday, "Cook", 4);
-        var sameDay = CreateShift("same-day", Monday, "Cook", 2);
-        var laterDay = CreateShift("later", Monday.AddDays(1), "Cook", 4);
+        var first = CreateWorkItem("first", Monday, "Cook", 4);
+        var sameDay = CreateWorkItem("same-day", Monday, "Cook", 2);
+        var laterDay = CreateWorkItem("later", Monday.AddDays(1), "Cook", 4);
         var employee = new User { Id = "worker-id", Username = "worker", TeamMemberType = "Cook", MaxHours = 6, Availability = BuildFullWeekAvailability() };
         var users = new Mock<IUserService>();
         var absences = new Mock<IAbsencesService>();
         users.Setup(s => s.GetLinkedUsersForManagerAsync("manager")).ReturnsAsync([employee]);
         absences.Setup(s => s.GetAbsencesAsync("manager", null, It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
             .ReturnsAsync([]);
-        var shifts = new Mock<IShiftsService>();
-        SetupShiftLoads(shifts, [first, sameDay, laterDay], [CreateShift("existing", Monday.AddDays(-1), "Cook", 2, "worker-id")]);
+        var WorkItems = new Mock<IWorkItemsService>();
+        SetupWorkItemLoads(WorkItems, [first, sameDay, laterDay], [CreateWorkItem("existing", Monday.AddDays(-1), "Cook", 2, "worker-id")]);
         var assigned = new List<string>();
-        shifts.Setup(s => s.UpdateShiftAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
+        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
             .Callback<string, string, DateTime, DateTime, string?, string?, string, string?, string?>((id, _, _, _, _, _, _, _, _) => assigned.Add(id))
-            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId) => new Shift { Id = id, AssignedToUserId = assignedId });
-        var service = new ShiftAutoAssignService(shifts.Object, users.Object, absences.Object);
+            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId) => new WorkItem { Id = id, AssignedToUserId = assignedId });
+        var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
 
-        var outcome = await service.AutoAssignAsync("owner", null, "manager", Monday, Monday.AddDays(1), null, "No shifts");
+        var outcome = await service.AutoAssignAsync("owner", null, "manager", Monday, Monday.AddDays(1), null, "No work items");
 
         Assert.That(assigned, Is.EqualTo(new[] { "first" }));
-        Assert.That(outcome.SuccessMessage, Does.Contain("1 shift"));
+        Assert.That(outcome.SuccessMessage, Does.Contain("1 work item"));
         Assert.That(outcome.WarningMessage, Is.Null);
     }
 
     [Test]
-    public async Task AutoAssignAsync_DoesNotAssignShiftOutsideEmployeeAvailability()
+    public async Task AutoAssignAsync_DoesNotAssignWorkItemOutsideEmployeeAvailability()
     {
-        var earlyShift = CreateShiftAtTime("early", Monday, "Cook", new TimeOnly(6, 0), 4);
+        var earlyWorkItem = CreateWorkItemAtTime("early", Monday, "Cook", new TimeOnly(6, 0), 4);
         var employee = new User
         {
             Id = "worker-id",
@@ -284,24 +284,24 @@ public class ShiftAutoAssignServiceTests
         users.Setup(s => s.GetLinkedUsersForManagerAsync("manager")).ReturnsAsync([employee]);
         absences.Setup(s => s.GetAbsencesAsync("manager", null, It.IsAny<DateOnly>(), It.IsAny<DateOnly>())).ReturnsAsync([]);
 
-        var shifts = new Mock<IShiftsService>();
-        SetupShiftLoads(shifts, [earlyShift], []);
-        var service = new ShiftAutoAssignService(shifts.Object, users.Object, absences.Object);
+        var WorkItems = new Mock<IWorkItemsService>();
+        SetupWorkItemLoads(WorkItems, [earlyWorkItem], []);
+        var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
 
-        var outcome = await service.AutoAssignAsync("owner", null, "manager", Monday, Monday, null, "No shifts");
+        var outcome = await service.AutoAssignAsync("owner", null, "manager", Monday, Monday, null, "No work items");
 
         Assert.Multiple(() =>
         {
-            Assert.That(outcome.ShiftsChanged, Is.False);
-            Assert.That(outcome.SuccessMessage, Does.Contain("No shifts could be assigned"));
+            Assert.That(outcome.WorkItemsChanged, Is.False);
+            Assert.That(outcome.SuccessMessage, Does.Contain("No work items could be assigned"));
         });
-        shifts.Verify(s => s.UpdateShiftAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
+        WorkItems.Verify(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
     }
 
     [Test]
-    public async Task AutoAssignAsync_DoesNotAssignWhenApprovedAbsenceOverlapsShift()
+    public async Task AutoAssignAsync_DoesNotAssignWhenApprovedAbsenceOverlapsWorkItem()
     {
-        var shift = CreateShiftAtTime("shift", Monday, "Cook", new TimeOnly(9, 0), 4);
+        var WorkItem = CreateWorkItemAtTime("Work item", Monday, "Cook", new TimeOnly(9, 0), 4);
         var employee = new User { Id = "worker-id", Username = "worker", TeamMemberType = "Cook", Availability = BuildFullWeekAvailability(), MaxHours = 40 };
 
         var approvedAbsence = new Absence
@@ -318,14 +318,14 @@ public class ShiftAutoAssignServiceTests
         users.Setup(s => s.GetLinkedUsersForManagerAsync("manager")).ReturnsAsync([employee]);
         absences.Setup(s => s.GetAbsencesAsync("manager", null, It.IsAny<DateOnly>(), It.IsAny<DateOnly>())).ReturnsAsync([approvedAbsence]);
 
-        var shifts = new Mock<IShiftsService>();
-        SetupShiftLoads(shifts, [shift], []);
-        var service = new ShiftAutoAssignService(shifts.Object, users.Object, absences.Object);
+        var WorkItems = new Mock<IWorkItemsService>();
+        SetupWorkItemLoads(WorkItems, [WorkItem], []);
+        var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
 
-        var outcome = await service.AutoAssignAsync("owner", null, "manager", Monday, Monday, null, "No shifts");
+        var outcome = await service.AutoAssignAsync("owner", null, "manager", Monday, Monday, null, "No work items");
 
-        Assert.That(outcome.ShiftsChanged, Is.False);
-        shifts.Verify(s => s.UpdateShiftAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
+        Assert.That(outcome.WorkItemsChanged, Is.False);
+        WorkItems.Verify(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
     }
 
     [Test]
@@ -334,8 +334,8 @@ public class ShiftAutoAssignServiceTests
         var saturday = Monday.AddDays(-2);
         var sunday = Monday.AddDays(-1);
 
-        var saturdayShift = CreateShift("sat-shift", saturday, "Cook", 4);
-        var sundayShift = CreateShift("sun-shift", sunday, "Cook", 4);
+        var saturdayWorkItem = CreateWorkItem("sat-work-item", saturday, "Cook", 4);
+        var sundayWorkItem = CreateWorkItem("sun-work-item", sunday, "Cook", 4);
 
         var employee = new User { Id = "worker-id", Username = "worker", TeamMemberType = "Cook", MaxHours = 4, Availability = BuildFullWeekAvailability() };
 
@@ -344,28 +344,28 @@ public class ShiftAutoAssignServiceTests
         users.Setup(s => s.GetLinkedUsersForManagerAsync("manager")).ReturnsAsync([employee]);
         absences.Setup(s => s.GetAbsencesAsync("manager", null, It.IsAny<DateOnly>(), It.IsAny<DateOnly>())).ReturnsAsync([]);
 
-        var shifts = new Mock<IShiftsService>();
-        SetupShiftLoads(shifts, [saturdayShift, sundayShift], []);
+        var WorkItems = new Mock<IWorkItemsService>();
+        SetupWorkItemLoads(WorkItems, [saturdayWorkItem, sundayWorkItem], []);
         var assigned = new List<string>();
-        shifts.Setup(s => s.UpdateShiftAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
+        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
             .Callback<string, string, DateTime, DateTime, string?, string?, string, string?, string?>((id, _, _, _, _, _, _, _, _) => assigned.Add(id))
-            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId) => new Shift { Id = id, AssignedToUserId = assignedId });
+            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId) => new WorkItem { Id = id, AssignedToUserId = assignedId });
 
-        var service = new ShiftAutoAssignService(shifts.Object, users.Object, absences.Object);
+        var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
 
-        var outcome = await service.AutoAssignAsync("owner", null, "manager", saturday, sunday, null, "No shifts");
+        var outcome = await service.AutoAssignAsync("owner", null, "manager", saturday, sunday, null, "No work items");
 
         Assert.Multiple(() =>
         {
-            Assert.That(outcome.ShiftsChanged, Is.True);
-            Assert.That(assigned, Is.EqualTo(new[] { "sat-shift", "sun-shift" }));
+            Assert.That(outcome.WorkItemsChanged, Is.True);
+            Assert.That(assigned, Is.EqualTo(new[] { "sat-work-item", "sun-work-item" }));
         });
     }
 
-    private static Shift CreateShift(string id, DateOnly day, string workerType, double hours = 4, string? assignedTo = null)
+    private static WorkItem CreateWorkItem(string id, DateOnly day, string workerType, double hours = 4, string? assignedTo = null)
     {
         var start = day.ToDateTime(new TimeOnly(9, 0), DateTimeKind.Local);
-        return new Shift
+        return new WorkItem
         {
             Id = id,
             Username = "owner",
@@ -376,10 +376,10 @@ public class ShiftAutoAssignServiceTests
         };
     }
 
-    private static Shift CreateShiftAtTime(string id, DateOnly day, string workerType, TimeOnly startTime, double hours = 4, string? assignedTo = null)
+    private static WorkItem CreateWorkItemAtTime(string id, DateOnly day, string workerType, TimeOnly startTime, double hours = 4, string? assignedTo = null)
     {
         var start = day.ToDateTime(startTime, DateTimeKind.Local);
-        return new Shift
+        return new WorkItem
         {
             Id = id,
             Username = "owner",
@@ -402,9 +402,9 @@ public class ShiftAutoAssignServiceTests
             .ToList();
     }
 
-    private static void SetupShiftLoads(Mock<IShiftsService> shifts, List<Shift> requested, List<Shift> fullWeek)
+    private static void SetupWorkItemLoads(Mock<IWorkItemsService> WorkItems, List<WorkItem> requested, List<WorkItem> fullWeek)
     {
-        shifts.SetupSequence(s => s.GetShiftsAsync("owner", It.IsAny<string?>(), "manager", It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
+        WorkItems.SetupSequence(s => s.GetWorkItemsAsync("owner", It.IsAny<string?>(), "manager", It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
             .ReturnsAsync(requested)
             .ReturnsAsync(fullWeek);
     }

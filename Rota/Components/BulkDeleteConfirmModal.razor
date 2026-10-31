@@ -1,12 +1,12 @@
 @using System.Globalization
 
-@* Confirmation dialog shown before bulk-deleting shifts, absences or reminders across the selected days. *@
+@* Confirmation dialog shown before bulk-deleting work items, absences or reminders across the selected days. *@
 @{
     var typeName = Type switch
     {
         BulkDeleteType.Absences => Count == 1 ? "absence" : "absences",
         BulkDeleteType.Reminders => Count == 1 ? "reminder" : "reminders",
-        _ => Count == 1 ? "shift" : "shifts"
+        _ => Count == 1 ? "Work item" : "Work items"
     };
 }
 

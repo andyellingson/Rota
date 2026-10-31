@@ -90,20 +90,20 @@ namespace Rota.Services
         }
 
         /// <summary>
-        /// Updates the shift assignment priority for the specified user.
+        /// Updates the work item assignment priority for the specified user.
         /// </summary>
-        public async System.Threading.Tasks.Task<bool> UpdateShiftAssignmentPriorityAsync(string username, int priority)
+        public async System.Threading.Tasks.Task<bool> UpdateWorkItemAssignmentPriorityAsync(string username, int priority)
         {
             try
             {
                 var filter = Builders<User>.Filter.Eq(u => u.Username, username);
-                var update = Builders<User>.Update.Set(u => u.ShiftAssignmentPriority, priority);
+                var update = Builders<User>.Update.Set(u => u.WorkItemAssignmentPriority, priority);
                 var result = await _users.UpdateOneAsync(filter, update);
                 return result.ModifiedCount > 0;
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error updating ShiftAssignmentPriority for user {User}", username);
+                _logger.LogError(ex, "Error updating WorkItemAssignmentPriority for user {User}", username);
                 return false;
             }
         }

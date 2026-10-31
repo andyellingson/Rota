@@ -1,4 +1,4 @@
-/* Ensure Bootstrap .card inside the Manage page follows the app theme variables
+﻿/* Ensure Bootstrap .card inside the Manage page follows the app theme variables
    (prevents bright white card surfaces in dark mode). */
 .card {
     background: var(--color-bg-card);
@@ -450,31 +450,31 @@
     color: var(--color-text-primary);
 }
 
-.rotation-day-shift-list {
+.rotation-day-work-item-list {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
-.rotation-day-shift-item {
+.rotation-day-work-item {
     border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 0.25rem;
     background: rgba(127, 127, 127, 0.06);
 }
 
-.rotation-day-shift-item:hover {
+.rotation-day-work-item:hover {
     border-color: rgba(13,110,253,0.6);
     box-shadow: 0 4px 16px rgba(13,110,253,0.15);
 }
 
-/* ── Shift cards inside the WorkWeek week-grid ──────────────
+/* ── WorkItem cards inside the WorkWeek week-grid ──────────────
    Mirror the styles from Calendar.razor.css so the cards look
    identical to those rendered on the main calendar.
    These rules must live here because Blazor CSS isolation scopes
    Calendar.razor.css exclusively to the Calendar component.     */
 
-.shift-item {
+.work-item {
     background: rgba(24,144,255,0.08);
     border-left: 4px solid rgba(24,144,255,0.6);
     padding: 0.25rem 0.5rem;
@@ -490,11 +490,11 @@
     transition: box-shadow 0.15s;
 }
 
-.shift-item:hover {
+.work-item:hover {
     box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 
-.shift-worker-type {
+.work-item-worker-type {
     font-weight: 700;
     font-size: 0.78rem;
     color: #1890ff;
@@ -503,12 +503,12 @@
     max-width: 100%;
 }
 
-.shift-time {
+.work-item-time {
     font-size: 0.7rem;
     color: var(--color-text-secondary);
 }
 
-.shift-assigned {
+.work-item-assigned {
     font-size: 0.68rem;
     color: var(--color-text-secondary);
     white-space: nowrap;

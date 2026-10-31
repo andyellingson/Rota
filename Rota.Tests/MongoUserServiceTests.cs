@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -98,7 +98,7 @@ namespace Rota.Tests
             {
                 Assert.That(await service.UpdateNamesAsync("user", "First", "Last"), Is.True);
                 Assert.That(await service.UpdateMaxHoursAsync("user", 32), Is.True);
-                Assert.That(await service.UpdateShiftAssignmentPriorityAsync("user", 4), Is.True);
+                Assert.That(await service.UpdateWorkItemAssignmentPriorityAsync("user", 4), Is.True);
                 Assert.That(await service.UpdateAssignedSchedulesAsync("user", ["schedule-a", "schedule-a", "schedule-b"]), Is.True);
                 Assert.That(await service.UpdateDisplayNameAsync("user", "Name"), Is.True);
                 Assert.That(await service.UpdateTeamMemberTypeAsync("user", "Cook"), Is.True);

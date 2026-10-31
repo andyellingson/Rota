@@ -36,13 +36,13 @@
                                    placeholder="@ScheduleName" />
                         </div>
 
-                        @* ── Week navigation: shifts the print range back/forward one week ── *@
+                        @* ── Week navigation: work items the print range back/forward one week ── *@
                         <div class="d-flex align-items-center gap-2">
                             <label class="form-label mb-0 small fw-semibold">Start week:</label>
                             <div class="btn-group btn-group-sm" role="group" aria-label="Change print start week">
-                                <button type="button" class="btn btn-outline-secondary print-nav-btn" title="Previous week" @onclick="() => ShiftRange(-1)">‹</button>
+                                <button type="button" class="btn btn-outline-secondary print-nav-btn" title="Previous week" @onclick="() => WorkItemRange(-1)">‹</button>
                                 <span class="btn btn-outline-secondary disabled print-nav-label">@printStart.ToString("d", CultureInfo.CurrentCulture)</span>
-                                <button type="button" class="btn btn-outline-secondary print-nav-btn" title="Next week" @onclick="() => ShiftRange(1)">›</button>
+                                <button type="button" class="btn btn-outline-secondary print-nav-btn" title="Next week" @onclick="() => WorkItemRange(1)">›</button>
                             </div>
                         </div>
 
@@ -87,7 +87,7 @@
                                     @foreach (var day in Enumerable.Range(0, 7).Select(i => weekStart.AddDays(i)))
                                     {
                                         var isToday = day == DateOnly.FromDateTime(DateTime.Today);
-                                        var dayShifts = ShiftsForDay(day).OrderBy(s => s.Start).ToList();
+                                        var dayWorkItems = WorkItemsForDay(day).OrderBy(s => s.Start).ToList();
                                         var dayAbsences = AbsencesForDay(day).OrderBy(a => a.StartDate).ToList();
                                         var dayReminders = RemindersForDay(day).OrderBy(r => r.ReminderDateTime).ToList();
 
@@ -96,9 +96,9 @@
                                                 <div class="fw-bold">@day.ToString("ddd", CultureInfo.CurrentCulture)</div>
                                                 <div class="print-week-day-date">@day.ToString("d", CultureInfo.CurrentCulture)</div>
                                             </div>
-                                            @foreach (var s in dayShifts)
+                                            @foreach (var s in dayWorkItems)
                                             {
-                                                <div class="print-event print-event-shift" style="border-left-color:@(s.Color ?? "#1890ff");">
+                                                <div class="print-event print-event-work-item" style="border-left-color:@(s.Color ?? "#1890ff");">
                                                     @* Row 1: title (left) and team member type (right), as in the Calendar *@
                                                     <div class="print-event-header">
                                                         <div class="print-event-title">@(string.IsNullOrWhiteSpace(s.Title) ? s.WorkerType : s.Title)</div>
@@ -142,7 +142,7 @@
                                                     <span class="print-event-label">@r.Title</span>
                                                 </div>
                                             }
-                                            @if (!dayShifts.Any() && !dayAbsences.Any() && !dayReminders.Any())
+                                            @if (!dayWorkItems.Any() && !dayAbsences.Any() && !dayReminders.Any())
                                             {
                                                 <div class="print-week-empty">—</div>
                                             }
@@ -191,8 +191,8 @@
     // is guaranteed to show exactly the same events the calendar displays – no
     // duplicated filtering logic, no stale-reference risk.
 
-    /// <summary>Returns the shifts to display for a given day (Calendar's own method).</summary>
-    [Parameter] public Func<DateOnly, List<Shift>> ShiftsForDay { get; set; } = _ => new();
+    /// <summary>Returns the work items to display for a given day (Calendar's own method).</summary>
+    [Parameter] public Func<DateOnly, List<WorkItem>> WorkItemsForDay { get; set; } = _ => new();
 
     /// <summary>Returns the absences to display for a given day (Calendar's own method).</summary>
     [Parameter] public Func<DateOnly, List<Absence>> AbsencesForDay { get; set; } = _ => new();
@@ -209,16 +209,16 @@
     /// <summary>Resolves a user's last name from a userId (Calendar's own method).</summary>
     [Parameter] public Func<string?, string> GetEmployeeLastName { get; set; } = _ => string.Empty;
 
-    /// <summary>Resolves the display title for a shift (Calendar's own method).</summary>
-    [Parameter] public Func<Shift, string> GetShiftTitle { get; set; } = s =>
+    /// <summary>Resolves the display title for a work item (Calendar's own method).</summary>
+    [Parameter] public Func<WorkItem, string> GetWorkItemTitle { get; set; } = s =>
         string.IsNullOrWhiteSpace(s.Title) ? s.WorkerType.ToString() : $"{s.Title} - {s.WorkerType}";
 
-    /// <summary>Returns the overtime hours for a shift (Calendar's own method).</summary>
-    [Parameter] public Func<Shift, double> GetOvertimeHours { get; set; } = _ => 0;
+    /// <summary>Returns the overtime hours for a work item (Calendar's own method).</summary>
+    [Parameter] public Func<WorkItem, double> GetOvertimeHours { get; set; } = _ => 0;
 
     /// <summary>
     /// Called when the user changes the period count so
-    /// required date range into its shift/absence/reminder lists.
+    /// required date range into its work item/absence/reminder lists.
     /// Receives the inclusive start and end dates of the full print range.
     /// </summary>
     [Parameter] public Func<DateOnly, DateOnly, Task>? LoadRangeData { get; set; }
@@ -258,7 +258,7 @@
     private DateOnly printStart;
 
     /// <summary>Moves the print range by whole weeks and loads data for the new range.</summary>
-    private async Task ShiftRange(int weeks)
+    private async Task WorkItemRange(int weeks)
     {
         printStart = printStart.AddDays(weeks * 7);
         await LoadPrintRange();

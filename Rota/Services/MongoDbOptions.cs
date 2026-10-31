@@ -19,9 +19,9 @@ namespace Rota.Services
         /// </summary>
         public string RemindersCollectionName { get; set; } = "reminders";
         /// <summary>
-        /// Name of the collection that stores shift documents.
+        /// Name of the collection that stores work item documents.
         /// </summary>
-        public string ShiftsCollectionName { get; set; } = "shifts";
+        public string WorkItemsCollectionName { get; set; } = "workItems";
 
         /// <summary>
         /// Name of the collection that stores absence documents.

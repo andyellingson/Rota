@@ -4,7 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace Rota.Models
 {
     /// <summary>
-    /// Represents a named schedule that groups shifts, absences, and reminders.
+    /// Represents a named schedule that groups work items, absences, and reminders.
     /// </summary>
     // Ignore legacy elements that no longer map to a property
     [BsonIgnoreExtraElements]
@@ -62,7 +62,7 @@ namespace Rota.Models
 
         /// <summary>
         /// Optional list of named rotation templates that can be applied to a calendar.
-        /// Each Rotation contains zero or more shift definitions assigned to days of the week.
+        /// Each Rotation contains zero or more work item definitions assigned to days of the week.
         /// </summary>
         [BsonElement("rotations")]
         public List<Rotation> Rotations { get; set; } = new();

@@ -6,14 +6,14 @@ using Rota.Services;
 namespace Rota.Endpoints
 {
     /// <summary>
-    /// Registers shift-related minimal API endpoints.
+    /// Registers work-item-related minimal API endpoints.
     /// </summary>
-    public static class ShiftsEndpoints
+    public static class WorkItemsEndpoints
     {
         /// <summary>
-        /// Maps shift endpoints for querying and editing calendar shifts.
+        /// Maps work item endpoints for querying and editing calendar work items.
         /// </summary>
-        public static WebApplication MapShiftsEndpoints(this WebApplication app)
+        public static WebApplication MapWorkItemsEndpoints(this WebApplication app)
         {
             /// <summary>
             /// Tries to parse an incoming date-time string to a UTC <see cref="DateTime"/>.
@@ -29,7 +29,7 @@ namespace Rota.Endpoints
                 return false;
             }
 
-            app.MapGet("/api/shifts", async (string? start, string? end, IShiftsService shifts, IUserService users, Microsoft.AspNetCore.Http.HttpContext context) =>
+            app.MapGet("/api/workitems", async (string? start, string? end, IWorkItemsService WorkItems, IUserService users, Microsoft.AspNetCore.Http.HttpContext context) =>
             {
                 try
                 {
@@ -64,17 +64,17 @@ namespace Rota.Endpoints
                     if (!string.IsNullOrWhiteSpace(end) && !DateOnly.TryParse(end, out endDate))
                         return Results.Json(new { ok = false, message = "Invalid end date", code = 400 }, statusCode: 400);
 
-                    var items = await shifts.GetShiftsAsync(username, caller?.Id, queryManagerCode, startDate, endDate);
-                    return Results.Json(new { ok = true, shifts = items, code = 200 }, statusCode: 200);
+                    var items = await WorkItems.GetWorkItemsAsync(username, caller?.Id, queryManagerCode, startDate, endDate);
+                    return Results.Json(new { ok = true, WorkItems = items, code = 200 }, statusCode: 200);
                 }
                 catch (Exception ex)
                 {
-                    app.Logger.LogError(ex, "Unhandled exception in GET /api/shifts");
+                    app.Logger.LogError(ex, "Unhandled exception in GET /api/workitems");
                     return Results.Json(new { ok = false, message = "Internal server error", code = 500 }, statusCode: 500);
                 }
             }).RequireAuthorization();
 
-            app.MapPost("/api/shifts", async (CreateShiftDto dto, IShiftsService shifts, IUserService users, Microsoft.AspNetCore.Http.HttpContext context) =>
+            app.MapPost("/api/workitems", async (CreateWorkItemDto dto, IWorkItemsService WorkItems, IUserService users, Microsoft.AspNetCore.Http.HttpContext context) =>
             {
                 try
                 {
@@ -90,7 +90,7 @@ namespace Rota.Endpoints
 
                     var creator = await users.GetByUsernameAsync(username);
 
-                    var shift = new Shift
+                    var WorkItem = new WorkItem
                     {
                         Username = username,
                         Start = startUtc,
@@ -104,17 +104,17 @@ namespace Rota.Endpoints
                         SeriesId = dto.SeriesId
                     };
 
-                    var created = await shifts.CreateShiftAsync(shift);
-                    return Results.Json(new { ok = true, shift = created, code = 200 }, statusCode: 200);
+                    var created = await WorkItems.CreateWorkItemAsync(WorkItem);
+                    return Results.Json(new { ok = true, WorkItem = created, code = 200 }, statusCode: 200);
                 }
                 catch (Exception ex)
                 {
-                    app.Logger.LogError(ex, "Unhandled exception in POST /api/shifts");
+                    app.Logger.LogError(ex, "Unhandled exception in POST /api/workitems");
                     return Results.Json(new { ok = false, message = "Internal server error", code = 500 }, statusCode: 500);
                 }
             }).RequireAuthorization();
 
-            app.MapDelete("/api/shifts/{id}", async (string id, IShiftsService shifts, Microsoft.AspNetCore.Http.HttpContext context) =>
+            app.MapDelete("/api/workitems/{id}", async (string id, IWorkItemsService WorkItems, Microsoft.AspNetCore.Http.HttpContext context) =>
             {
                 try
                 {
@@ -122,20 +122,20 @@ namespace Rota.Endpoints
                     if (string.IsNullOrEmpty(username))
                         return Results.Json(new { ok = false, message = "Unauthorized", code = 401 }, statusCode: 401);
 
-                    var deleted = await shifts.DeleteShiftAsync(id, username);
+                    var deleted = await WorkItems.DeleteWorkItemAsync(id, username);
                     if (!deleted)
-                        return Results.Json(new { ok = false, message = "Shift not found or access denied", code = 404 }, statusCode: 404);
+                        return Results.Json(new { ok = false, message = "Work item not found or access denied", code = 404 }, statusCode: 404);
 
                     return Results.Json(new { ok = true, message = "Deleted", code = 200 }, statusCode: 200);
                 }
                 catch (Exception ex)
                 {
-                    app.Logger.LogError(ex, "Unhandled exception in DELETE /api/shifts/{Id}", id);
+                    app.Logger.LogError(ex, "Unhandled exception in DELETE /api/workitems/{Id}", id);
                     return Results.Json(new { ok = false, message = "Internal server error", code = 500 }, statusCode: 500);
                 }
             }).RequireAuthorization();
 
-            app.MapPut("/api/shifts/{id}", async (string id, UpdateShiftDto dto, IShiftsService shifts, Microsoft.AspNetCore.Http.HttpContext context) =>
+            app.MapPut("/api/workitems/{id}", async (string id, UpdateWorkItemDto dto, IWorkItemsService WorkItems, Microsoft.AspNetCore.Http.HttpContext context) =>
             {
                 try
                 {
@@ -151,20 +151,20 @@ namespace Rota.Endpoints
 
                     var workerTypeName = string.IsNullOrWhiteSpace(dto.WorkerType) ? "General" : dto.WorkerType;
 
-                    var updated = await shifts.UpdateShiftAsync(id, username, startUtc, endUtc, dto.Title, dto.Notes, workerTypeName, dto.Color, string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? null : dto.AssignedToUserId);
+                    var updated = await WorkItems.UpdateWorkItemAsync(id, username, startUtc, endUtc, dto.Title, dto.Notes, workerTypeName, dto.Color, string.IsNullOrWhiteSpace(dto.AssignedToUserId) ? null : dto.AssignedToUserId);
                     if (updated is null)
-                        return Results.Json(new { ok = false, message = "Shift not found or access denied", code = 404 }, statusCode: 404);
+                        return Results.Json(new { ok = false, message = "Work item not found or access denied", code = 404 }, statusCode: 404);
 
-                    return Results.Json(new { ok = true, shift = updated, code = 200 }, statusCode: 200);
+                    return Results.Json(new { ok = true, WorkItem = updated, code = 200 }, statusCode: 200);
                 }
                 catch (Exception ex)
                 {
-                    app.Logger.LogError(ex, "Unhandled exception in PUT /api/shifts/{Id}", id);
+                    app.Logger.LogError(ex, "Unhandled exception in PUT /api/workitems/{Id}", id);
                     return Results.Json(new { ok = false, message = "Internal server error", code = 500 }, statusCode: 500);
                 }
             }).RequireAuthorization();
 
-            app.MapDelete("/api/shifts/series/{seriesId}", async (Guid seriesId, IShiftsService shifts, Microsoft.AspNetCore.Http.HttpContext context) =>
+            app.MapDelete("/api/workitems/series/{seriesId}", async (Guid seriesId, IWorkItemsService WorkItems, Microsoft.AspNetCore.Http.HttpContext context) =>
             {
                 try
                 {
@@ -172,12 +172,12 @@ namespace Rota.Endpoints
                     if (string.IsNullOrEmpty(username))
                         return Results.Json(new { ok = false, message = "Unauthorized", code = 401 }, statusCode: 401);
 
-                    var deletedCount = await shifts.DeleteShiftsBySeriesIdAsync(seriesId, username);
-                    return Results.Json(new { ok = true, deletedCount = deletedCount, message = $"Deleted {deletedCount} shifts", code = 200 }, statusCode: 200);
+                    var deletedCount = await WorkItems.DeleteWorkItemsBySeriesIdAsync(seriesId, username);
+                    return Results.Json(new { ok = true, deletedCount = deletedCount, message = $"Deleted {deletedCount} work items", code = 200 }, statusCode: 200);
                 }
                 catch (Exception ex)
                 {
-                    app.Logger.LogError(ex, "Unhandled exception in DELETE /api/shifts/series/{SeriesId}", seriesId);
+                    app.Logger.LogError(ex, "Unhandled exception in DELETE /api/workitems/series/{SeriesId}", seriesId);
                     return Results.Json(new { ok = false, message = "Internal server error", code = 500 }, statusCode: 500);
                 }
             }).RequireAuthorization();

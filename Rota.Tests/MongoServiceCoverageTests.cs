@@ -12,35 +12,35 @@ using Rota.Services;
 namespace Rota.Tests;
 
 [TestFixture]
-public class MongoShiftsServiceTests
+public class MongoWorkItemsServiceTests
 {
     [Test]
-    public async Task GetShiftsAsync_WithoutAnyScope_ReturnsEmptyWithoutQuery()
+    public async Task GetWorkItemsAsync_WithoutAnyScope_ReturnsEmptyWithoutQuery()
     {
-        var collection = new Mock<IMongoCollection<Shift>>();
+        var collection = new Mock<IMongoCollection<WorkItem>>();
         var service = CreateService(collection);
 
-        var result = await service.GetShiftsAsync(null, null, null, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31));
+        var result = await service.GetWorkItemsAsync(null, null, null, new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31));
 
         Assert.That(result, Is.Empty);
         Assert.That(collection.Invocations, Is.Empty);
     }
 
     [Test]
-    public async Task GetShiftsAsync_WithManagerScopeUsesManagerFilterAndDateRange()
+    public async Task GetWorkItemsAsync_WithManagerScopeUsesManagerFilterAndDateRange()
     {
-        var collection = new Mock<IMongoCollection<Shift>>();
-        FilterDefinition<Shift>? captured = null;
-        var cursor = new Mock<IAsyncCursor<Shift>>();
+        var collection = new Mock<IMongoCollection<WorkItem>>();
+        FilterDefinition<WorkItem>? captured = null;
+        var cursor = new Mock<IAsyncCursor<WorkItem>>();
         cursor.SetupSequence(c => c.MoveNext(It.IsAny<CancellationToken>())).Returns(true).Returns(false);
         cursor.SetupSequence(c => c.MoveNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true).ReturnsAsync(false);
         cursor.SetupGet(c => c.Current).Returns([]);
-        collection.Setup(c => c.FindAsync(It.IsAny<FilterDefinition<Shift>>(), It.IsAny<FindOptions<Shift, Shift>>(), It.IsAny<CancellationToken>()))
-            .Callback<FilterDefinition<Shift>, FindOptions<Shift, Shift>, CancellationToken>((filter, _, _) => captured = filter)
+        collection.Setup(c => c.FindAsync(It.IsAny<FilterDefinition<WorkItem>>(), It.IsAny<FindOptions<WorkItem, WorkItem>>(), It.IsAny<CancellationToken>()))
+            .Callback<FilterDefinition<WorkItem>, FindOptions<WorkItem, WorkItem>, CancellationToken>((filter, _, _) => captured = filter)
             .ReturnsAsync(cursor.Object);
         var service = CreateService(collection);
 
-        await service.GetShiftsAsync("worker", "user-id", "manager-code", new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31));
+        await service.GetWorkItemsAsync("worker", "user-id", "manager-code", new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31));
 
         var json = Render(captured).ToJson();
         Assert.That(json, Does.Contain("manager-code"));
@@ -50,44 +50,44 @@ public class MongoShiftsServiceTests
     }
 
     [Test]
-    public async Task CreateShiftAsync_SetsCreatedAtAndPersists()
+    public async Task CreateWorkItemAsync_SetsCreatedAtAndPersists()
     {
-        var collection = new Mock<IMongoCollection<Shift>>();
-        collection.Setup(c => c.InsertOneAsync(It.IsAny<Shift>(), It.IsAny<InsertOneOptions>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        var collection = new Mock<IMongoCollection<WorkItem>>();
+        collection.Setup(c => c.InsertOneAsync(It.IsAny<WorkItem>(), It.IsAny<InsertOneOptions>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         var service = CreateService(collection);
-        var shift = new Shift { Username = "owner" };
+        var WorkItem = new WorkItem { Username = "owner" };
 
-        var result = await service.CreateShiftAsync(shift);
+        var result = await service.CreateWorkItemAsync(WorkItem);
 
-        Assert.That(result, Is.SameAs(shift));
-        Assert.That(shift.CreatedAt, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(2)));
-        collection.Verify(c => c.InsertOneAsync(shift, It.IsAny<InsertOneOptions>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.That(result, Is.SameAs(WorkItem));
+        Assert.That(WorkItem.CreatedAt, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(2)));
+        collection.Verify(c => c.InsertOneAsync(WorkItem, It.IsAny<InsertOneOptions>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Test]
-    public async Task DeleteShiftAsync_ReturnsFalseWhenMongoFails()
+    public async Task DeleteWorkItemAsync_ReturnsFalseWhenMongoFails()
     {
-        var collection = new Mock<IMongoCollection<Shift>>();
-        collection.Setup(c => c.DeleteOneAsync(It.IsAny<FilterDefinition<Shift>>(), It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException());
+        var collection = new Mock<IMongoCollection<WorkItem>>();
+        collection.Setup(c => c.DeleteOneAsync(It.IsAny<FilterDefinition<WorkItem>>(), It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException());
         var service = CreateService(collection);
 
-        Assert.That(await service.DeleteShiftAsync("id", "owner"), Is.False);
+        Assert.That(await service.DeleteWorkItemAsync("id", "owner"), Is.False);
     }
 
     [Test]
-    public async Task DeleteShiftsByScheduleIdAsync_DeletesMatchingScheduleShifts()
+    public async Task DeleteWorkItemsByScheduleIdAsync_DeletesMatchingScheduleWorkItems()
     {
-        var collection = new Mock<IMongoCollection<Shift>>();
-        FilterDefinition<Shift>? capturedFilter = null;
+        var collection = new Mock<IMongoCollection<WorkItem>>();
+        FilterDefinition<WorkItem>? capturedFilter = null;
         var result = new Mock<DeleteResult>();
         result.SetupGet(r => r.DeletedCount).Returns(3);
-        collection.Setup(c => c.DeleteManyAsync(It.IsAny<FilterDefinition<Shift>>(), It.IsAny<CancellationToken>()))
-            .Callback<FilterDefinition<Shift>, CancellationToken>((filter, _) => capturedFilter = filter)
+        collection.Setup(c => c.DeleteManyAsync(It.IsAny<FilterDefinition<WorkItem>>(), It.IsAny<CancellationToken>()))
+            .Callback<FilterDefinition<WorkItem>, CancellationToken>((filter, _) => capturedFilter = filter)
             .ReturnsAsync(result.Object);
         var service = CreateService(collection);
 
         var scheduleId = "507f1f77bcf86cd799439011";
-        var deleted = await service.DeleteShiftsByScheduleIdAsync(scheduleId);
+        var deleted = await service.DeleteWorkItemsByScheduleIdAsync(scheduleId);
 
         Assert.That(deleted, Is.EqualTo(3));
         var filterJson = Render(capturedFilter).ToJson();
@@ -96,64 +96,64 @@ public class MongoShiftsServiceTests
     }
 
     [Test]
-    public void DeleteShiftsByScheduleIdAsync_ThrowsWhenMongoFails()
+    public void DeleteWorkItemsByScheduleIdAsync_ThrowsWhenMongoFails()
     {
-        var collection = new Mock<IMongoCollection<Shift>>();
-        collection.Setup(c => c.DeleteManyAsync(It.IsAny<FilterDefinition<Shift>>(), It.IsAny<CancellationToken>()))
+        var collection = new Mock<IMongoCollection<WorkItem>>();
+        collection.Setup(c => c.DeleteManyAsync(It.IsAny<FilterDefinition<WorkItem>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException());
         var service = CreateService(collection);
 
-        Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteShiftsByScheduleIdAsync("507f1f77bcf86cd799439011"));
+        Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteWorkItemsByScheduleIdAsync("507f1f77bcf86cd799439011"));
     }
 
     [Test]
-    public async Task DeleteShiftsBySeriesIdAsync_ReturnsZeroWhenMongoFails()
+    public async Task DeleteWorkItemsBySeriesIdAsync_ReturnsZeroWhenMongoFails()
     {
-        var collection = new Mock<IMongoCollection<Shift>>();
-        collection.Setup(c => c.DeleteManyAsync(It.IsAny<FilterDefinition<Shift>>(), It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException());
+        var collection = new Mock<IMongoCollection<WorkItem>>();
+        collection.Setup(c => c.DeleteManyAsync(It.IsAny<FilterDefinition<WorkItem>>(), It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException());
         var service = CreateService(collection);
 
-        Assert.That(await service.DeleteShiftsBySeriesIdAsync(Guid.NewGuid(), "owner"), Is.Zero);
+        Assert.That(await service.DeleteWorkItemsBySeriesIdAsync(Guid.NewGuid(), "owner"), Is.Zero);
     }
 
     [Test]
-    public async Task UpdateShiftAsync_ReturnsNullWhenMongoFails()
+    public async Task UpdateWorkItemAsync_ReturnsNullWhenMongoFails()
     {
-        var collection = new Mock<IMongoCollection<Shift>>();
-        collection.Setup(c => c.FindOneAndUpdateAsync(It.IsAny<FilterDefinition<Shift>>(), It.IsAny<UpdateDefinition<Shift>>(), It.IsAny<FindOneAndUpdateOptions<Shift, Shift>>(), It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException());
+        var collection = new Mock<IMongoCollection<WorkItem>>();
+        collection.Setup(c => c.FindOneAndUpdateAsync(It.IsAny<FilterDefinition<WorkItem>>(), It.IsAny<UpdateDefinition<WorkItem>>(), It.IsAny<FindOneAndUpdateOptions<WorkItem, WorkItem>>(), It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException());
         var service = CreateService(collection);
 
-        var result = await service.UpdateShiftAsync("id", "owner", DateTime.UtcNow, DateTime.UtcNow.AddHours(1), "title", null, "Cook", null, null);
+        var result = await service.UpdateWorkItemAsync("id", "owner", DateTime.UtcNow, DateTime.UtcNow.AddHours(1), "title", null, "Cook", null, null);
 
         Assert.That(result, Is.Null);
     }
 
     [Test]
-    public async Task GetRotationTemplateShiftsAsync_ReturnsEmptyWhenMongoFails()
+    public async Task GetRotationTemplateWorkItemsAsync_ReturnsEmptyWhenMongoFails()
     {
-        var collection = new Mock<IMongoCollection<Shift>>();
-        collection.Setup(c => c.FindAsync(It.IsAny<FilterDefinition<Shift>>(), It.IsAny<FindOptions<Shift, Shift>>(), It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException());
+        var collection = new Mock<IMongoCollection<WorkItem>>();
+        collection.Setup(c => c.FindAsync(It.IsAny<FilterDefinition<WorkItem>>(), It.IsAny<FindOptions<WorkItem, WorkItem>>(), It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException());
         var service = CreateService(collection);
 
-        Assert.That(await service.GetRotationTemplateShiftsAsync("rotation", "manager"), Is.Empty);
+        Assert.That(await service.GetRotationTemplateWorkItemsAsync("rotation", "manager"), Is.Empty);
     }
 
     [Test]
-    public void DeleteRotationTemplateShiftsAsync_ThrowsWhenMongoFails()
+    public void DeleteRotationTemplateWorkItemsAsync_ThrowsWhenMongoFails()
     {
-        var collection = new Mock<IMongoCollection<Shift>>();
-        collection.Setup(c => c.DeleteManyAsync(It.IsAny<FilterDefinition<Shift>>(), It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException());
+        var collection = new Mock<IMongoCollection<WorkItem>>();
+        collection.Setup(c => c.DeleteManyAsync(It.IsAny<FilterDefinition<WorkItem>>(), It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException());
         var service = CreateService(collection);
 
-        Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteRotationTemplateShiftsAsync("rotation", "manager"));
+        Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteRotationTemplateWorkItemsAsync("rotation", "manager"));
     }
 
-    private static MongoShiftsService CreateService(Mock<IMongoCollection<Shift>> collection) => new(collection.Object, Mock.Of<ILogger<MongoShiftsService>>());
-    private static BsonDocument Render(FilterDefinition<Shift>? filter)
+    private static MongoWorkItemsService CreateService(Mock<IMongoCollection<WorkItem>> collection) => new(collection.Object, Mock.Of<ILogger<MongoWorkItemsService>>());
+    private static BsonDocument Render(FilterDefinition<WorkItem>? filter)
     {
         Assert.That(filter, Is.Not.Null);
         var registry = BsonSerializer.SerializerRegistry;
-        return filter!.Render(new RenderArgs<Shift>(registry.GetSerializer<Shift>(), registry));
+        return filter!.Render(new RenderArgs<WorkItem>(registry.GetSerializer<WorkItem>(), registry));
     }
 }
 
@@ -263,7 +263,7 @@ public class MongoSchedulesServiceTests
     }
 
     [Test]
-    public async Task DeleteScheduleAsync_DoesNotDeleteScheduleWhenShiftCleanupFails()
+    public async Task DeleteScheduleAsync_DoesNotDeleteScheduleWhenWorkItemCleanupFails()
     {
         var collection = new Mock<IMongoCollection<Schedule>>();
         var schedulesCursor = new Mock<IAsyncCursor<Schedule>>();
@@ -284,15 +284,15 @@ public class MongoSchedulesServiceTests
             .Returns(() => Task.FromResult(cursors.Dequeue()));
         collection.Setup(c => c.FindSync(It.IsAny<IClientSessionHandle>(), It.IsAny<FilterDefinition<Schedule>>(), It.IsAny<FindOptions<Schedule, Schedule>>(), It.IsAny<CancellationToken>()))
             .Returns(() => cursors.Dequeue());
-        var shiftsService = new Mock<IShiftsService>();
-        shiftsService.Setup(s => s.DeleteShiftsByScheduleIdAsync("507f1f77bcf86cd799439011"))
+        var WorkItemsService = new Mock<IWorkItemsService>();
+        WorkItemsService.Setup(s => s.DeleteWorkItemsByScheduleIdAsync("507f1f77bcf86cd799439011"))
             .ThrowsAsync(new InvalidOperationException("Database unavailable"));
-        var service = new MongoSchedulesService(collection.Object, Mock.Of<ILogger<MongoSchedulesService>>(), shiftsService.Object, Mock.Of<IAbsencesService>(), Mock.Of<IRemindersService>());
+        var service = new MongoSchedulesService(collection.Object, Mock.Of<ILogger<MongoSchedulesService>>(), WorkItemsService.Object, Mock.Of<IAbsencesService>(), Mock.Of<IRemindersService>());
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.DeleteScheduleAsync("507f1f77bcf86cd799439011", "manager-id"));
 
-        Assert.That(exception!.Message, Does.Contain("its shifts could not be deleted"));
+        Assert.That(exception!.Message, Does.Contain("its work items could not be deleted"));
         collection.Verify(c => c.DeleteOneAsync(It.IsAny<FilterDefinition<Schedule>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -319,7 +319,7 @@ public class MongoSchedulesServiceTests
         var absences = new Mock<IAbsencesService>();
         absences.Setup(a => a.DeleteAbsencesByScheduleIdAsync("507f1f77bcf86cd799439011"))
             .ThrowsAsync(new InvalidOperationException("Database unavailable"));
-        var service = new MongoSchedulesService(collection.Object, Mock.Of<ILogger<MongoSchedulesService>>(), Mock.Of<IShiftsService>(), absences.Object, Mock.Of<IRemindersService>());
+        var service = new MongoSchedulesService(collection.Object, Mock.Of<ILogger<MongoSchedulesService>>(), Mock.Of<IWorkItemsService>(), absences.Object, Mock.Of<IRemindersService>());
 
         var exception = Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.DeleteScheduleAsync("507f1f77bcf86cd799439011", "manager-id"));
@@ -370,10 +370,10 @@ public class MongoAbsencesServiceCoverageTests
 public class MongoServiceConstructorTests
 {
     [Test]
-    public void MongoShiftsService_RequiresConnectionString()
+    public void MongoWorkItemsService_RequiresConnectionString()
     {
         var options = Microsoft.Extensions.Options.Options.Create(new MongoDbOptions { ConnectionString = " " });
-        Assert.Throws<InvalidOperationException>(() => new MongoShiftsService(options, Mock.Of<ILogger<MongoShiftsService>>()));
+        Assert.Throws<InvalidOperationException>(() => new MongoWorkItemsService(options, Mock.Of<ILogger<MongoWorkItemsService>>()));
     }
 
     [Test]

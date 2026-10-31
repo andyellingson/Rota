@@ -1,35 +1,35 @@
 @using System.Globalization
 @using Rota.Models
 
-<div class="shift-item mb-1 @(IsUnassignedFuture ? "shift-item--unassigned" : "") @(IsPast ? "item--past" : "")" style="border-left-color: @(Shift.Color ?? "#1890ff");"
+<div class="work-item mb-1 @(IsUnassignedFuture ? "work-item--unassigned" : "") @(IsPast ? "item--past" : "")" style="border-left-color: @(WorkItem.Color ?? "#1890ff");"
      @onclick:stopPropagation="true" @onclick="HandleEdit">
-    <div class="shift-header">
-        <div class="shift-title">@(string.IsNullOrWhiteSpace(Shift.Title) ? Shift.WorkerType : Shift.Title)</div>
-        <div class="shift-worker-type" style="color: @(Shift.Color ?? "#1890ff");">@Shift.WorkerType</div>
+    <div class="work-item-header">
+        <div class="work-item-title">@(string.IsNullOrWhiteSpace(WorkItem.Title) ? WorkItem.WorkerType : WorkItem.Title)</div>
+        <div class="work-item-worker-type" style="color: @(WorkItem.Color ?? "#1890ff");">@WorkItem.WorkerType</div>
     </div>
 
-    <div class="shift-details-row">
+    <div class="work-item-details-row">
         @if (!string.IsNullOrEmpty(AssignedFullName))
         {
-            <div class="shift-assigned">@AssignedFullName</div>
+            <div class="work-item-assigned">@AssignedFullName</div>
         }
         else
         {
-            <div class="shift-unassigned-label">UNASSIGNED</div>
+            <div class="work-item-unassigned-label">UNASSIGNED</div>
         }
-        <div class="shift-time-inline">@CompactTime(GetDisplayTime(Shift.Start)) – @CompactTime(GetDisplayTime(Shift.End))</div>
+        <div class="work-item-time-inline">@CompactTime(GetDisplayTime(WorkItem.Start)) – @CompactTime(GetDisplayTime(WorkItem.End))</div>
     </div>
 
     @if (OvertimeHours > 0)
     {
-        <div class="shift-overtime">⚠ Overtime @FormatOvertimeHours(OvertimeHours)</div>
+        <div class="work-item-overtime">⚠ Overtime @FormatOvertimeHours(OvertimeHours)</div>
     }
 </div>
 
 @code {
-    /// <summary>The shift to display.</summary>
+    /// <summary>The work item to display.</summary>
     [Parameter, EditorRequired]
-    public Shift Shift { get; set; } = default!;
+    public WorkItem WorkItem { get; set; } = default!;
 
     /// <summary>Display name of the assigned user, resolved by the parent.</summary>
     [Parameter]
@@ -45,10 +45,10 @@
 
     /// <summary>Callback invoked when the item is clicked for editing.</summary>
     [Parameter]
-    public EventCallback<Shift> OnEdit { get; set; }
+    public EventCallback<WorkItem> OnEdit { get; set; }
 
     /// <summary>
-    /// Number of hours this shift contributes beyond the 40-hour weekly limit.
+    /// Number of hours this work item contributes beyond the 40-hour weekly limit.
     /// When greater than zero, an overtime warning badge is shown.
     /// </summary>
     [Parameter]
@@ -79,22 +79,22 @@
         }
     }
 
-    /// <summary>True when the shift has already ended.</summary>
-    private bool IsPast => !UseWallClockTime && Shift.End.ToUniversalTime() < DateTime.UtcNow;
+    /// <summary>True when the work item has already ended.</summary>
+    private bool IsPast => !UseWallClockTime && WorkItem.End.ToUniversalTime() < DateTime.UtcNow;
 
-    /// <summary>True when the shift is in the future and has no assigned user, visible only to managers (OnEdit delegate present).</summary>
+    /// <summary>True when the work item is in the future and has no assigned user, visible only to managers (OnEdit delegate present).</summary>
     private bool IsUnassignedFuture =>
         !UseWallClockTime &&
         OnEdit.HasDelegate &&
-        string.IsNullOrWhiteSpace(Shift.AssignedToUserId) &&
-        Shift.Start.ToUniversalTime() > DateTime.UtcNow;
+        string.IsNullOrWhiteSpace(WorkItem.AssignedToUserId) &&
+        WorkItem.Start.ToUniversalTime() > DateTime.UtcNow;
 
     private Task HandleEdit()
-        => OnEdit.HasDelegate ? OnEdit.InvokeAsync(Shift) : Task.CompletedTask;
+        => OnEdit.HasDelegate ? OnEdit.InvokeAsync(WorkItem) : Task.CompletedTask;
 
     private DateTime GetDisplayTime(DateTime time)
     {
-        if (!UseWallClockTime && Shift.RotationId is null)
+        if (!UseWallClockTime && WorkItem.RotationId is null)
         {
             return time.ToLocalTime();
         }

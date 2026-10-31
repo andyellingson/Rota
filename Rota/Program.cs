@@ -17,13 +17,13 @@ builder.Services.AddSingleton<Microsoft.AspNetCore.Http.IHttpContextAccessor, Mi
 builder.Services.AddScoped<CalendarControlsState>();
 builder.Services.AddScoped<IUserService, MongoUserService>();
 builder.Services.AddScoped<IRemindersService, MongoRemindersService>();
-builder.Services.AddScoped<IShiftsService, MongoShiftsService>();
+builder.Services.AddScoped<IWorkItemsService, MongoWorkItemsService>();
 builder.Services.AddScoped<IAbsencesService, MongoAbsencesService>();
 builder.Services.AddScoped<ISchedulesService, MongoSchedulesService>();
 builder.Services.AddScoped<IRotationsService, MongoRotationsService>();
 builder.Services.AddScoped<IWorkerTypesService, MongoWorkerTypesService>();
 builder.Services.AddScoped<IRotationTemplateService, RotationTemplateService>();
-builder.Services.AddScoped<IShiftAutoAssignService, ShiftAutoAssignService>();
+builder.Services.AddScoped<IWorkItemAutoAssignService, WorkItemAutoAssignService>();
 builder.Services.AddScoped<AuthenticationStateProvider, HttpContextAuthenticationStateProvider>();
 
 // Enable detailed circuit errors for debugging (remove or set false in production)
@@ -69,8 +69,8 @@ app.MapAuthEndpoints();
 
 // Reminders endpoints used by the calendar component
 app.MapRemindersEndpoints();
-// Shifts endpoints used by calendar component for creating/viewing shifts
-app.MapShiftsEndpoints();
+// work items endpoints used by calendar component for creating/viewing work items
+app.MapWorkItemsEndpoints();
 // Absences endpoints used by calendar component
 app.MapAbsencesEndpoints();
 

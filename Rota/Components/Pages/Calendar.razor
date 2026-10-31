@@ -8,7 +8,7 @@
 @inject NavigationManager Navigation
 @inject Microsoft.Extensions.Logging.ILogger<Calendar> Logger
 @inject IRemindersService RemindersService
-@inject IShiftsService ShiftService
+@inject IWorkItemsService WorkItemservice
 @inject IAbsencesService AbsenceService
 @inject IUserService UserService
 @inject ISchedulesService SchedulesService
@@ -17,7 +17,7 @@
 @inject IWorkerTypesService WorkerTypesService
 @inject IJSRuntime JS
 @inject IRotationTemplateService RotationTemplateService
-@inject IShiftAutoAssignService AutoAssignService
+@inject IWorkItemAutoAssignService AutoAssignService
 @inject CalendarControlsState ControlsState
 @implements IDisposable
 
@@ -26,7 +26,7 @@
     @{
         _toolbarFragment ??= @<CalendarToolbar Schedules="availableSchedules"
                      @bind-SelectedScheduleId="selectedScheduleId" @bind-SelectedScheduleId:after="OnScheduleChanged"
-                     @bind-ShowShifts="showShifts" @bind-ShowShifts:after="FilterChanged"
+                     @bind-ShowWorkItems="showWorkItems" @bind-ShowWorkItems:after="FilterChanged"
                      @bind-ShowAbsences="showAbsences" @bind-ShowAbsences:after="FilterChanged"
                      @bind-ShowReminders="showReminders" @bind-ShowReminders:after="FilterChanged"
                      WorkerTypeVisibility="workerTypeVisibility"
@@ -38,19 +38,19 @@
                      SelectionMode="selectionMode" OnSelectionModeChanged="SetSelectionMode"
                      ShowSelectedDaysMenu="@(isMultiSelectMode && selectedDays.Count > 0)"
                      SelectedDayCount="@selectedDays.Count"
-                     CanManageShifts="@canManageShifts"
+                     CanManageWorkItems="@canManageWorkItems"
                      SelectedScheduleRotations="@GetRotationsForSelectedSchedule()"
                      SelectedRotationId="@multiDaySelectedWorkWeekId"
                      SelectedRotationIdChanged="@OnMultiDaySelectedRotationChanged"
                      IsApplyingTemplate="@multiDayIsApplying"
                      IsAutoAssignRunning="@multiDayAutoIsRunning"
-                     TotalShiftsInSelectedDays="@GetTotalShiftsInSelectedDays()"
+                     TotalWorkItemsInSelectedDays="@GetTotalWorkItemsInSelectedDays()"
                      TotalAbsencesInSelectedDays="@GetTotalAbsencesInSelectedDays()"
                      TotalRemindersInSelectedDays="@GetTotalRemindersInSelectedDays()"
-                     TotalUnassignedShiftsInSelectedDays="@GetTotalUnassignedShiftsInSelectedDays()"
+                     TotalUnassignedWorkItemsInSelectedDays="@GetTotalUnassignedWorkItemsInSelectedDays()"
                      OnApplyTemplateToSelectedDays="@ApplyWorkWeekToSelectedDays"
                      OnAutoAssignSelectedDays="@AutoPopulateSelectedDays"
-                     OnDeleteSelectedDayShifts="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Shifts))"
+                     OnDeleteSelectedDayWorkItems="@(() => OpenMultiDayDeleteModal(BulkDeleteType.WorkItems))"
                      OnDeleteSelectedDayAbsences="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Absences))"
                      OnDeleteSelectedDayReminders="@(() => OpenMultiDayDeleteModal(BulkDeleteType.Reminders))"
                      OnClearSelectedDays="ClearDaySelection" />;
@@ -66,12 +66,12 @@
                                    OnPrint="OpenPrintModal">
                     <DayContent Context="day">
                         <CalendarDayItems Items="GetSortedDayItems(day)"
-                                          CanManageShifts="canManageShifts"
+                                          CanManageWorkItems="canManageWorkItems"
                                           GetDisplayName="GetEmployeeDisplayNameById"
                                           GetFirstName="GetEmployeeFirstNameById"
                                           GetLastName="GetEmployeeLastNameById"
-                                          GetOvertimeHours="GetShiftOvertimeHours"
-                                          OnEditShift="OpenEditShiftModal"
+                                          GetOvertimeHours="GetWorkItemOvertimeHours"
+                                          OnEditWorkItem="OpenEditWorkItemModal"
                                           OnEditAbsence="OpenEditAbsenceModal"
                                           OnEditReminder="OpenEditReminderModal" />
                     </DayContent>
@@ -85,12 +85,12 @@
                                   OnPrint="OpenPrintModal">
                     <DayContent Context="day">
                         <CalendarDayItems Items="GetSortedDayItems(day)"
-                                          CanManageShifts="canManageShifts"
+                                          CanManageWorkItems="canManageWorkItems"
                                           GetDisplayName="GetEmployeeDisplayNameById"
                                           GetFirstName="GetEmployeeFirstNameById"
                                           GetLastName="GetEmployeeLastNameById"
-                                          GetOvertimeHours="GetShiftOvertimeHours"
-                                          OnEditShift="OpenEditShiftModal"
+                                          GetOvertimeHours="GetWorkItemOvertimeHours"
+                                          OnEditWorkItem="OpenEditWorkItemModal"
                                           OnEditAbsence="OpenEditAbsenceModal"
                                           OnEditReminder="OpenEditReminderModal" />
                     </DayContent>
@@ -102,16 +102,16 @@
     @* ── Day detail modal – expanded view for a single day *@
     @if (showDayModal)
     {
-        var detailShifts = GetShiftsForDay(dayModalDate).OrderBy(s => s.Start).ToList();
+        var detailWorkItems = GetWorkItemsForDay(dayModalDate).OrderBy(s => s.Start).ToList();
         var detailReminders = GetRemindersForDay(dayModalDate).OrderBy(r => r.ReminderDateTime).ToList();
         var detailAbsences = GetAbsencesForDay(dayModalDate).OrderBy(a => a.StartDate).ToList();
         <DayDetailsModal State="dayModal"
-                         Shifts="detailShifts" Absences="detailAbsences" Reminders="detailReminders"
-                         CanManageShifts="canManageShifts"
+                         WorkItems="detailWorkItems" Absences="detailAbsences" Reminders="detailReminders"
+                         CanManageWorkItems="canManageWorkItems"
                          GetDisplayName="GetEmployeeDisplayNameById"
                          OnClose="CloseDayModal"
-                         OnEditShift="OpenEditShiftModal" OnEditAbsence="OpenEditAbsenceModal" OnEditReminder="OpenEditReminderModal"
-                         OnAddShift="AddShiftFromDayModal" OnAddAbsence="AddAbsenceFromDayModal" OnAddReminder="AddReminderFromDayModal" />
+                         OnEditWorkItem="OpenEditWorkItemModal" OnEditAbsence="OpenEditAbsenceModal" OnEditReminder="OpenEditReminderModal"
+                         OnAddWorkItem="AddWorkItemFromDayModal" OnAddAbsence="AddAbsenceFromDayModal" OnAddReminder="AddReminderFromDayModal" />
     }
 
     @* ── Multi-day bulk-delete confirmation modal ─────────────────────── *@
@@ -121,7 +121,7 @@
         {
             BulkDeleteType.Absences => GetTotalAbsencesInSelectedDays(),
             BulkDeleteType.Reminders => GetTotalRemindersInSelectedDays(),
-            _ => GetTotalShiftsInSelectedDays()
+            _ => GetTotalWorkItemsInSelectedDays()
         };
 
         <BulkDeleteConfirmModal Type="bulkDeleteType" Count="confirmCount" DayCount="selectedDays.Count"
@@ -155,7 +155,7 @@
                         @if (!string.IsNullOrWhiteSpace(multiDayAutoError))
                         {
                             <div class="selected-days-result-item selected-days-result-item--error">
-                                <div class="selected-days-result-label">Assign Shifts Error</div>
+                                <div class="selected-days-result-label">Assign work items Error</div>
                                 <ul class="selected-days-result-list">
                                     @foreach (var line in SplitFeedbackLines(multiDayAutoError))
                                     {
@@ -167,7 +167,7 @@
                         @if (!string.IsNullOrWhiteSpace(multiDayAutoWarning))
                         {
                             <div class="selected-days-result-item selected-days-result-item--warning">
-                                <div class="selected-days-result-label">Assign Shifts Warning</div>
+                                <div class="selected-days-result-label">Assign work items Warning</div>
                                 <ul class="selected-days-result-list">
                                     @foreach (var line in SplitFeedbackLines(multiDayAutoWarning))
                                     {
@@ -179,7 +179,7 @@
                         @if (!string.IsNullOrWhiteSpace(multiDayAutoSuccess))
                         {
                             <div class="selected-days-result-item selected-days-result-item--success">
-                                <div class="selected-days-result-label">Assign Shifts Results</div>
+                                <div class="selected-days-result-label">Assign work items Results</div>
                                 <ul class="selected-days-result-list">
                                     @foreach (var line in SplitSuccessFeedbackLines(multiDayAutoSuccess))
                                     {
@@ -202,18 +202,18 @@
                         ViewMode="@(view == ViewMode.Month ? PrintScheduleModal.PrintViewMode.Month : PrintScheduleModal.PrintViewMode.Week)"
                         CurrentDate="current"
                         ScheduleName="@(availableSchedules.FirstOrDefault(s => s.Id == selectedScheduleId)?.Name ?? "Schedule")"
-                        ShiftsForDay="GetShiftsForDay"
+                        WorkItemsForDay="GetWorkItemsForDay"
                         AbsencesForDay="GetAbsencesForDay"
                         RemindersForDay="GetRemindersForDay"
                         GetEmployeeDisplayName="GetEmployeeDisplayNameById"
                         GetEmployeeFirstName="GetEmployeeFirstNameById"
                         GetEmployeeLastName="GetEmployeeLastNameById"
-                        GetShiftTitle="GetShiftDisplayTitle"
-                        GetOvertimeHours="GetShiftOvertimeHours"
+                        GetWorkItemTitle="GetWorkItemDisplayTitle"
+                        GetOvertimeHours="GetWorkItemOvertimeHours"
                         LoadRangeData="LoadDataForDateRange" />
 
     <CalendarEditModal State="modalState"
-                       CanManageShifts="canManageShifts"
+                       CanManageWorkItems="canManageWorkItems"
                        CanEditAbsence="@CanModifyAbsence(editingAbsence)"
                        Employees="employees"
                        LinkedUsers="linkedUsers"
@@ -223,10 +223,10 @@
                        OnSaveReminder="SaveReminder"
                        OnUpdateReminder="UpdateReminder"
                        OnDeleteReminder="DeleteCurrentReminder"
-                       OnSaveShift="SaveShift"
-                       OnUpdateShift="UpdateShift"
-                       OnDeleteShift="DeleteCurrentShift"
-                       OnDeleteShiftSeries="DeleteShiftSeries"
+                       OnSaveWorkItem="SaveWorkItem"
+                       OnUpdateWorkItem="UpdateWorkItem"
+                       OnDeleteWorkItem="DeleteCurrentWorkItem"
+                       OnDeleteWorkItemseries="DeleteWorkItemseries"
                        OnSaveAbsence="SaveAbsence"
                        OnUpdateAbsence="UpdateAbsence"
                        OnDeleteAbsence="DeleteCurrentAbsence" />
@@ -272,16 +272,16 @@
 
         // Loaded reminders for the current view
         private List<Reminder> reminders = new List<Reminder>();
-        // Loaded Shifts for the current view
-        private List<Shift> shifts = new List<Shift>();
+        // Loaded work items for the current view
+        private List<WorkItem> WorkItems = new List<WorkItem>();
         // Loaded Absences for the current view
         private List<Absence> absences = new();
         private bool isLoading = false;
 
-        // Shift assignment / role state
+        // work item assignment / role state
         private List<User> employees = new();
         private List<User> linkedUsers = new();
-        private bool canManageShifts = false;
+        private bool canManageWorkItems = false;
 
         // Schedule selection state
         private List<Schedule> availableSchedules = new();
@@ -291,22 +291,22 @@
         private string? QueryScheduleId { get; set; }
 
         // Event type filters
-        private bool showShifts = true;
+        private bool showWorkItems = true;
         private bool showAbsences = true;
         private bool showReminders = true;
 
-        // Team member type visibility for filtering calendar shifts. Keys are team member type names and
+        // Team member type visibility for filtering calendar work items. Keys are team member type names and
         // values indicate whether that type should be shown. This map is populated from the
-        // distinct WorkerType values present in the currently loaded `shifts` list.
+        // distinct WorkerType values present in the currently loaded `work items` list.
         private Dictionary<string, bool> workerTypeVisibility = new();
 
-        // Employee visibility for filtering calendar shifts. Keys are user IDs (or "__unassigned__")
-        // and values indicate whether shifts for that employee should be shown. Populated from the
-        // distinct AssignedToUserId values present in the currently loaded `shifts` list.
+        // Employee visibility for filtering calendar work items. Keys are user IDs (or "__unassigned__")
+        // and values indicate whether work items for that employee should be shown. Populated from the
+        // distinct AssignedToUserId values present in the currently loaded `work items` list.
         private Dictionary<string, bool> employeeVisibility = new();
 
         // Pre-bucketed day lookups built after each data load to avoid O(n × 42) full-list scans per render.
-        private Dictionary<DateOnly, List<Shift>> _shiftsByDay = new();
+        private Dictionary<DateOnly, List<WorkItem>> _WorkItemsByDay = new();
         private Dictionary<DateOnly, List<Absence>> _absencesByDay = new();
         private Dictionary<DateOnly, List<Reminder>> _remindersByDay = new();
         // O(1) user-id lookup rebuilt whenever employees or linkedUsers change.
@@ -358,7 +358,7 @@
         private bool showMultiDayConfirmModal = false;
         private bool isBulkDeleting = false;
         private string? multiDayActionError = null;
-        private BulkDeleteType bulkDeleteType = BulkDeleteType.Shifts;
+        private BulkDeleteType bulkDeleteType = BulkDeleteType.WorkItems;
 
         // Day detail modal state
         private readonly DayModalState dayModal = new();
@@ -376,25 +376,25 @@
         private string? multiDayAutoSuccess;
         private bool showSelectedDaysResultModal = false;
 
-        // Shift fields for add/edit
-        private Shift? editingShift { get => modalState.EditingShift; set => modalState.EditingShift = value; }
-        private string editShiftId { get => modalState.EditShiftId; set => modalState.EditShiftId = value; }
-        private DateOnly editShiftDate { get => modalState.EditShiftDate; set => modalState.EditShiftDate = value; }
-        private TimeOnly editShiftStartTime { get => modalState.EditShiftStartTime; set => modalState.EditShiftStartTime = value; }
-        private TimeOnly editShiftEndTime { get => modalState.EditShiftEndTime; set => modalState.EditShiftEndTime = value; }
-        private string editShiftTitle { get => modalState.EditShiftTitle; set => modalState.EditShiftTitle = value; }
-        private string? editShiftNotes { get => modalState.EditShiftNotes; set => modalState.EditShiftNotes = value; }
-        private string editShiftWorkerType { get => modalState.EditShiftWorkerType; set => modalState.EditShiftWorkerType = value; }
+        // work item fields for add/edit
+        private WorkItem? editingWorkItem { get => modalState.EditingWorkItem; set => modalState.EditingWorkItem = value; }
+        private string editWorkItemId { get => modalState.EditWorkItemId; set => modalState.EditWorkItemId = value; }
+        private DateOnly editWorkItemDate { get => modalState.EditWorkItemDate; set => modalState.EditWorkItemDate = value; }
+        private TimeOnly editWorkItemstartTime { get => modalState.EditWorkItemstartTime; set => modalState.EditWorkItemstartTime = value; }
+        private TimeOnly editWorkItemEndTime { get => modalState.EditWorkItemEndTime; set => modalState.EditWorkItemEndTime = value; }
+        private string editWorkItemTitle { get => modalState.EditWorkItemTitle; set => modalState.EditWorkItemTitle = value; }
+        private string? editWorkItemNotes { get => modalState.EditWorkItemNotes; set => modalState.EditWorkItemNotes = value; }
+        private string editWorkItemWorkerType { get => modalState.EditWorkItemWorkerType; set => modalState.EditWorkItemWorkerType = value; }
 
-        private TimeOnly newShiftStartTime { get => modalState.NewShiftStartTime; set => modalState.NewShiftStartTime = value; }
-        private TimeOnly newShiftEndTime { get => modalState.NewShiftEndTime; set => modalState.NewShiftEndTime = value; }
-        private string newShiftTitle { get => modalState.NewShiftTitle; set => modalState.NewShiftTitle = value; }
-        private string? newShiftNotes { get => modalState.NewShiftNotes; set => modalState.NewShiftNotes = value; }
-        private string newShiftColor { get => modalState.NewShiftColor; set => modalState.NewShiftColor = value; }
-        private string newShiftWorkerType { get => modalState.NewShiftWorkerType; set => modalState.NewShiftWorkerType = value; }
-        private ShiftRecurrence newShiftRecurrence { get => modalState.NewShiftRecurrence; set => modalState.NewShiftRecurrence = value; }
-        private string newShiftAssignedTo { get => modalState.NewShiftAssignedTo; set => modalState.NewShiftAssignedTo = value; }
-        private string editShiftAssignedTo { get => modalState.EditShiftAssignedTo; set => modalState.EditShiftAssignedTo = value; }
+        private TimeOnly newWorkItemstartTime { get => modalState.NewWorkItemstartTime; set => modalState.NewWorkItemstartTime = value; }
+        private TimeOnly newWorkItemEndTime { get => modalState.NewWorkItemEndTime; set => modalState.NewWorkItemEndTime = value; }
+        private string newWorkItemTitle { get => modalState.NewWorkItemTitle; set => modalState.NewWorkItemTitle = value; }
+        private string? newWorkItemNotes { get => modalState.NewWorkItemNotes; set => modalState.NewWorkItemNotes = value; }
+        private string newWorkItemColor { get => modalState.NewWorkItemColor; set => modalState.NewWorkItemColor = value; }
+        private string newWorkItemWorkerType { get => modalState.NewWorkItemWorkerType; set => modalState.NewWorkItemWorkerType = value; }
+        private WorkItemRecurrence newWorkItemRecurrence { get => modalState.NewWorkItemRecurrence; set => modalState.NewWorkItemRecurrence = value; }
+        private string newWorkItemAssignedTo { get => modalState.NewWorkItemAssignedTo; set => modalState.NewWorkItemAssignedTo = value; }
+        private string editWorkItemAssignedTo { get => modalState.EditWorkItemAssignedTo; set => modalState.EditWorkItemAssignedTo = value; }
 
         // Edit state for existing reminder
         private Reminder? editingReminder { get => modalState.EditingReminder; set => modalState.EditingReminder = value; }
@@ -405,8 +405,8 @@
         private string editReminderColor { get => modalState.EditReminderColor; set => modalState.EditReminderColor = value; }
         private string editReminderForUsername { get => modalState.EditReminderForUsername; set => modalState.EditReminderForUsername = value; }
 
-        // Edit state for existing shift
-        private string editShiftColor { get => modalState.EditShiftColor; set => modalState.EditShiftColor = value; }
+        // Edit state for existing work item
+        private string editWorkItemColor { get => modalState.EditWorkItemColor; set => modalState.EditWorkItemColor = value; }
 
         // Absence fields for add/edit
         private int newAbsenceDayCount { get => modalState.NewAbsenceDayCount; set => modalState.NewAbsenceDayCount = value; }
@@ -455,9 +455,9 @@
                 _userId = caller?.Id;
                 _assignedScheduleIds = caller?.AssignedScheduleIds ?? new();
 
-                canManageShifts = user.IsInRole(Roles.Manager) || user.IsInRole(Roles.Admin);
+                canManageWorkItems = user.IsInRole(Roles.Manager) || user.IsInRole(Roles.Admin);
                 _isManagerRole = user.IsInRole(Roles.Manager);
-                if (canManageShifts)
+                if (canManageWorkItems)
                 {
                     _managerCode = caller?.ManagerCode;
                     employees = await UserService.GetUsersByRoleAsync(Roles.Employee);
@@ -494,7 +494,7 @@
                     await LoadSchedules();
 
                     // Load team member types for the resolved manager
-                    if (canManageShifts)
+                    if (canManageWorkItems)
                     {
                         var workerTypes = await WorkerTypesService.GetByOwnerAsync(_userId);
                         workerTypeNames = workerTypes.Select(w => w.Name).ToList();
@@ -509,7 +509,7 @@
         /// <summary>
         /// Load available schedules.
         /// Managers see all schedules they own; employees see only schedules they
-        /// have at least one shift assigned to them on.
+        /// have at least one work item assigned to them on.
         /// </summary>
         private async Task LoadSchedules()
         {
@@ -520,7 +520,7 @@
 
             try
             {
-                if (canManageShifts)
+                if (canManageWorkItems)
                 {
                     availableSchedules = await SchedulesService.GetSchedulesForManagerAsync(_userId, _managerCode);
                     rotations = string.IsNullOrEmpty(_managerCode)
@@ -678,18 +678,18 @@
                 var maxDay = selectedDays.Max();
                 var outcome = await AutoAssignService.AutoAssignAsync(_username, _userId, _managerCode,
                     minDay, maxDay, selectedDays.Contains,
-                    "No unassigned shifts found on the selected days.");
+                    "No unassigned work items found on the selected days.");
                 linkedUsers = outcome.LinkedUsers;
                 multiDayAutoSuccess = outcome.SuccessMessage;
                 multiDayAutoWarning = outcome.WarningMessage;
-                if (outcome.ShiftsChanged)
+                if (outcome.WorkItemsChanged)
                     await LoadReminders();
                 ShowSelectedDaysResultModal();
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error during auto-assign for selected days");
-                multiDayAutoError = "An error occurred while auto-assigning shifts. Please try again.";
+                multiDayAutoError = "An error occurred while auto-assigning work items. Please try again.";
                 ShowSelectedDaysResultModal();
             }
             finally
@@ -699,7 +699,7 @@
         }
 
         /// <summary>
-        /// Load reminders and Shifts for the current view range from the server.
+        /// Load reminders and work items for the current view range from the server.
         /// </summary>
         private async Task LoadReminders()
         {
@@ -729,14 +729,14 @@
 
                 reminders = await RemindersService.GetCalendarRemindersAsync(_managerCode, _userId, queryStart, queryEnd);
                 RebuildReminderDayBucket();
-                await LoadShifts(queryStart, queryEnd);
+                await LoadWorkItems(queryStart, queryEnd);
                 await LoadAbsences(queryStart, queryEnd);
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error loading calendar data");
                 reminders = new List<Reminder>();
-                shifts = new List<Shift>();
+                WorkItems = new List<WorkItem>();
                 absences = new();
             }
             finally
@@ -781,16 +781,16 @@
             newReminderForUsername = _username;
             editingReminder = null;
 
-            // Reset Shift fields
-            newShiftTitle = string.Empty;
-            newShiftNotes = null;
-            newShiftStartTime = new(9, 0);
-            newShiftEndTime = new(17, 0);
-            newShiftWorkerType = workerTypeNames.FirstOrDefault() ?? "General";
-            newShiftRecurrence = ShiftRecurrence.None;
-            newShiftColor = "#1890ff";
-            newShiftAssignedTo = string.Empty;
-            editingShift = null;
+            // Reset work item fields
+            newWorkItemTitle = string.Empty;
+            newWorkItemNotes = null;
+            newWorkItemstartTime = new(9, 0);
+            newWorkItemEndTime = new(17, 0);
+            newWorkItemWorkerType = workerTypeNames.FirstOrDefault() ?? "General";
+            newWorkItemRecurrence = WorkItemRecurrence.None;
+            newWorkItemColor = "#1890ff";
+            newWorkItemAssignedTo = string.Empty;
+            editingWorkItem = null;
 
             // Reset Absence fields
             newAbsenceReason = AbsenceReason.Other;
@@ -802,7 +802,7 @@
             newAbsenceStartTime = new(9, 0);
             newAbsenceEndTime = new(17, 0);
             // Managers default to approved; employees default to pending (awaiting approval)
-            modalState.NewAbsenceApprovalState = canManageShifts ? AbsenceApprovalState.Approved : AbsenceApprovalState.Pending;
+            modalState.NewAbsenceApprovalState = canManageWorkItems ? AbsenceApprovalState.Approved : AbsenceApprovalState.Pending;
             editingAbsence = null;
 
             modalMode = ModalMode.Reminder;
@@ -869,11 +869,11 @@
         }
 
         /// <summary>
-        /// Returns the total number of shifts (after filters) across all selected days.
+        /// Returns the total number of work items (after filters) across all selected days.
         /// </summary>
-        private int GetTotalShiftsInSelectedDays()
+        private int GetTotalWorkItemsInSelectedDays()
         {
-            return selectedDays.Sum(d => GetShiftsForDay(d).Count);
+            return selectedDays.Sum(d => GetWorkItemsForDay(d).Count);
         }
 
         /// <summary>
@@ -903,17 +903,17 @@
         }
 
         /// <summary>
-        /// Returns the total number of unassigned shifts (after filters) across all selected days.
+        /// Returns the total number of unassigned work items (after filters) across all selected days.
         /// </summary>
-        private int GetTotalUnassignedShiftsInSelectedDays()
+        private int GetTotalUnassignedWorkItemsInSelectedDays()
         {
-            // Count unassigned shifts using the loaded `shifts` collection rather than
-            // `GetShiftsForDay` so the button enables even if UI filters temporarily hide
-            // unassigned shifts. Match schedule filter and local-day overlap similarly.
-            if (shifts == null || shifts.Count == 0) return 0;
+            // Count unassigned work items using the loaded `work items` collection rather than
+            // `GetWorkItemsForDay` so the button enables even if UI filters temporarily hide
+            // unassigned work items. Match schedule filter and local-day overlap similarly.
+            if (WorkItems == null || WorkItems.Count == 0) return 0;
 
             var ids = new HashSet<string?>(StringComparer.OrdinalIgnoreCase);
-            foreach (var s in shifts)
+            foreach (var s in WorkItems)
             {
                 if (!string.IsNullOrEmpty(s.AssignedToUserId)) continue;
                 if (!string.IsNullOrEmpty(selectedScheduleId) && s.ScheduleId != selectedScheduleId) continue;
@@ -1029,32 +1029,32 @@
                     await DeleteAllRemindersInSelectedDays();
                     break;
                 default:
-                    await DeleteAllShiftsInSelectedDays();
+                    await DeleteAllWorkItemsInSelectedDays();
                     break;
             }
         }
 
         /// <summary>
-        /// Deletes all visible shifts across the currently selected days and reloads the calendar.
+        /// Deletes all visible work items across the currently selected days and reloads the calendar.
         /// </summary>
-        private async Task DeleteAllShiftsInSelectedDays()
+        private async Task DeleteAllWorkItemsInSelectedDays()
         {
             isBulkDeleting = true;
             multiDayActionError = null;
 
             try
             {
-                // Collect distinct shift IDs across all selected days respecting active filters
-                var shiftIds = selectedDays
-                    .SelectMany(d => GetShiftsForDay(d))
+                // Collect distinct work item IDs across all selected days respecting active filters
+                var WorkItemIds = selectedDays
+                    .SelectMany(d => GetWorkItemsForDay(d))
                     .Select(s => s.Id)
                     .Where(id => id is not null)
                     .Distinct()
                     .ToList();
 
-                foreach (var id in shiftIds)
+                foreach (var id in WorkItemIds)
                 {
-                    await ShiftService.DeleteShiftAsync(id!, _username);
+                    await WorkItemservice.DeleteWorkItemAsync(id!, _username);
                 }
 
                 showMultiDayConfirmModal = false;
@@ -1063,8 +1063,8 @@
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error bulk-deleting shifts for selected days");
-                multiDayActionError = "An error occurred while deleting shifts. Please try again.";
+                Logger.LogError(ex, "Error bulk-deleting work items for selected days");
+                multiDayActionError = "An error occurred while deleting work items. Please try again.";
             }
             finally
             {
@@ -1184,9 +1184,9 @@
         }
 
         /// <summary>
-        /// Loads shifts, absences, and reminders for an explicit date range.
+        /// Loads work items, absences, and reminders for an explicit date range.
         /// Called by PrintScheduleModal when the user increases the period count so that
-        /// the delegate functions (ShiftsForDay, AbsencesForDay, RemindersForDay) return
+        /// the delegate functions (WorkItemsForDay, AbsencesForDay, RemindersForDay) return
         /// data for the additional weeks or months shown in the preview.
         /// </summary>
         private async Task LoadDataForDateRange(DateOnly start, DateOnly end)
@@ -1197,7 +1197,7 @@
                 var queryStart = start.AddDays(-1);
                 var queryEnd = end.AddDays(1);
                 reminders = await RemindersService.GetCalendarRemindersAsync(_managerCode, _userId, queryStart, queryEnd);
-                shifts = await ShiftService.GetShiftsAsync(_username, _userId, _managerCode, queryStart, queryEnd);
+                WorkItems = await WorkItemservice.GetWorkItemsAsync(_username, _userId, _managerCode, queryStart, queryEnd);
                 await LoadAbsences(queryStart, queryEnd);
                 await InvokeAsync(StateHasChanged);
             }
@@ -1216,14 +1216,14 @@
         }
 
         /// <summary>
-        /// Closes the day detail modal and opens the add-shift form for that day.
+        /// Closes the day detail modal and opens the add-work-item form for that day.
         /// </summary>
-        private void AddShiftFromDayModal()
+        private void AddWorkItemFromDayModal()
         {
             var date = dayModalDate;
             showDayModal = false;
             OpenAddReminderModal(date);
-            modalMode = ModalMode.Shift;
+            modalMode = ModalMode.WorkItem;
         }
 
         /// <summary>
@@ -1237,28 +1237,28 @@
         }
 
         /// <summary>
-        /// Gets Shifts that intersect the specified day.
+        /// Gets work items that intersect the specified day.
         /// </summary>
-        private List<Shift> GetShiftsForDay(DateOnly day)
+        private List<WorkItem> GetWorkItemsForDay(DateOnly day)
         {
-            if (!showShifts) return new List<Shift>();
+            if (!showWorkItems) return new List<WorkItem>();
 
-            // Use pre-bucketed lookup — O(k) where k is shifts on this day, not O(n) over all shifts.
-            if (!_shiftsByDay.TryGetValue(day, out var dayShifts) || dayShifts.Count == 0)
-                return new List<Shift>();
+            // Use pre-bucketed lookup — O(k) where k is work items on this day, not O(n) over all work items.
+            if (!_WorkItemsByDay.TryGetValue(day, out var dayWorkItems) || dayWorkItems.Count == 0)
+                return new List<WorkItem>();
 
-            return dayShifts
+            return dayWorkItems
                 .Where(s => string.IsNullOrEmpty(selectedScheduleId) || s.ScheduleId == selectedScheduleId)
                 .Where(s =>
                 {
-                    // If no worker-type filters are present, allow all shifts. Use a fallback name for null/empty types.
+                    // If no worker-type filters are present, allow all work items. Use a fallback name for null/empty types.
                     if (workerTypeVisibility == null || workerTypeVisibility.Count == 0) return true;
                     var wt = string.IsNullOrWhiteSpace(s.WorkerType) ? "General" : s.WorkerType;
                     return workerTypeVisibility.TryGetValue(wt, out var visible) && visible;
                 })
                 .Where(s =>
                 {
-                    // If no employee filters are present, allow all shifts.
+                    // If no employee filters are present, allow all work items.
                     if (employeeVisibility == null || employeeVisibility.Count == 0) return true;
                     var empKey = string.IsNullOrWhiteSpace(s.AssignedToUserId) ? "__unassigned__" : s.AssignedToUserId;
                     return employeeVisibility.TryGetValue(empKey, out var visible) && visible;
@@ -1267,46 +1267,46 @@
         }
 
         /// <summary>
-        /// Returns the number of hours this shift contributes beyond the 40-hour weekly (Sun–Sat) limit
+        /// Returns the number of hours this work item contributes beyond the 40-hour weekly (Sun–Sat) limit
         /// for the assigned user. Returns 0 when no overtime is applicable.
         /// </summary>
-        private double GetShiftOvertimeHours(Shift shift)
+        private double GetWorkItemOvertimeHours(WorkItem WorkItem)
         {
-            if (string.IsNullOrEmpty(shift.AssignedToUserId)) return 0;
+            if (string.IsNullOrEmpty(WorkItem.AssignedToUserId)) return 0;
 
-            // Determine the Sunday that starts the week containing this shift (UTC).
-            var shiftStartUtc = shift.Start.ToUniversalTime().Date;
-            int daysFromSunday = (int)shiftStartUtc.DayOfWeek; // DayOfWeek.Sunday == 0
-            var weekStart = shiftStartUtc.AddDays(-daysFromSunday);
+            // Determine the Sunday that starts the week containing this work item (UTC).
+            var WorkItemstartUtc = WorkItem.Start.ToUniversalTime().Date;
+            int daysFromSunday = (int)WorkItemstartUtc.DayOfWeek; // DayOfWeek.Sunday == 0
+            var weekStart = WorkItemstartUtc.AddDays(-daysFromSunday);
             var weekEnd = weekStart.AddDays(7);
 
-            // Collect all assigned shifts for this user in the same week, ordered by start time.
-            var weekShifts = shifts
-                .Where(s => s.AssignedToUserId == shift.AssignedToUserId
+            // Collect all assigned work items for this user in the same week, ordered by start time.
+            var weekWorkItems = WorkItems
+                .Where(s => s.AssignedToUserId == WorkItem.AssignedToUserId
                          && s.Start.ToUniversalTime() >= weekStart
                          && s.Start.ToUniversalTime() < weekEnd)
                 .OrderBy(s => s.Start)
                 .ToList();
 
-            // Walk through shifts in order, accumulating hours, and find how many hours
-            // of the target shift fall beyond the 40-hour weekly limit.
+            // Walk through work items in order, accumulating hours, and find how many hours
+            // of the target work item fall beyond the 40-hour weekly limit.
             const double weeklyLimit = 40.0;
             double cumulative = 0;
 
-            foreach (var s in weekShifts)
+            foreach (var s in weekWorkItems)
             {
-                double shiftHours = (s.End - s.Start).TotalHours;
-                double hoursAfterThisShift = cumulative + shiftHours;
+                double WorkItemHours = (s.End - s.Start).TotalHours;
+                double hoursAfterThisWorkItem = cumulative + WorkItemHours;
 
-                if (s.Id == shift.Id)
+                if (s.Id == WorkItem.Id)
                 {
-                    // Return only the portion of this shift that is overtime.
-                    if (hoursAfterThisShift > weeklyLimit)
-                        return Math.Round(hoursAfterThisShift - Math.Max(cumulative, weeklyLimit), 1);
+                    // Return only the portion of this work item that is overtime.
+                    if (hoursAfterThisWorkItem > weeklyLimit)
+                        return Math.Round(hoursAfterThisWorkItem - Math.Max(cumulative, weeklyLimit), 1);
                     return 0;
                 }
 
-                cumulative = hoursAfterThisShift;
+                cumulative = hoursAfterThisWorkItem;
             }
 
             return 0;
@@ -1399,23 +1399,23 @@
             return GetLinkedUser(_username) ?? linkedUsers.FirstOrDefault();
         }
 
-        private string GetShiftDisplayTitle(Shift shift)
+        private string GetWorkItemDisplayTitle(WorkItem WorkItem)
         {
-            return string.IsNullOrWhiteSpace(shift.Title)
-                ? shift.WorkerType.ToString()
-                : $"{shift.Title} - {shift.WorkerType}";
+            return string.IsNullOrWhiteSpace(WorkItem.Title)
+                ? WorkItem.WorkerType.ToString()
+                : $"{WorkItem.Title} - {WorkItem.WorkerType}";
         }
 
         private List<CalendarDayItem> GetSortedDayItems(DateOnly day)
         {
-            var dayShifts = GetShiftsForDay(day);
+            var dayWorkItems = GetWorkItemsForDay(day);
             var dayAbsences = GetAbsencesForDay(day);
             var dayReminders = GetRemindersForDay(day);
             // Pre-size to avoid mid-loop re-allocations.
-            var items = new List<CalendarDayItem>(dayShifts.Count + dayAbsences.Count + dayReminders.Count);
+            var items = new List<CalendarDayItem>(dayWorkItems.Count + dayAbsences.Count + dayReminders.Count);
 
-            foreach (var s in dayShifts)
-                items.Add(new CalendarDayItem(s.Start, Shift: s));
+            foreach (var s in dayWorkItems)
+                items.Add(new CalendarDayItem(s.Start, WorkItem: s));
 
             foreach (var a in dayAbsences)
             {
@@ -1476,41 +1476,41 @@
         }
 
         /// <summary>
-        /// Opens the edit modal for an existing Shift.
+        /// Opens the edit modal for an existing work item.
         /// </summary>
-        private void OpenEditShiftModal(Shift shift)
+        private void OpenEditWorkItemModal(WorkItem WorkItem)
         {
             showDayModal = false;
-            editingShift = shift;
-            editShiftId = shift.Id ?? string.Empty;
-            var localStart = shift.Start.ToLocalTime();
-            editShiftDate = DateOnly.FromDateTime(localStart);
-            editShiftStartTime = TimeOnly.FromDateTime(localStart);
-            editShiftEndTime = TimeOnly.FromDateTime(shift.End.ToLocalTime());
-            editShiftTitle = shift.Title ?? string.Empty;
-            editShiftNotes = shift.Notes;
-            editShiftWorkerType = shift.WorkerType;
-            editShiftColor = shift.Color ?? "#1890ff";
-            editShiftAssignedTo = shift.AssignedToUserId ?? string.Empty;
+            editingWorkItem = WorkItem;
+            editWorkItemId = WorkItem.Id ?? string.Empty;
+            var localStart = WorkItem.Start.ToLocalTime();
+            editWorkItemDate = DateOnly.FromDateTime(localStart);
+            editWorkItemstartTime = TimeOnly.FromDateTime(localStart);
+            editWorkItemEndTime = TimeOnly.FromDateTime(WorkItem.End.ToLocalTime());
+            editWorkItemTitle = WorkItem.Title ?? string.Empty;
+            editWorkItemNotes = WorkItem.Notes;
+            editWorkItemWorkerType = WorkItem.WorkerType;
+            editWorkItemColor = WorkItem.Color ?? "#1890ff";
+            editWorkItemAssignedTo = WorkItem.AssignedToUserId ?? string.Empty;
             modalError = null;
-            modalMode = ModalMode.Shift;
+            modalMode = ModalMode.WorkItem;
             showModal = true;
         }
 
         /// <summary>
-        /// Loads Shifts for the specified inclusive query range (expects UTC-normalized yyyy-MM-dd values).
+        /// Loads work items for the specified inclusive query range (expects UTC-normalized yyyy-MM-dd values).
         /// </summary>
-        private async Task LoadShifts(DateOnly queryStart, DateOnly queryEnd)
+        private async Task LoadWorkItems(DateOnly queryStart, DateOnly queryEnd)
         {
             try
             {
-                shifts = await ShiftService.GetShiftsAsync(_username, _userId, _managerCode, queryStart, queryEnd);
-                Logger.LogInformation("Loaded {Count} Shifts", shifts.Count);
+                WorkItems = await WorkItemservice.GetWorkItemsAsync(_username, _userId, _managerCode, queryStart, queryEnd);
+                Logger.LogInformation("Loaded {Count} WorkItems", WorkItems.Count);
 
-                // Determine which team member types are present in the loaded shifts and
+                // Determine which team member types are present in the loaded work items and
                 // initialise the visibility map. Preserve existing visibility choices
                 // when possible; default new types to visible.
-                var types = shifts
+                var types = WorkItems
                     .Select(s => string.IsNullOrWhiteSpace(s.WorkerType) ? "General" : s.WorkerType)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(t => t)
@@ -1526,9 +1526,9 @@
                 }
                 workerTypeVisibility = newMap;
 
-                // Rebuild employee visibility map from distinct AssignedToUserId values in loaded shifts.
+                // Rebuild employee visibility map from distinct AssignedToUserId values in loaded work items.
                 // Preserve existing visibility choices; default new employees to visible.
-                var empKeys = shifts
+                var empKeys = WorkItems
                     .Select(s => string.IsNullOrWhiteSpace(s.AssignedToUserId) ? "__unassigned__" : s.AssignedToUserId)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
@@ -1542,12 +1542,12 @@
                         newEmpMap[empKey] = true;
                 }
                 employeeVisibility = newEmpMap;
-                RebuildShiftDayBucket();
+                RebuildWorkItemDayBucket();
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error loading shifts");
-                shifts = new List<Shift>();
+                Logger.LogError(ex, "Error loading work items");
+                WorkItems = new List<WorkItem>();
             }
         }
 
@@ -1637,16 +1637,16 @@
         }
 
         /// <summary>
-        /// Saves a new Shift to the server.
+        /// Saves a new work item to the server.
         /// </summary>
-        private async Task SaveShift()
+        private async Task SaveWorkItem()
         {
             modalError = null;
             if (selectedDate is null) return;
 
-            if (string.IsNullOrWhiteSpace(newShiftTitle))
+            if (string.IsNullOrWhiteSpace(newWorkItemTitle))
             {
-                modalError = "Shift title is required";
+                modalError = "Work item title is required";
                 return;
             }
 
@@ -1654,13 +1654,13 @@
             {
                 isBusy = true;
 
-                // Generate a shared SeriesId when creating a repeating shift
-                Guid? seriesId = newShiftRecurrence != ShiftRecurrence.None ? Guid.NewGuid() : null;
+                // Generate a shared SeriesId when creating a repeating work item
+                Guid? seriesId = newWorkItemRecurrence != WorkItemRecurrence.None ? Guid.NewGuid() : null;
 
-                async Task CreateShiftForDate(DateOnly d)
+                async Task CreateWorkItemForDate(DateOnly d)
                 {
-                    var startLocal = d.ToDateTime(newShiftStartTime, DateTimeKind.Local);
-                    var endLocal = d.ToDateTime(newShiftEndTime, DateTimeKind.Local);
+                    var startLocal = d.ToDateTime(newWorkItemstartTime, DateTimeKind.Local);
+                    var endLocal = d.ToDateTime(newWorkItemEndTime, DateTimeKind.Local);
                     var startUtc = startLocal.ToUniversalTime();
                     var endUtc = endLocal.ToUniversalTime();
 
@@ -1670,26 +1670,26 @@
                         return;
                     }
 
-                    var shift = new Shift
+                    var WorkItem = new WorkItem
                     {
                         Username = _username,
                         Start = startUtc,
                         End = endUtc,
-                        Title = newShiftTitle,
-                        Notes = newShiftNotes,
-                        WorkerType = newShiftWorkerType,
-                        Color = newShiftColor,
-                        AssignedToUserId = string.IsNullOrEmpty(newShiftAssignedTo) ? null : newShiftAssignedTo,
+                        Title = newWorkItemTitle,
+                        Notes = newWorkItemNotes,
+                        WorkerType = newWorkItemWorkerType,
+                        Color = newWorkItemColor,
+                        AssignedToUserId = string.IsNullOrEmpty(newWorkItemAssignedTo) ? null : newWorkItemAssignedTo,
                         ManagerCode = _managerCode,
                         ScheduleId = selectedScheduleId,
                         SeriesId = seriesId
                     };
-                    await ShiftService.CreateShiftAsync(shift);
+                    await WorkItemservice.CreateWorkItemAsync(WorkItem);
                 }
 
-                if (newShiftRecurrence == ShiftRecurrence.None)
+                if (newWorkItemRecurrence == WorkItemRecurrence.None)
                 {
-                    await CreateShiftForDate(selectedDate.Value);
+                    await CreateWorkItemForDate(selectedDate.Value);
                 }
                 else
                 {
@@ -1698,21 +1698,21 @@
                     for (var day = monthStart; day <= monthEnd; day = day.AddDays(1))
                     {
                         if (modalError is not null) break;
-                        if (newShiftRecurrence == ShiftRecurrence.Daily)
+                        if (newWorkItemRecurrence == WorkItemRecurrence.Daily)
                         {
-                            await CreateShiftForDate(day);
+                            await CreateWorkItemForDate(day);
                         }
-                        else if (newShiftRecurrence == ShiftRecurrence.Workdays)
+                        else if (newWorkItemRecurrence == WorkItemRecurrence.Workdays)
                         {
                             var dow = day.DayOfWeek;
                             if (dow >= DayOfWeek.Monday && dow <= DayOfWeek.Friday)
-                                await CreateShiftForDate(day);
+                                await CreateWorkItemForDate(day);
                         }
-                        else if (newShiftRecurrence == ShiftRecurrence.Weekends)
+                        else if (newWorkItemRecurrence == WorkItemRecurrence.Weekends)
                         {
                             var dow = day.DayOfWeek;
                             if (dow == DayOfWeek.Saturday || dow == DayOfWeek.Sunday)
-                                await CreateShiftForDate(day);
+                                await CreateWorkItemForDate(day);
                         }
                     }
                 }
@@ -1725,7 +1725,7 @@
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error saving Shift");
+                Logger.LogError(ex, "Error saving work item");
                 modalError = "An error occurred. Please try again.";
             }
             finally
@@ -1967,22 +1967,22 @@
         }
 
         /// <summary>
-        /// Deletes the currently editing Shift and closes the modal.
+        /// Deletes the currently editing work item and closes the modal.
         /// </summary>
-        private async Task DeleteCurrentShift()
+        private async Task DeleteCurrentWorkItem()
         {
-            if (editingShift?.Id is null) return;
+            if (editingWorkItem?.Id is null) return;
 
             try
             {
                 isBusy = true;
-                await ShiftService.DeleteShiftAsync(editingShift.Id, _username);
+                await WorkItemservice.DeleteWorkItemAsync(editingWorkItem.Id, _username);
                 CloseModal();
                 await LoadReminders();
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error deleting Shift {Id}", editingShift.Id);
+                Logger.LogError(ex, "Error deleting WorkItem {Id}", editingWorkItem.Id);
                 modalError = "An error occurred. Please try again.";
             }
             finally
@@ -1992,22 +1992,22 @@
         }
 
         /// <summary>
-        /// Deletes all shifts in the series of the currently editing Shift and closes the modal.
+        /// Deletes all work items in the series of the currently editing work item and closes the modal.
         /// </summary>
-        private async Task DeleteShiftSeries()
+        private async Task DeleteWorkItemseries()
         {
-            if (editingShift?.SeriesId is null) return;
+            if (editingWorkItem?.SeriesId is null) return;
 
             try
             {
                 isBusy = true;
-                await ShiftService.DeleteShiftsBySeriesIdAsync(editingShift.SeriesId.Value, _username);
+                await WorkItemservice.DeleteWorkItemsBySeriesIdAsync(editingWorkItem.SeriesId.Value, _username);
                 CloseModal();
                 await LoadReminders();
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error deleting shift series {SeriesId}", editingShift.SeriesId);
+                Logger.LogError(ex, "Error deleting WorkItem series {SeriesId}", editingWorkItem.SeriesId);
                 modalError = "An error occurred. Please try again.";
             }
             finally
@@ -2017,27 +2017,27 @@
         }
 
         /// <summary>
-        /// Updates an existing Shift with new values.
+        /// Updates an existing work item with new values.
         /// </summary>
-        private async Task UpdateShift()
+        private async Task UpdateWorkItem()
         {
-            if (editingShift?.Id is null) return;
+            if (editingWorkItem?.Id is null) return;
 
             try
             {
                 isBusy = true;
-                var localStart = editShiftDate.ToDateTime(editShiftStartTime, DateTimeKind.Local);
-                var localEnd = editShiftDate.ToDateTime(editShiftEndTime, DateTimeKind.Local);
+                var localStart = editWorkItemDate.ToDateTime(editWorkItemstartTime, DateTimeKind.Local);
+                var localEnd = editWorkItemDate.ToDateTime(editWorkItemEndTime, DateTimeKind.Local);
                 var startUtc = localStart.ToUniversalTime();
                 var endUtc = localEnd.ToUniversalTime();
 
-                await ShiftService.UpdateShiftAsync(editingShift.Id, _username, startUtc, endUtc, editShiftTitle, editShiftNotes, editShiftWorkerType, editShiftColor, string.IsNullOrEmpty(editShiftAssignedTo) ? null : editShiftAssignedTo);
+                await WorkItemservice.UpdateWorkItemAsync(editingWorkItem.Id, _username, startUtc, endUtc, editWorkItemTitle, editWorkItemNotes, editWorkItemWorkerType, editWorkItemColor, string.IsNullOrEmpty(editWorkItemAssignedTo) ? null : editWorkItemAssignedTo);
                 CloseModal();
                 await LoadReminders();
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error updating Shift {Id}", editingShift.Id);
+                Logger.LogError(ex, "Error updating WorkItem {Id}", editingWorkItem.Id);
                 modalError = "An error occurred. Please try again.";
             }
             finally
@@ -2087,22 +2087,22 @@
             }
         }
 
-        // Rebuilds the date -> shifts lookup used by the calendar views.
-        private void RebuildShiftDayBucket()
+        // Rebuilds the date -> work items lookup used by the calendar views.
+        private void RebuildWorkItemDayBucket()
         {
-            var newMap = new Dictionary<DateOnly, List<Shift>>();
-            foreach (var shift in shifts)
+            var newMap = new Dictionary<DateOnly, List<WorkItem>>();
+            foreach (var WorkItem in WorkItems)
             {
-                var startDay = DateOnly.FromDateTime(shift.Start.ToLocalTime());
-                var endDay = DateOnly.FromDateTime(shift.End.AddTicks(-1).ToLocalTime());
+                var startDay = DateOnly.FromDateTime(WorkItem.Start.ToLocalTime());
+                var endDay = DateOnly.FromDateTime(WorkItem.End.AddTicks(-1).ToLocalTime());
                 for (var day = startDay; day <= endDay; day = day.AddDays(1))
                 {
-                    if (!newMap.TryGetValue(day, out var dayShifts))
-                        newMap[day] = dayShifts = new List<Shift>();
-                    dayShifts.Add(shift);
+                    if (!newMap.TryGetValue(day, out var dayWorkItems))
+                        newMap[day] = dayWorkItems = new List<WorkItem>();
+                    dayWorkItems.Add(WorkItem);
                 }
             }
-            _shiftsByDay = newMap;
+            _WorkItemsByDay = newMap;
         }
 
         // Rebuilds the date -> absences lookup.

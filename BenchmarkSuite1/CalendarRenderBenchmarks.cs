@@ -11,8 +11,8 @@ namespace Rota.Benchmarks;
 [CPUUsageDiagnoser]
 public class CalendarRenderBenchmarks
 {
-    // Simulate a realistic load: 200 shifts, 50 absences, 40 reminders over a 6-week view window
-    private List<Shift> _shifts = null!;
+    // Simulate a realistic load: 200 work items, 50 absences, 40 reminders over a 6-week view window
+    private List<WorkItem> _WorkItems = null!;
     private List<Absence> _absences = null!;
     private List<Reminder> _reminders = null!;
     private List<User> _employees = null!;
@@ -39,19 +39,19 @@ public class CalendarRenderBenchmarks
         // Generate employees
         _employees = employeeIds.Select((id, i) => new User { Id = id, Username = $"user{i}", DisplayName = $"Employee {i}", FirstName = $"First{i}", LastName = $"Last{i}" }).ToList();
         _linkedUsers = _employees.ToList();
-        // Generate shifts spread over a 6-week window
+        // Generate work items spread over a 6-week window
         var windowStart = StartOfWeek(_current).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-        _shifts = Enumerable.Range(0, 200).Select(i =>
+        _WorkItems = Enumerable.Range(0, 200).Select(i =>
         {
             var dayOffset = rng.Next(0, 42);
             var startDt = windowStart.AddDays(dayOffset).AddHours(rng.Next(6, 14));
-            return new Shift
+            return new WorkItem
             {
-                Id = $"shift{i}",
+                Id = $"workItem{i}",
                 Username = "manager1",
                 Start = startDt,
                 End = startDt.AddHours(rng.Next(4, 10)),
-                Title = $"Shift {i}",
+                Title = $"WorkItem {i}",
                 WorkerType = workerTypes[rng.Next(workerTypes.Length)],
                 Color = "#1890ff",
                 AssignedToUserId = rng.Next(0, 3) == 0 ? null : employeeIds[rng.Next(employeeIds.Count)],
@@ -108,11 +108,11 @@ public class CalendarRenderBenchmarks
         return totalItems;
     }
 
-    /// <summary>Cost of GetShiftsForDay for a single day (called 42× per month render).</summary>
+    /// <summary>Cost of GetWorkItemsForDay for a single day (called 42Ã— per month render).</summary>
     [Benchmark]
-    public int GetShiftsForDaySingle()
+    public int GetWorkItemsForDaySingle()
     {
-        return GetShiftsForDay(_targetDay).Count;
+        return GetWorkItemsForDay(_targetDay).Count;
     }
 
     /// <summary>Cost of GetSortedDayItems for a single day.</summary>
@@ -122,12 +122,12 @@ public class CalendarRenderBenchmarks
         return GetSortedDayItems(_targetDay).Count;
     }
 
-    /// <summary>Cost of GetEmployeeDisplayNameById called for each shift (≈200 calls per render).</summary>
+    /// <summary>Cost of GetEmployeeDisplayNameById called for each work item (â‰ˆ200 calls per render).</summary>
     [Benchmark]
     public int EmployeeNameLookups()
     {
         int count = 0;
-        foreach (var s in _shifts)
+        foreach (var s in _WorkItems)
         {
             var name = GetEmployeeDisplayNameById(s.AssignedToUserId);
             if (name.Length > 0)
@@ -137,12 +137,12 @@ public class CalendarRenderBenchmarks
         return count;
     }
 
-    // ── Helpers mirroring Calendar.razor logic ────────────────────────────
-    private List<Shift> GetShiftsForDay(DateOnly day)
+    // â”€â”€ Helpers mirroring Calendar.razor logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private List<WorkItem> GetWorkItemsForDay(DateOnly day)
     {
         var startUtc = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
         var endUtc = day.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Local).ToUniversalTime();
-        return _shifts.Where(s => s.Start < endUtc && s.End > startUtc).Where(s => string.IsNullOrEmpty("sched001") || s.ScheduleId == "sched001").Where(s =>
+        return _WorkItems.Where(s => s.Start < endUtc && s.End > startUtc).Where(s => string.IsNullOrEmpty("sched001") || s.ScheduleId == "sched001").Where(s =>
         {
             if (_workerTypeVisibility.Count == 0)
                 return true;
@@ -173,12 +173,12 @@ public class CalendarRenderBenchmarks
         return _reminders.Where(r => r.ReminderDateTime >= startUtc && r.ReminderDateTime < endUtc).Where(r => r.ScheduleId == "sched001").ToList();
     }
 
-    private sealed record DayItem(DateTime SortKey, Shift? Shift = null, Absence? Absence = null, Reminder? Reminder = null);
+    private sealed record DayItem(DateTime SortKey, WorkItem? WorkItem = null, Absence? Absence = null, Reminder? Reminder = null);
     private List<DayItem> GetSortedDayItems(DateOnly day)
     {
         var items = new List<DayItem>();
-        foreach (var s in GetShiftsForDay(day))
-            items.Add(new DayItem(s.Start, Shift: s));
+        foreach (var s in GetWorkItemsForDay(day))
+            items.Add(new DayItem(s.Start, WorkItem: s));
         foreach (var a in GetAbsencesForDay(day))
         {
             var sortKey = a.StartDate;

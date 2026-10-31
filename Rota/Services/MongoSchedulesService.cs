@@ -12,7 +12,7 @@ namespace Rota.Services
     {
         private readonly IMongoCollection<Schedule> _schedules;
         private readonly ILogger<MongoSchedulesService> _logger;
-        private readonly IShiftsService? _shiftsService;
+        private readonly IWorkItemsService? _WorkItemsService;
         private readonly IAbsencesService? _absencesService;
         private readonly IRemindersService? _remindersService;
 
@@ -30,10 +30,10 @@ namespace Rota.Services
         /// <summary>
         /// Creates the schedules service using configured MongoDB options.
         /// </summary>
-        public MongoSchedulesService(IOptions<MongoDbOptions> options, ILogger<MongoSchedulesService> logger, IShiftsService shiftsService, IAbsencesService absencesService, IRemindersService remindersService)
+        public MongoSchedulesService(IOptions<MongoDbOptions> options, ILogger<MongoSchedulesService> logger, IWorkItemsService WorkItemsService, IAbsencesService absencesService, IRemindersService remindersService)
         {
             _logger = logger;
-            _shiftsService = shiftsService;
+            _WorkItemsService = WorkItemsService;
             _absencesService = absencesService;
             _remindersService = remindersService;
             var opts = options?.Value ?? throw new ArgumentNullException(nameof(options));
@@ -47,11 +47,11 @@ namespace Rota.Services
             _schedules = db.GetCollection<Schedule>("schedules");
         }
 
-        public MongoSchedulesService(IMongoCollection<Schedule> schedulesCollection, ILogger<MongoSchedulesService> logger, IShiftsService? shiftsService = null, IAbsencesService? absencesService = null, IRemindersService? remindersService = null)
+        public MongoSchedulesService(IMongoCollection<Schedule> schedulesCollection, ILogger<MongoSchedulesService> logger, IWorkItemsService? WorkItemsService = null, IAbsencesService? absencesService = null, IRemindersService? remindersService = null)
         {
             _schedules = schedulesCollection;
             _logger = logger;
-            _shiftsService = shiftsService;
+            _WorkItemsService = WorkItemsService;
             _absencesService = absencesService;
             _remindersService = remindersService;
         }
@@ -211,19 +211,19 @@ namespace Rota.Services
                     OwnerFilter(managerId, managerCode)
                 );
 
-                if (_shiftsService is null || _absencesService is null || _remindersService is null)
+                if (_WorkItemsService is null || _absencesService is null || _remindersService is null)
                 {
-                    throw new InvalidOperationException("The schedule could not be deleted because cleanup of its shifts, absences, and reminders is unavailable. The schedule was not deleted.");
+                    throw new InvalidOperationException("The schedule could not be deleted because cleanup of its work items, absences, and reminders is unavailable. The schedule was not deleted.");
                 }
 
                 // Delete associated data first; any failure aborts before the schedule itself is removed
                 try
                 {
-                    await _shiftsService.DeleteShiftsByScheduleIdAsync(scheduleId);
+                    await _WorkItemsService.DeleteWorkItemsByScheduleIdAsync(scheduleId);
                 }
                 catch (Exception ex)
                 {
-                    throw new InvalidOperationException("The schedule could not be deleted because its shifts could not be deleted. The schedule was not deleted. Please try again.", ex);
+                    throw new InvalidOperationException("The schedule could not be deleted because its work items could not be deleted. The schedule was not deleted. Please try again.", ex);
                 }
 
                 try

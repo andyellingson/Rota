@@ -30,7 +30,7 @@
                                 <label class="form-label">Time</label>
                                 <input type="time" class="form-control" @bind="State.NewReminderTime" />
                             </div>
-                            @if (CanManageShifts)
+                            @if (CanManageWorkItems)
                             {
                                 <div class="mb-3">
                                     <label class="form-label">For</label>
@@ -73,7 +73,7 @@
                                 <label class="form-label">Time</label>
                                 <input type="time" class="form-control" @bind="State.EditReminderTime" />
                             </div>
-                            @if (CanManageShifts)
+                            @if (CanManageWorkItems)
                             {
                                 <div class="mb-3">
                                     <label class="form-label">For</label>
@@ -107,47 +107,47 @@
                             </div>
                         }
                     }
-                    else if (State.ModalMode == ModalMode.Shift)
+                    else if (State.ModalMode == ModalMode.WorkItem)
                     {
-                        @if (State.EditingShift is null)
+                        @if (State.EditingWorkItem is null)
                         {
-                            <div class="compact-editor-grid compact-editor-grid--shift">
+                            <div class="compact-editor-grid compact-editor-grid--work-item">
                                 <div class="compact-editor-field compact-editor-field--span-2">
-                                    <label class="form-label">Shift title</label>
-                                    <input class="form-control" @bind="State.NewShiftTitle" placeholder="Enter shift title" />
+                                    <label class="form-label">Work item title</label>
+                                    <input class="form-control" @bind="State.NewWorkItemTitle" placeholder="Enter work item title" />
                                 </div>
                                 <div class="compact-editor-field compact-editor-field--span-2 compact-editor-field--recurrence">
                                     <label class="form-label">Repeat</label>
                                     <div class="compact-choice-list">
                                         <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" id="rec-none" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.None)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.None)" />
+                                            <input class="form-check-input" type="radio" id="rec-none" name="recurrence" @onchange="(() => State.NewWorkItemRecurrence = WorkItemRecurrence.None)" checked="@(State.NewWorkItemRecurrence == WorkItemRecurrence.None)" />
                                             <label class="form-check-label" for="rec-none">None</label>
                                         </div>
                                         <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" id="rec-daily" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.Daily)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.Daily)" />
+                                            <input class="form-check-input" type="radio" id="rec-daily" name="recurrence" @onchange="(() => State.NewWorkItemRecurrence = WorkItemRecurrence.Daily)" checked="@(State.NewWorkItemRecurrence == WorkItemRecurrence.Daily)" />
                                             <label class="form-check-label" for="rec-daily">Daily</label>
                                         </div>
                                         <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" id="rec-workdays" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.Workdays)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.Workdays)" />
+                                            <input class="form-check-input" type="radio" id="rec-workdays" name="recurrence" @onchange="(() => State.NewWorkItemRecurrence = WorkItemRecurrence.Workdays)" checked="@(State.NewWorkItemRecurrence == WorkItemRecurrence.Workdays)" />
                                             <label class="form-check-label" for="rec-workdays">Work week (Mon–Fri)</label>
                                         </div>
                                         <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" id="rec-weekends" name="recurrence" @onchange="(() => State.NewShiftRecurrence = ShiftRecurrence.Weekends)" checked="@(State.NewShiftRecurrence == ShiftRecurrence.Weekends)" />
+                                            <input class="form-check-input" type="radio" id="rec-weekends" name="recurrence" @onchange="(() => State.NewWorkItemRecurrence = WorkItemRecurrence.Weekends)" checked="@(State.NewWorkItemRecurrence == WorkItemRecurrence.Weekends)" />
                                             <label class="form-check-label" for="rec-weekends">Weekends only</label>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="compact-editor-field">
                                     <label class="form-label">Start time</label>
-                                    <input type="time" class="form-control" @bind="State.NewShiftStartTime" />
+                                    <input type="time" class="form-control" @bind="State.NewWorkItemstartTime" />
                                 </div>
                                 <div class="compact-editor-field">
                                     <label class="form-label">End time</label>
-                                    <input type="time" class="form-control" @bind="State.NewShiftEndTime" />
+                                    <input type="time" class="form-control" @bind="State.NewWorkItemEndTime" />
                                 </div>
                                 <div class="compact-editor-field">
                                     <label class="form-label">Team member type</label>
-                                    <select class="form-select" @bind="State.NewShiftWorkerType">
+                                    <select class="form-select" @bind="State.NewWorkItemWorkerType">
                                         @foreach (var workerType in WorkerTypes)
                                         {
                                             <option value="@workerType">@workerType</option>
@@ -156,7 +156,7 @@
                                 </div>
                                 <div class="compact-editor-field">
                                     <label class="form-label">Assign to team member</label>
-                                    <select class="form-select" @bind="State.NewShiftAssignedTo">
+                                    <select class="form-select" @bind="State.NewWorkItemAssignedTo">
                                         <option value="">— Unassigned —</option>
                                         @foreach (var employee in Employees)
                                         {
@@ -169,34 +169,34 @@
                                     <div class="color-swatch-container">
                                         @foreach (var color in ColorChoices)
                                         {
-                                            <button type="button" class="color-swatch @(color == State.NewShiftColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.NewShiftColor = color)" aria-label=$"Select color {color}"></button>
+                                            <button type="button" class="color-swatch @(color == State.NewWorkItemColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.NewWorkItemColor = color)" aria-label=$"Select color {color}"></button>
                                         }
                                     </div>
                                 </div>
                                 <div class="compact-editor-field compact-editor-field--span-2">
                                     <label class="form-label">Notes (optional)</label>
-                                    <textarea class="form-control compact-editor-notes" rows="2" @bind="State.NewShiftNotes" placeholder="Add additional notes"></textarea>
+                                    <textarea class="form-control compact-editor-notes" rows="2" @bind="State.NewWorkItemNotes" placeholder="Add additional notes"></textarea>
                                 </div>
                             </div>
                         }
                         else
                         {
-                            <div class="compact-editor-grid compact-editor-grid--shift">
+                            <div class="compact-editor-grid compact-editor-grid--work-item">
                                 <div class="compact-editor-field compact-editor-field--span-2">
-                                    <label class="form-label">Shift title (optional)</label>
-                                    <input class="form-control" @bind="State.EditShiftTitle" placeholder="Enter shift title" />
+                                    <label class="form-label">WorkItem title (optional)</label>
+                                    <input class="form-control" @bind="State.EditWorkItemTitle" placeholder="Enter work item title" />
                                 </div>
                                 <div class="compact-editor-field">
                                     <label class="form-label">Start time</label>
-                                    <input type="time" class="form-control" @bind="State.EditShiftStartTime" />
+                                    <input type="time" class="form-control" @bind="State.EditWorkItemstartTime" />
                                 </div>
                                 <div class="compact-editor-field">
                                     <label class="form-label">End time</label>
-                                    <input type="time" class="form-control" @bind="State.EditShiftEndTime" />
+                                    <input type="time" class="form-control" @bind="State.EditWorkItemEndTime" />
                                 </div>
                                 <div class="compact-editor-field">
                                     <label class="form-label">Team member type</label>
-                                    <select class="form-select" @bind="State.EditShiftWorkerType">
+                                    <select class="form-select" @bind="State.EditWorkItemWorkerType">
                                         @foreach (var workerType in WorkerTypes)
                                         {
                                             <option value="@workerType">@workerType</option>
@@ -205,7 +205,7 @@
                                 </div>
                                 <div class="compact-editor-field">
                                     <label class="form-label">Assign to team member</label>
-                                    <select class="form-select" @bind="State.EditShiftAssignedTo">
+                                    <select class="form-select" @bind="State.EditWorkItemAssignedTo">
                                         <option value="">— Unassigned —</option>
                                         @foreach (var employee in Employees)
                                         {
@@ -218,13 +218,13 @@
                                     <div class="color-swatch-container">
                                         @foreach (var color in ColorChoices)
                                         {
-                                            <button type="button" class="color-swatch @(color == State.EditShiftColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.EditShiftColor = color)" aria-label=$"Select color {color}"></button>
+                                            <button type="button" class="color-swatch @(color == State.EditWorkItemColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.EditWorkItemColor = color)" aria-label=$"Select color {color}"></button>
                                         }
                                     </div>
                                 </div>
                                 <div class="compact-editor-field compact-editor-field--span-2">
                                     <label class="form-label">Notes (optional)</label>
-                                    <textarea class="form-control compact-editor-notes" rows="2" @bind="State.EditShiftNotes" placeholder="Add additional notes"></textarea>
+                                    <textarea class="form-control compact-editor-notes" rows="2" @bind="State.EditWorkItemNotes" placeholder="Add additional notes"></textarea>
                                 </div>
                             </div>
                         }
@@ -266,7 +266,7 @@
                                     <input type="time" class="form-control" @bind="State.NewAbsenceEndTime" />
                                 </div>
                             }
-                            @if (CanManageShifts)
+                            @if (CanManageWorkItems)
                             {
                                 <div class="mb-3">
                                     <label class="form-label">For</label>
@@ -299,7 +299,7 @@
                                 <textarea class="form-control" rows="3" @bind="State.NewAbsenceNotes" placeholder="Add any additional details"></textarea>
                             </div>
                             @* Approval — managers can set state; employees always submit as Pending *@
-                            @if (CanManageShifts)
+                            @if (CanManageWorkItems)
                             {
                                 <div class="mb-3">
                                     <label class="form-label fw-semibold">Approval</label>
@@ -366,7 +366,7 @@
                                     <input type="time" class="form-control" @bind="State.EditAbsenceEndTime" />
                                 </div>
                             }
-                            @if (CanManageShifts)
+                            @if (CanManageWorkItems)
                             {
                                 <div class="mb-3">
                                     <label class="form-label">For</label>
@@ -399,7 +399,7 @@
                                 <textarea class="form-control" rows="3" @bind="State.EditAbsenceNotes" placeholder="Add any additional details"></textarea>
                             </div>
                             @* Approval — managers can set state; employees see their current status read-only *@
-                            @if (CanManageShifts)
+                            @if (CanManageWorkItems)
                             {
                                 <div class="mb-3">
                                     <label class="form-label fw-semibold">Approval</label>
@@ -454,25 +454,25 @@
                             <button type="button" class="btn btn-primary" @onclick="OnUpdateReminder" disabled="@State.IsBusy">Save Changes</button>
                         }
                     }
-                    else if (State.ModalMode == ModalMode.Shift)
+                    else if (State.ModalMode == ModalMode.WorkItem)
                     {
-                        @if (State.EditingShift is null)
+                        @if (State.EditingWorkItem is null)
                         {
                             <button type="button" class="btn btn-secondary" @onclick="OnClose" disabled="@State.IsBusy">Cancel</button>
-                            <button type="button" class="btn btn-primary" @onclick="OnSaveShift" disabled="@State.IsBusy">Create Shift</button>
+                            <button type="button" class="btn btn-primary" @onclick="OnSaveWorkItem" disabled="@State.IsBusy">Create work item</button>
                         }
-                        else if (State.EditingShift.SeriesId is not null)
+                        else if (State.EditingWorkItem.SeriesId is not null)
                         {
-                            <button type="button" class="btn btn-danger me-2" @onclick="OnDeleteShiftSeries" disabled="@State.IsBusy">Delete Series</button>
-                            <button type="button" class="btn btn-danger me-auto" @onclick="OnDeleteShift" disabled="@State.IsBusy">Delete</button>
+                            <button type="button" class="btn btn-danger me-2" @onclick="OnDeleteWorkItemseries" disabled="@State.IsBusy">Delete Series</button>
+                            <button type="button" class="btn btn-danger me-auto" @onclick="OnDeleteWorkItem" disabled="@State.IsBusy">Delete</button>
                             <button type="button" class="btn btn-secondary" @onclick="OnClose" disabled="@State.IsBusy">Cancel</button>
-                            <button type="button" class="btn btn-primary" @onclick="OnUpdateShift" disabled="@State.IsBusy">Save Changes</button>
+                            <button type="button" class="btn btn-primary" @onclick="OnUpdateWorkItem" disabled="@State.IsBusy">Save Changes</button>
                         }
                         else
                         {
-                            <button type="button" class="btn btn-danger me-auto" @onclick="OnDeleteShift" disabled="@State.IsBusy">Delete</button>
+                            <button type="button" class="btn btn-danger me-auto" @onclick="OnDeleteWorkItem" disabled="@State.IsBusy">Delete</button>
                             <button type="button" class="btn btn-secondary" @onclick="OnClose" disabled="@State.IsBusy">Cancel</button>
-                            <button type="button" class="btn btn-primary" @onclick="OnUpdateShift" disabled="@State.IsBusy">Save Changes</button>
+                            <button type="button" class="btn btn-primary" @onclick="OnUpdateWorkItem" disabled="@State.IsBusy">Save Changes</button>
                         }
                     }
                     else if (State.ModalMode == ModalMode.Absence)
@@ -502,7 +502,7 @@
 @code {
     /// <summary>
     /// Manager-defined team member type names passed in from the parent page.
-    /// Rendered as options in the team member type dropdown on shift forms.
+    /// Rendered as options in the team member type dropdown on work item forms.
     /// </summary>
     [Parameter]
     public IReadOnlyList<string> WorkerTypes { get; set; } = Array.Empty<string>();
@@ -511,7 +511,7 @@
     public CalendarEditModalState State { get; set; } = default!;
 
     [Parameter]
-    public bool CanManageShifts { get; set; }
+    public bool CanManageWorkItems { get; set; }
 
     /// <summary>
     /// False when the current user may only view the absence being opened (read-only dialog).
@@ -541,16 +541,16 @@
     public EventCallback OnDeleteReminder { get; set; }
 
     [Parameter]
-    public EventCallback OnSaveShift { get; set; }
+    public EventCallback OnSaveWorkItem { get; set; }
 
     [Parameter]
-    public EventCallback OnUpdateShift { get; set; }
+    public EventCallback OnUpdateWorkItem { get; set; }
 
     [Parameter]
-    public EventCallback OnDeleteShift { get; set; }
+    public EventCallback OnDeleteWorkItem { get; set; }
 
     [Parameter]
-    public EventCallback OnDeleteShiftSeries { get; set; }
+    public EventCallback OnDeleteWorkItemseries { get; set; }
 
     [Parameter]
     public EventCallback OnSaveAbsence { get; set; }
@@ -573,9 +573,9 @@
             ModalMode.Reminder => State.EditingReminder is null
                 ? $"Add Reminder for {State.SelectedDate?.ToString("d", CultureInfo.CurrentCulture)}"
                 : "Edit Reminder",
-            ModalMode.Shift => State.EditingShift is null
-                ? $"Add Shift for {State.SelectedDate?.ToString("d", CultureInfo.CurrentCulture)}"
-                : "Edit Shift",
+            ModalMode.WorkItem => State.EditingWorkItem is null
+                ? $"Add WorkItem for {State.SelectedDate?.ToString("d", CultureInfo.CurrentCulture)}"
+                : "Edit work item",
             ModalMode.Absence => State.EditingAbsence is null
                 ? $"Add Absence for {State.SelectedDate?.ToString("d", CultureInfo.CurrentCulture)}"
                 : (CanEditAbsence ? "Edit Absence" : "View Absence"),

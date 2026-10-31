@@ -1,4 +1,4 @@
-.modal-backdrop {
+﻿.modal-backdrop {
     background-color: rgba(0,0,0,0.5);
     z-index: 1250 !important;
 }
@@ -11,8 +11,8 @@
     color: var(--color-text-medium) !important;
 }
 
-/* Shift cards */
-.day-detail-shift-card {
+/* WorkItem cards */
+.day-detail-work-item-card {
     border: 1px solid var(--color-border);
     border-left: 4px solid #1890ff;
     border-radius: 6px;
@@ -23,7 +23,7 @@
     background: var(--color-bg-subtle);
 }
 
-.day-detail-shift-card:hover { opacity: 0.85; }
+.day-detail-work-item-card:hover { opacity: 0.85; }
 
 /* Absence cards */
 .day-detail-absence-card {
@@ -178,14 +178,14 @@
     gap: 0.4rem;
 }
 
-.day-detail-shift-header,
-.day-detail-shift-details {
+.day-detail-work-item-header,
+.day-detail-work-item-details {
     flex-wrap: nowrap;
     justify-content: space-between;
     min-width: 0;
 }
 
-.day-detail-shift-title {
+.day-detail-work-item-title {
     min-width: 0;
     overflow: hidden;
     color: var(--color-text-primary);
@@ -212,7 +212,7 @@
     white-space: nowrap;
 }
 
-.day-detail-shift-details .day-detail-assigned {
+.day-detail-work-item-details .day-detail-assigned {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -51,10 +51,10 @@ namespace Rota.Services
         System.Threading.Tasks.Task<bool> UpdateMaxHoursAsync(string username, double maxHours);
 
         /// <summary>
-        /// Updates the shift assignment priority for the specified user.
+        /// Updates the work item assignment priority for the specified user.
         /// Returns true when the document was modified.
         /// </summary>
-        System.Threading.Tasks.Task<bool> UpdateShiftAssignmentPriorityAsync(string username, int priority);
+        System.Threading.Tasks.Task<bool> UpdateWorkItemAssignmentPriorityAsync(string username, int priority);
 
         /// <summary>
         /// Replaces the list of schedule IDs assigned to the specified employee.

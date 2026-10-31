@@ -8,14 +8,14 @@ namespace Rota.Components
     public enum ModalMode
     {
         Reminder,
-        Shift,
+        WorkItem,
         Absence
     }
 
     /// <summary>
-    /// Defines recurrence options available when creating a new shift.
+    /// Defines recurrence options available when creating a new work item.
     /// </summary>
-    public enum ShiftRecurrence
+    public enum WorkItemRecurrence
     {
         None,
         Daily,
@@ -114,94 +114,94 @@ namespace Rota.Components
         public string EditReminderForUsername { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the shift currently being edited.
+        /// Gets or sets the work item currently being edited.
         /// </summary>
-        public Shift? EditingShift { get; set; }
+        public WorkItem? EditingWorkItem { get; set; }
 
         /// <summary>
-        /// Gets or sets the identifier of the shift currently being edited.
+        /// Gets or sets the identifier of the work item currently being edited.
         /// </summary>
-        public string EditShiftId { get; set; } = string.Empty;
+        public string EditWorkItemId { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the date for the shift being edited.
+        /// Gets or sets the date for the work item being edited.
         /// </summary>
-        public DateOnly EditShiftDate { get; set; }
+        public DateOnly EditWorkItemDate { get; set; }
 
         /// <summary>
-        /// Gets or sets the start time for the shift being edited.
+        /// Gets or sets the start time for the work item being edited.
         /// </summary>
-        public TimeOnly EditShiftStartTime { get; set; } = new(9, 0);
+        public TimeOnly EditWorkItemstartTime { get; set; } = new(9, 0);
 
         /// <summary>
-        /// Gets or sets the end time for the shift being edited.
+        /// Gets or sets the end time for the work item being edited.
         /// </summary>
-        public TimeOnly EditShiftEndTime { get; set; } = new(17, 0);
+        public TimeOnly EditWorkItemEndTime { get; set; } = new(17, 0);
 
         /// <summary>
-        /// Gets or sets the title for the shift being edited.
+        /// Gets or sets the title for the work item being edited.
         /// </summary>
-        public string EditShiftTitle { get; set; } = string.Empty;
+        public string EditWorkItemTitle { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets notes for the shift being edited.
+        /// Gets or sets notes for the work item being edited.
         /// </summary>
-        public string? EditShiftNotes { get; set; }
+        public string? EditWorkItemNotes { get; set; }
 
         /// <summary>
-        /// Gets or sets the team member type name for the shift being edited.
+        /// Gets or sets the team member type name for the work item being edited.
         /// </summary>
-        public string EditShiftWorkerType { get; set; } = "General";
+        public string EditWorkItemWorkerType { get; set; } = "General";
 
         /// <summary>
-        /// Gets or sets the color for the shift being edited.
+        /// Gets or sets the color for the work item being edited.
         /// </summary>
-        public string EditShiftColor { get; set; } = "#1890ff";
+        public string EditWorkItemColor { get; set; } = "#1890ff";
 
         /// <summary>
-        /// Gets or sets the assigned user id for the shift being edited.
+        /// Gets or sets the assigned user id for the work item being edited.
         /// </summary>
-        public string EditShiftAssignedTo { get; set; } = string.Empty;
+        public string EditWorkItemAssignedTo { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets the start time for a new shift.
+        /// Gets or sets the start time for a new work item.
         /// </summary>
-        public TimeOnly NewShiftStartTime { get; set; } = new(9, 0);
+        public TimeOnly NewWorkItemstartTime { get; set; } = new(9, 0);
 
         /// <summary>
-        /// Gets or sets the end time for a new shift.
+        /// Gets or sets the end time for a new work item.
         /// </summary>
-        public TimeOnly NewShiftEndTime { get; set; } = new(17, 0);
+        public TimeOnly NewWorkItemEndTime { get; set; } = new(17, 0);
 
         /// <summary>
-        /// Gets or sets the title for a new shift.
+        /// Gets or sets the title for a new work item.
         /// </summary>
-        public string NewShiftTitle { get; set; } = string.Empty;
+        public string NewWorkItemTitle { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets or sets notes for a new shift.
+        /// Gets or sets notes for a new work item.
         /// </summary>
-        public string? NewShiftNotes { get; set; }
+        public string? NewWorkItemNotes { get; set; }
 
         /// <summary>
-        /// Gets or sets the color for a new shift.
+        /// Gets or sets the color for a new work item.
         /// </summary>
-        public string NewShiftColor { get; set; } = "#1890ff";
+        public string NewWorkItemColor { get; set; } = "#1890ff";
 
         /// <summary>
-        /// Gets or sets the team member type name for the shift being created.
+        /// Gets or sets the team member type name for the work item being created.
         /// </summary>
-        public string NewShiftWorkerType { get; set; } = "General";
+        public string NewWorkItemWorkerType { get; set; } = "General";
 
         /// <summary>
-        /// Gets or sets the recurrence mode for newly created shifts.
+        /// Gets or sets the recurrence mode for newly created work items.
         /// </summary>
-        public ShiftRecurrence NewShiftRecurrence { get; set; } = ShiftRecurrence.None;
+        public WorkItemRecurrence NewWorkItemRecurrence { get; set; } = WorkItemRecurrence.None;
 
         /// <summary>
-        /// Gets or sets the assigned user id for a new shift.
+        /// Gets or sets the assigned user id for a new work item.
         /// </summary>
-        public string NewShiftAssignedTo { get; set; } = string.Empty;
+        public string NewWorkItemAssignedTo { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the absence currently being edited.

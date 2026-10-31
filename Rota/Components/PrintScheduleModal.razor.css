@@ -1,4 +1,4 @@
-/* ── Print modal backdrop – keeps the rest of the page behind the dialog ── */
+﻿/* ── Print modal backdrop – keeps the rest of the page behind the dialog ── */
 .print-modal-backdrop {
     z-index: 1055;
 }
@@ -291,7 +291,7 @@
     white-space: nowrap;
 }
 
-/* Calendar-style shift card parts */
+/* Calendar-style WorkItem card parts */
 .print-event-title {
     font-weight: 600;
     font-size: 0.72rem;

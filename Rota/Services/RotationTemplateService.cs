@@ -3,21 +3,21 @@ using Rota.Models;
 namespace Rota.Services
 {
     /// <summary>
-    /// Default <see cref="IRotationTemplateService"/> backed by <see cref="IShiftsService"/>.
+    /// Default <see cref="IRotationTemplateService"/> backed by <see cref="IWorkItemsService"/>.
     /// </summary>
     public sealed class RotationTemplateService : IRotationTemplateService
     {
-        private readonly IShiftsService _shiftsService;
+        private readonly IWorkItemsService _WorkItemsService;
         private readonly IRotationsService? _rotationsService;
 
-        public RotationTemplateService(IShiftsService shiftsService)
+        public RotationTemplateService(IWorkItemsService WorkItemsService)
         {
-            _shiftsService = shiftsService;
+            _WorkItemsService = WorkItemsService;
         }
 
-        public RotationTemplateService(IShiftsService shiftsService, IRotationsService rotationsService)
+        public RotationTemplateService(IWorkItemsService WorkItemsService, IRotationsService rotationsService)
         {
-            _shiftsService = shiftsService;
+            _WorkItemsService = WorkItemsService;
             _rotationsService = rotationsService;
         }
 
@@ -33,22 +33,22 @@ namespace Rota.Services
                 }
             }
 
-            var templateShifts = await _shiftsService.GetRotationTemplateShiftsAsync(rotationId, managerCode);
-            if (templateShifts.Count == 0)
+            var templateWorkItems = await _WorkItemsService.GetRotationTemplateWorkItemsAsync(rotationId, managerCode);
+            if (templateWorkItems.Count == 0)
             {
-                return new RotationApplyResult(0, "No template shifts found for the selected WorkWeek.");
+                return new RotationApplyResult(0, "No template work items found for the selected WorkWeek.");
             }
 
-            // Build the list of shifts before persisting so a failure mid-way is easier to reason about.
-            var toCreate = new List<Shift>();
+            // Build the list of work items before persisting so a failure mid-way is easier to reason about.
+            var toCreate = new List<WorkItem>();
             foreach (var day in days)
             {
-                foreach (var template in templateShifts)
+                foreach (var template in templateWorkItems)
                 {
                     // Skip templates whose WorkDay does not match the current calendar day.
                     if (template.WorkDay != day.DayOfWeek) continue;
 
-                    // Template shifts store wall-clock times; preserve the clock component exactly
+                    // Template work items store wall-clock times; preserve the clock component exactly
                     // and do not convert between time zones when applying to calendar dates.
                     var templateStartTime = TimeOnly.FromDateTime(template.Start);
                     var templateEndTime = TimeOnly.FromDateTime(template.End);
@@ -56,7 +56,7 @@ namespace Rota.Services
                     var endDay = templateEndTime <= templateStartTime ? day.AddDays(1) : day;
                     var end = endDay.ToDateTime(templateEndTime, DateTimeKind.Local);
 
-                    toCreate.Add(new Shift
+                    toCreate.Add(new WorkItem
                     {
                         Username = username,
                         Start = start.ToUniversalTime(),
@@ -68,15 +68,15 @@ namespace Rota.Services
                         ManagerCode = managerCode,
                         ScheduleId = scheduleId,
                         WorkerType = template.WorkerType,
-                        RotationId = null,  // Actual calendar shifts do not carry a rotation id
-                        WorkDay = null      // WorkDay is only meaningful on template shifts
+                        RotationId = null,  // Actual calendar WorkItems do not carry a rotation id
+                        WorkDay = null      // WorkDay is only meaningful on template WorkItems
                     });
                 }
             }
 
-            foreach (var shift in toCreate)
+            foreach (var WorkItem in toCreate)
             {
-                await _shiftsService.CreateShiftAsync(shift);
+                await _WorkItemsService.CreateWorkItemAsync(WorkItem);
             }
 
             return new RotationApplyResult(toCreate.Count);

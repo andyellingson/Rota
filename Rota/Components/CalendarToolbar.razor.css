@@ -1,4 +1,4 @@
-/* Ensure the Bootstrap .card follows the app theme variables so the toolbar isn't bright white in dark mode. */
+﻿/* Ensure the Bootstrap .card follows the app theme variables so the toolbar isn't bright white in dark mode. */
 .card {
     background: var(--color-bg-card);
     border-color: var(--color-border);
@@ -200,7 +200,7 @@
     background: color-mix(in srgb, var(--color-bg-card) 74%, var(--color-accent-primary) 26%);
 }
 
-/* Inline row of toggle buttons (Shifts / Absences / Reminders) */
+/* Inline row of toggle buttons (WorkItems / Absences / Reminders) */
 .toolbar-toggle-row {
     display: flex;
     gap: 0.35rem;
@@ -299,7 +299,7 @@
     max-width: 100%;
     margin-top: 0.25rem;
 }
-/* ── Shifts / Absences / Reminders toggle buttons ──
+/* ── WorkItems / Absences / Reminders toggle buttons ──
    OFF state: faint outline, muted text – item is hidden
    ON  state: solid fill, bright text  – item is visible
    The hidden <input class="btn-check"> drives :checked + label. */
@@ -428,7 +428,7 @@
     color: #fff !important;
 }
 
-/* Compact Shifts / Absences / Reminders toggles: keep one row, but with slightly wider, better-centered labels */
+/* Compact WorkItems / Absences / Reminders toggles: keep one row, but with slightly wider, better-centered labels */
 .toolbar-toggle-row {
     flex-wrap: nowrap;
     gap: 0.2rem;

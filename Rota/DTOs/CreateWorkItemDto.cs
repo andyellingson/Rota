@@ -1,7 +1,7 @@
 namespace Rota.DTOs
 {
     /// <summary>
-    /// DTO for creating a new shift.
+    /// DTO for creating a new work item.
     /// </summary>
     /// <param name="Start">Start date-time (ISO 8601)</param>
     /// <param name="End">End date-time (ISO 8601)</param>
@@ -9,6 +9,6 @@ namespace Rota.DTOs
     /// <param name="Notes">Optional notes</param>
     /// <param name="WorkerType">Team member type required (string)</param>
     /// <param name="Color">Optional CSS color string</param>
-    /// <param name="AssignedToUserId">MongoDB ObjectId string of the employee the shift is assigned to</param>
-    public record CreateShiftDto(string Start, string End, string? Title, string? Notes, string? WorkerType, string? Color, string? AssignedToUserId, Guid? SeriesId = null);
+    /// <param name="AssignedToUserId">MongoDB ObjectId string of the employee the work item is assigned to</param>
+    public record CreateWorkItemDto(string Start, string End, string? Title, string? Notes, string? WorkerType, string? Color, string? AssignedToUserId, Guid? SeriesId = null);
 }

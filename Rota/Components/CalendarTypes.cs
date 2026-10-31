@@ -16,13 +16,13 @@ namespace Rota.Components
     /// <summary>
     /// Item types that can be removed through the bulk-delete confirmation modal.
     /// </summary>
-    public enum BulkDeleteType { Shifts, Absences, Reminders }
+    public enum BulkDeleteType { WorkItems, Absences, Reminders }
 
     /// <summary>
-    /// A single entry (shift, absence or reminder) displayed in a calendar day cell.
-    /// Exactly one of <see cref="Shift"/>, <see cref="Absence"/> or <see cref="Reminder"/> is set.
+    /// A single entry (work item, absence or reminder) displayed in a calendar day cell.
+    /// Exactly one of <see cref="WorkItem"/>, <see cref="Absence"/> or <see cref="Reminder"/> is set.
     /// </summary>
-    public sealed record CalendarDayItem(DateTime SortKey, Shift? Shift = null, Absence? Absence = null, Reminder? Reminder = null);
+    public sealed record CalendarDayItem(DateTime SortKey, WorkItem? WorkItem = null, Absence? Absence = null, Reminder? Reminder = null);
 
     /// <summary>
     /// Culture-aware date helpers shared by the calendar components.

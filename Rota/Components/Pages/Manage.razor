@@ -6,7 +6,7 @@
 @using Rota.Components
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "manager,admin")]
 @inject ISchedulesService SchedulesService
-@inject IShiftsService ShiftsService
+@inject IWorkItemsService WorkItemsService
 @inject IUserService UserService
 @inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
@@ -128,7 +128,7 @@
                             <div class="schedule-card-body">
                                 <div class="schedule-card-title">@rotation.Name</div>
                                 <div class="schedule-card-desc">Available on @rotation.ScheduleIds.Count schedule(s)</div>
-                                <div class="schedule-card-meta">@(rotationShiftCounts.GetValueOrDefault(rotation.Id ?? string.Empty, 0)) template shift(s)</div>
+                                <div class="schedule-card-meta">@(rotationWorkItemCounts.GetValueOrDefault(rotation.Id ?? string.Empty, 0)) template WorkItem(s)</div>
                             </div>
                             <div class="schedule-card-actions">
                                 <button class="btn btn-sm btn-outline-warning" @onclick="(() => OpenEditRotation(rotation))">Edit</button>
@@ -186,11 +186,11 @@
                         </div>
 
                         <div class="mb-2">
-                            <strong>Shifts</strong>
-                            <div class="text-muted small">Click a day to open its shift list. Click an existing shift to edit it.</div>
+                            <strong>Work items</strong>
+                            <div class="text-muted small">Click a day to open its work item list. Click an existing work item to edit it.</div>
                         </div>
 
-                        @* Week view for adding shifts to weekdays *@
+                        @* Week view for adding work items to weekdays *@
                         <div class="week-grid mb-3">
                             @{
                                 var today = DateOnly.FromDateTime(DateTime.Today);
@@ -206,14 +206,14 @@
                                         <div class="fw-bold">@d.ToString("dddd")</div>
                                     </div>
                                     <div class="events">
-                                        @foreach (var s in newRotationShifts.Where(s => s.WorkDay == dow).OrderBy(s => s.Start))
+                                        @foreach (var s in newRotationWorkItems.Where(s => s.WorkDay == dow).OrderBy(s => s.Start))
                                         {
-                                            <ShiftItem Shift="s"
+                                            <WorkItemCard WorkItem="s"
                                                        UseWallClockTime="true"
                                                        AssignedToDisplayName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.DisplayName ?? employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.Username ?? string.Empty)"
                                                        AssignedToFirstName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.FirstName ?? string.Empty)"
                                                        AssignedToLastName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.LastName ?? string.Empty)"
-                                                       OnEdit="@(EventCallback.Factory.Create<Shift>(this, EditRotationShift))" />
+                                                       OnEdit="@(EventCallback.Factory.Create<WorkItem>(this, EditRotationWorkItem))" />
                                         }
                                     </div>
                                 </div>
@@ -308,7 +308,7 @@
                     }
                     <p>Are you sure you want to delete the schedule <strong>@scheduleToDelete.Name</strong>?</p>
                     <p class="text-danger mb-0">
-                        <strong>Warning:</strong> All shifts, absences, and reminders associated with this schedule will be permanently deleted.
+                        <strong>Warning:</strong> All WorkItems, absences, and reminders associated with this schedule will be permanently deleted.
                     </p>
                 </div>
                 <div class="modal-footer">
@@ -338,7 +338,7 @@
                         <div class="alert alert-danger">@rotationListError</div>
                     }
                     <p>Are you sure you want to delete the rotation <strong>@rotationToDelete.Name</strong>?</p>
-                    <p class="text-danger mb-0"><strong>Warning:</strong> All template shifts associated with this rotation will be permanently deleted.</p>
+                    <p class="text-danger mb-0"><strong>Warning:</strong> All template WorkItems associated with this rotation will be permanently deleted.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CloseDeleteRotationConfirm" disabled="@isBusy">Cancel</button>
@@ -520,10 +520,10 @@
                                         </div>
 
                                         <div class="team-detail-field" style="grid-row: 1; grid-column: 3;">
-                                            <label class="team-detail-label small mb-1">Shift Priority</label>
+                                            <label class="team-detail-label small mb-1">Work item Priority</label>
                                             <div class="d-flex gap-2 mt-1 align-items-center">
                                                 <input type="number" step="1" min="0" class="form-control form-control-sm" style="width:100px;" @bind="selectedMemberPriority"
-                                                       title="Higher number = assigned shifts first. Employees with equal priority share shifts in round-robin order." />
+                                                       title="Higher number = assigned WorkItems first. Employees with equal priority share WorkItems in round-robin order." />
                                                 <button class="btn btn-sm btn-primary" @onclick="SavePriorityOnly" disabled="@(!HasPriorityChanged || isBusy)">Save</button>
                                             </div>
                                             @if (!string.IsNullOrEmpty(selectedMemberPriorityMessage))
@@ -625,7 +625,7 @@
     </div>
 </div>
 
-@* Rotation day shift list modal *@
+@* Rotation day work item list modal *@
 @if (showRotationDayModal)
 {
     <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.5)">
@@ -636,29 +636,29 @@
                     <button type="button" class="btn-close" @onclick="CloseRotationDayModal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body rotation-day-modal-body">
-                    @if (!rotationDayShifts.Any())
+                    @if (!rotationDayWorkItems.Any())
                     {
-                        <div class="text-muted small">No shifts for this day yet.</div>
+                        <div class="text-muted small">No work items for this day yet.</div>
                     }
                     else
                     {
-                        <div class="rotation-day-shift-list">
-                            @foreach (var s in rotationDayShifts.OrderBy(s => s.Start))
+                        <div class="rotation-day-work-item-list">
+                            @foreach (var s in rotationDayWorkItems.OrderBy(s => s.Start))
                             {
-                                <div class="rotation-day-shift-item" @onclick="(() => EditRotationShift(s))">
-                                    <ShiftItem Shift="s"
+                                <div class="rotation-day-work-item" @onclick="(() => EditRotationWorkItem(s))">
+                                    <WorkItemCard WorkItem="s"
                                                UseWallClockTime="true"
                                                AssignedToDisplayName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.DisplayName ?? employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.Username ?? string.Empty)"
                                                AssignedToFirstName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.FirstName ?? string.Empty)"
                                                AssignedToLastName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.LastName ?? string.Empty)"
-                                               OnEdit="@(EventCallback.Factory.Create<Shift>(this, EditRotationShift))" />
+                                               OnEdit="@(EventCallback.Factory.Create<WorkItem>(this, EditRotationWorkItem))" />
                                 </div>
                             }
                         </div>
                     }
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-primary" @onclick="AddRotationShiftFromDayModal">+ Add Shift</button>
+                    <button class="btn btn-primary" @onclick="AddRotationWorkItemFromDayModal">+ Add work item</button>
                     <button class="btn btn-secondary" @onclick="CloseRotationDayModal">Close</button>
                 </div>
             </div>
@@ -666,28 +666,28 @@
     </div>
 }
 
-@* CalendarEditModal for adding shifts to Rotation templates *@
+@* CalendarEditModal for adding work items to Rotation templates *@
 <CalendarEditModal State="rotationModalState"
-                   CanManageShifts="true"
+                   CanManageWorkItems="true"
                    Employees="employees"
                    LinkedUsers="new List<User>()"
                    ColorChoices="ColorChoices"
                    WorkerTypes="workerTypeNames"
-                   OnClose="CloseRotationShiftModal"
+                   OnClose="CloseRotationWorkItemModal"
                    OnSaveReminder="@(() => Task.CompletedTask)"
                    OnUpdateReminder="@(() => Task.CompletedTask)"
                    OnDeleteReminder="@(() => Task.CompletedTask)"
-                   OnSaveShift="SaveRotationShift"
-                   OnUpdateShift="SaveRotationShift"
-                   OnDeleteShift="DeleteRotationShift"
-                   OnDeleteShiftSeries="@(() => Task.CompletedTask)"
+                   OnSaveWorkItem="SaveRotationWorkItem"
+                   OnUpdateWorkItem="SaveRotationWorkItem"
+                   OnDeleteWorkItem="DeleteRotationWorkItem"
+                   OnDeleteWorkItemseries="@(() => Task.CompletedTask)"
                    OnSaveAbsence="@(() => Task.CompletedTask)"
                    OnUpdateAbsence="@(() => Task.CompletedTask)"
                    OnDeleteAbsence="@(() => Task.CompletedTask)" />
 
 @* CalendarEditModal for editing team member absences *@
 <CalendarEditModal State="absenceModalState"
-                   CanManageShifts="true"
+                   CanManageWorkItems="true"
                    Employees="employees"
                    LinkedUsers="linkedUsers"
                    ColorChoices="ColorChoices"
@@ -696,10 +696,10 @@
                    OnSaveReminder="@(() => Task.CompletedTask)"
                    OnUpdateReminder="@(() => Task.CompletedTask)"
                    OnDeleteReminder="@(() => Task.CompletedTask)"
-                   OnSaveShift="@(() => Task.CompletedTask)"
-                   OnUpdateShift="SaveRotationShift"
-                   OnDeleteShift="@(() => Task.CompletedTask)"
-                   OnDeleteShiftSeries="@(() => Task.CompletedTask)"
+                   OnSaveWorkItem="@(() => Task.CompletedTask)"
+                   OnUpdateWorkItem="SaveRotationWorkItem"
+                   OnDeleteWorkItem="@(() => Task.CompletedTask)"
+                   OnDeleteWorkItemseries="@(() => Task.CompletedTask)"
                    OnSaveAbsence="@(() => Task.CompletedTask)"
                    OnUpdateAbsence="UpdateAbsenceFromManage"
                    OnDeleteAbsence="DeleteAbsenceFromManage" />
@@ -732,10 +732,10 @@
     private Rotation? editingRotation = null;
     private string newRotationName = string.Empty;
     private HashSet<string> selectedRotationScheduleIds = new(StringComparer.Ordinal);
-    private List<Shift> newRotationShifts = new();
-    private DayOfWeek newShiftDay = DayOfWeek.Monday;
-    private DayOfWeek? createShiftForDay = null;
-    private Shift? editingRotationShift = null;
+    private List<WorkItem> newRotationWorkItems = new();
+    private DayOfWeek newWorkItemDay = DayOfWeek.Monday;
+    private DayOfWeek? createWorkItemForDay = null;
+    private WorkItem? editingRotationWorkItem = null;
     private bool showRotationDayModal = false;
     private DayOfWeek? selectedRotationDay = null;
     private CalendarEditModalState rotationModalState = new();
@@ -743,8 +743,8 @@
     private List<User> employees = new();
     private readonly string[] ColorChoices = new[] { "#ff4d4f", "#52c41a", "#1890ff", "#fa8c16", "#d3d3d3" };
 
-    // Stores the template-shift count per Rotation ID, loaded from the shifts collection
-    private Dictionary<string, int> rotationShiftCounts = new();
+    // Stores the template-work-item count per Rotation ID, loaded from the work items collection
+    private Dictionary<string, int> rotationWorkItemCounts = new();
     private string? rotationListError;
 
     // Employees linked to the logged-in manager
@@ -765,7 +765,7 @@
     private bool memberTeamMemberTypeError;
     private string? selectedMemberMaxHoursMessage;
     private bool selectedMemberMaxHoursError;
-    // Local edit buffer for the selected member's ShiftAssignmentPriority
+    // Local edit buffer for the selected member's WorkItemAssignmentPriority
     private int selectedMemberPriority = 0;
     private string? selectedMemberPriorityMessage;
     private bool selectedMemberPriorityError;
@@ -775,7 +775,7 @@
 
     /// <summary>True when any of the member editable fields differ from the selected member's saved values.</summary>
     private bool HasMemberChanges =>
-        selectedMember is not null && (selectedMemberTeamMemberType != selectedMember.TeamMemberType || selectedMemberMaxHours != (selectedMember?.MaxHours ?? 0.0) || selectedMemberPriority != (selectedMember?.ShiftAssignmentPriority ?? 0));
+        selectedMember is not null && (selectedMemberTeamMemberType != selectedMember.TeamMemberType || selectedMemberMaxHours != (selectedMember?.MaxHours ?? 0.0) || selectedMemberPriority != (selectedMember?.WorkItemAssignmentPriority ?? 0));
 
     // Local edit buffer for the schedules assigned to the selected member
     private HashSet<string> selectedMemberScheduleIds = new();
@@ -823,7 +823,7 @@
 
     private bool HasMaxHoursChanged => selectedMember is not null && selectedMemberMaxHours != (selectedMember?.MaxHours ?? 0.0);
 
-    private bool HasPriorityChanged => selectedMember is not null && selectedMemberPriority != (selectedMember?.ShiftAssignmentPriority ?? 0);
+    private bool HasPriorityChanged => selectedMember is not null && selectedMemberPriority != (selectedMember?.WorkItemAssignmentPriority ?? 0);
 
     /// <summary>
     /// Returns the member's full name (First + Last). Falls back to DisplayName then Username
@@ -849,31 +849,31 @@
 
     // Change tracking for Rotation
     private string originalRotationName = string.Empty;
-    private List<Shift> originalRotationShifts = new();
+    private List<WorkItem> originalRotationWorkItems = new();
     private bool hasRotationChanges => CheckRotationChanges();
 
-    private void BeginCreateShiftForDay(DayOfWeek day)
+    private void BeginCreateWorkItemForDay(DayOfWeek day)
     {
-        createShiftForDay = day;
-        newShiftDay = day;
-        editingRotationShift = null;
+        createWorkItemForDay = day;
+        newWorkItemDay = day;
+        editingRotationWorkItem = null;
 
-        // Initialize modal state for a new shift.
-        // EditingShift MUST be cleared here — if the user previously opened an existing
-        // shift's edit form, the stale reference would cause the modal to open in edit
+        // Initialize modal state for a new work item.
+        // EditingWorkItem MUST be cleared here — if the user previously opened an existing
+        // work item's edit form, the stale reference would cause the modal to open in edit
         // mode even when clicking an empty area of a day column.
-        rotationModalState.EditingShift = null;
+        rotationModalState.EditingWorkItem = null;
         rotationModalState.ShowModal = true;
-        rotationModalState.ModalMode = ModalMode.Shift;
+        rotationModalState.ModalMode = ModalMode.WorkItem;
         rotationModalState.SelectedDate = DateOnly.FromDateTime(DateTime.Today); // Not used for templates but required
-        rotationModalState.NewShiftStartTime = new TimeOnly(9, 0);
-        rotationModalState.NewShiftEndTime = new TimeOnly(17, 0);
-        rotationModalState.NewShiftTitle = string.Empty;
-        rotationModalState.NewShiftColor = "#1890ff";
-        rotationModalState.NewShiftNotes = null;
-        rotationModalState.NewShiftWorkerType = workerTypeNames.FirstOrDefault() ?? "General";
-        rotationModalState.NewShiftAssignedTo = string.Empty;
-        rotationModalState.NewShiftRecurrence = ShiftRecurrence.None;
+        rotationModalState.NewWorkItemstartTime = new TimeOnly(9, 0);
+        rotationModalState.NewWorkItemEndTime = new TimeOnly(17, 0);
+        rotationModalState.NewWorkItemTitle = string.Empty;
+        rotationModalState.NewWorkItemColor = "#1890ff";
+        rotationModalState.NewWorkItemNotes = null;
+        rotationModalState.NewWorkItemWorkerType = workerTypeNames.FirstOrDefault() ?? "General";
+        rotationModalState.NewWorkItemAssignedTo = string.Empty;
+        rotationModalState.NewWorkItemRecurrence = WorkItemRecurrence.None;
         rotationModalState.ModalError = null;
         rotationListError = null;
     }
@@ -890,89 +890,89 @@
         selectedRotationDay = null;
     }
 
-    private void AddRotationShiftFromDayModal()
+    private void AddRotationWorkItemFromDayModal()
     {
         if (!selectedRotationDay.HasValue)
         {
             return;
         }
 
-        BeginCreateShiftForDay(selectedRotationDay.Value);
+        BeginCreateWorkItemForDay(selectedRotationDay.Value);
     }
 
-    private List<Shift> rotationDayShifts =>
+    private List<WorkItem> rotationDayWorkItems =>
         selectedRotationDay.HasValue
-            ? newRotationShifts.Where(s => s.WorkDay == selectedRotationDay.Value).ToList()
-            : new List<Shift>();
+            ? newRotationWorkItems.Where(s => s.WorkDay == selectedRotationDay.Value).ToList()
+            : new List<WorkItem>();
 
     private string rotationDayTitle => selectedRotationDay.HasValue
-        ? $"{selectedRotationDay.Value} Shifts"
-        : "Day Shifts";
+        ? $"{selectedRotationDay.Value} WorkItems"
+        : "Day work items";
 
-    private void EditRotationShift(Shift shift)
+    private void EditRotationWorkItem(WorkItem WorkItem)
     {
         showRotationDayModal = false;
-        editingRotationShift = shift;
-        createShiftForDay = shift.WorkDay;
-        newShiftDay = shift.WorkDay ?? DayOfWeek.Monday;
+        editingRotationWorkItem = WorkItem;
+        createWorkItemForDay = WorkItem.WorkDay;
+        newWorkItemDay = WorkItem.WorkDay ?? DayOfWeek.Monday;
 
         // Extract template wall-clock times exactly as stored.
-        var startTime = TimeOnly.FromDateTime(shift.Start);
-        var endTime = TimeOnly.FromDateTime(shift.End);
+        var startTime = TimeOnly.FromDateTime(WorkItem.Start);
+        var endTime = TimeOnly.FromDateTime(WorkItem.End);
 
-        // Initialize modal state with existing shift data
+        // Initialize modal state with existing work item data
         rotationModalState.ShowModal = true;
-        rotationModalState.ModalMode = ModalMode.Shift;
-        rotationModalState.EditingShift = shift; // Set editing shift so delete button appears
+        rotationModalState.ModalMode = ModalMode.WorkItem;
+        rotationModalState.EditingWorkItem = WorkItem; // Set editing WorkItem so delete button appears
         rotationModalState.SelectedDate = DateOnly.FromDateTime(DateTime.Today); // Not used for templates but required
-        rotationModalState.EditShiftDate = DateOnly.FromDateTime(DateTime.Today);
-        rotationModalState.EditShiftStartTime = startTime;
-        rotationModalState.EditShiftEndTime = endTime;
-        rotationModalState.EditShiftTitle = shift.Title ?? string.Empty;
-        rotationModalState.EditShiftColor = shift.Color ?? "#1890ff";
-        rotationModalState.EditShiftNotes = shift.Notes;
-        rotationModalState.EditShiftWorkerType = shift.WorkerType;
-        rotationModalState.EditShiftAssignedTo = shift.AssignedToUserId ?? string.Empty;
+        rotationModalState.EditWorkItemDate = DateOnly.FromDateTime(DateTime.Today);
+        rotationModalState.EditWorkItemstartTime = startTime;
+        rotationModalState.EditWorkItemEndTime = endTime;
+        rotationModalState.EditWorkItemTitle = WorkItem.Title ?? string.Empty;
+        rotationModalState.EditWorkItemColor = WorkItem.Color ?? "#1890ff";
+        rotationModalState.EditWorkItemNotes = WorkItem.Notes;
+        rotationModalState.EditWorkItemWorkerType = WorkItem.WorkerType;
+        rotationModalState.EditWorkItemAssignedTo = WorkItem.AssignedToUserId ?? string.Empty;
         rotationModalState.ModalError = null;
     }
 
-    private void CloseRotationShiftModal()
+    private void CloseRotationWorkItemModal()
     {
         rotationModalState.ShowModal = false;
-        createShiftForDay = null;
-        editingRotationShift = null;
+        createWorkItemForDay = null;
+        editingRotationWorkItem = null;
     }
 
-    private async Task SaveRotationShift()
+    private async Task SaveRotationWorkItem()
     {
-        if (!createShiftForDay.HasValue) return;
+        if (!createWorkItemForDay.HasValue) return;
 
-        if (editingRotationShift != null)
+        if (editingRotationWorkItem != null)
         {
-            // Update existing template shift
-            editingRotationShift.WorkDay = createShiftForDay.Value;
+            // Update existing template work item
+            editingRotationWorkItem.WorkDay = createWorkItemForDay.Value;
             // Create a reference date to store times (will be replaced when applying to calendar)
             var refDate = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            editingRotationShift.Start = refDate.Add(rotationModalState.EditShiftStartTime.ToTimeSpan());
-            editingRotationShift.End = refDate.Add(rotationModalState.EditShiftEndTime.ToTimeSpan());
-            editingRotationShift.Title = string.IsNullOrWhiteSpace(rotationModalState.EditShiftTitle) ? "" : rotationModalState.EditShiftTitle.Trim();
-            editingRotationShift.Color = rotationModalState.EditShiftColor;
-            editingRotationShift.Notes = rotationModalState.EditShiftNotes;
-            editingRotationShift.WorkerType = rotationModalState.EditShiftWorkerType;
-            editingRotationShift.AssignedToUserId = string.IsNullOrWhiteSpace(rotationModalState.EditShiftAssignedTo) ? null : rotationModalState.EditShiftAssignedTo;
+            editingRotationWorkItem.Start = refDate.Add(rotationModalState.EditWorkItemstartTime.ToTimeSpan());
+            editingRotationWorkItem.End = refDate.Add(rotationModalState.EditWorkItemEndTime.ToTimeSpan());
+            editingRotationWorkItem.Title = string.IsNullOrWhiteSpace(rotationModalState.EditWorkItemTitle) ? "" : rotationModalState.EditWorkItemTitle.Trim();
+            editingRotationWorkItem.Color = rotationModalState.EditWorkItemColor;
+            editingRotationWorkItem.Notes = rotationModalState.EditWorkItemNotes;
+            editingRotationWorkItem.WorkerType = rotationModalState.EditWorkItemWorkerType;
+            editingRotationWorkItem.AssignedToUserId = string.IsNullOrWhiteSpace(rotationModalState.EditWorkItemAssignedTo) ? null : rotationModalState.EditWorkItemAssignedTo;
         }
         else
         {
-            // Determine which days to create shifts for based on recurrence
+            // Determine which days to create work items for based on recurrence
             var daysToCreate = new List<DayOfWeek>();
 
-            switch (rotationModalState.NewShiftRecurrence)
+            switch (rotationModalState.NewWorkItemRecurrence)
             {
-                case ShiftRecurrence.None:
-                    daysToCreate.Add(createShiftForDay.Value);
+                case WorkItemRecurrence.None:
+                    daysToCreate.Add(createWorkItemForDay.Value);
                     break;
 
-                case ShiftRecurrence.Daily:
+                case WorkItemRecurrence.Daily:
                     // All 7 days
                     daysToCreate.AddRange(new[]
                     {
@@ -982,7 +982,7 @@
                     });
                     break;
 
-                case ShiftRecurrence.Workdays:
+                case WorkItemRecurrence.Workdays:
                     // Monday through Friday
                     daysToCreate.AddRange(new[]
                     {
@@ -991,52 +991,52 @@
                     });
                     break;
 
-                case ShiftRecurrence.Weekends:
+                case WorkItemRecurrence.Weekends:
                     // Saturday and Sunday
                     daysToCreate.AddRange(new[] { DayOfWeek.Saturday, DayOfWeek.Sunday });
                     break;
             }
 
-            // Create a template shift for each day
+            // Create a template work item for each day
             // Note: RotationId will be set when SaveRotation is called
             foreach (var day in daysToCreate)
             {
                 // Use a reference date to store the time (2000-01-01)
                 var refDate = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-                var start = refDate.Add(rotationModalState.NewShiftStartTime.ToTimeSpan());
-                var end = refDate.Add(rotationModalState.NewShiftEndTime.ToTimeSpan());
+                var start = refDate.Add(rotationModalState.NewWorkItemstartTime.ToTimeSpan());
+                var end = refDate.Add(rotationModalState.NewWorkItemEndTime.ToTimeSpan());
 
-                newRotationShifts.Add(new Shift
+                newRotationWorkItems.Add(new WorkItem
                 {
                     Id = null,
                     WorkDay = day,
                     Start = start,
                     End = end,
-                    Title = string.IsNullOrWhiteSpace(rotationModalState.NewShiftTitle) ? "" : rotationModalState.NewShiftTitle.Trim(),
-                    Color = rotationModalState.NewShiftColor,
-                    Notes = rotationModalState.NewShiftNotes,
-                    WorkerType = rotationModalState.NewShiftWorkerType,
-                    AssignedToUserId = string.IsNullOrWhiteSpace(rotationModalState.NewShiftAssignedTo) ? null : rotationModalState.NewShiftAssignedTo,
+                    Title = string.IsNullOrWhiteSpace(rotationModalState.NewWorkItemTitle) ? "" : rotationModalState.NewWorkItemTitle.Trim(),
+                    Color = rotationModalState.NewWorkItemColor,
+                    Notes = rotationModalState.NewWorkItemNotes,
+                    WorkerType = rotationModalState.NewWorkItemWorkerType,
+                    AssignedToUserId = string.IsNullOrWhiteSpace(rotationModalState.NewWorkItemAssignedTo) ? null : rotationModalState.NewWorkItemAssignedTo,
                     Username = _username ?? string.Empty,
                     ManagerCode = _managerCode,
-                    ScheduleId = null, // Template shifts don't have ScheduleId
+                    ScheduleId = null, // Template WorkItems don't have ScheduleId
                     RotationId = null  // Will be set when SaveRotation creates the Rotation
                 });
             }
         }
 
-        CloseRotationShiftModal();
+        CloseRotationWorkItemModal();
         StateHasChanged(); // Trigger change detection
         await Task.CompletedTask;
     }
 
-    private async Task DeleteRotationShift()
+    private async Task DeleteRotationWorkItem()
     {
-        if (editingRotationShift != null)
+        if (editingRotationWorkItem != null)
         {
-            // Remove the shift from the template
-            newRotationShifts.Remove(editingRotationShift);
-            CloseRotationShiftModal();
+            // Remove the work item from the template
+            newRotationWorkItems.Remove(editingRotationWorkItem);
+            CloseRotationWorkItemModal();
             StateHasChanged(); // Trigger change detection
         }
 
@@ -1062,9 +1062,9 @@
         showRotationModal = true;
         newRotationName = string.Empty;
         selectedRotationScheduleIds = new(StringComparer.Ordinal);
-        newRotationShifts.Clear();
+        newRotationWorkItems.Clear();
         originalRotationName = string.Empty;
-        originalRotationShifts.Clear();
+        originalRotationWorkItems.Clear();
         rotationModalState.ModalError = null;
     }
 
@@ -1079,13 +1079,13 @@
         showRotationModal = true;
         rotationModalState.ModalError = null;
 
-        // Load existing template shifts for this rotation
+        // Load existing template work items for this rotation
         try
         {
-            newRotationShifts = await ShiftsService.GetRotationTemplateShiftsAsync(ww.Id, _managerCode);
+            newRotationWorkItems = await WorkItemsService.GetRotationTemplateWorkItemsAsync(ww.Id, _managerCode);
             // Store original values for change detection
             originalRotationName = ww.Name;
-            originalRotationShifts = newRotationShifts.Select(s => new Shift
+            originalRotationWorkItems = newRotationWorkItems.Select(s => new WorkItem
             {
                 Id = s.Id,
                 WorkDay = s.WorkDay,
@@ -1100,9 +1100,9 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading rotation shifts");
-            newRotationShifts = new List<Shift>();
-            originalRotationShifts = new List<Shift>();
+            Logger.LogError(ex, "Error loading rotation work items");
+            newRotationWorkItems = new List<WorkItem>();
+            originalRotationWorkItems = new List<WorkItem>();
         }
     }
 
@@ -1113,9 +1113,9 @@
         editingRotation = null;
         newRotationName = string.Empty;
         selectedRotationScheduleIds.Clear();
-        newRotationShifts.Clear();
+        newRotationWorkItems.Clear();
         originalRotationName = string.Empty;
-        originalRotationShifts.Clear();
+        originalRotationWorkItems.Clear();
     }
 
     private async Task SaveRotation()
@@ -1144,11 +1144,11 @@
 
             if (editingRotation != null)
             {
-                await ShiftsService.DeleteRotationTemplateShiftsAsync(editingRotation.Id!, _managerCode);
+                await WorkItemsService.DeleteRotationTemplateWorkItemsAsync(editingRotation.Id!, _managerCode);
                 var updated = await RotationsService.UpdateAsync(editingRotation.Id!, _managerCode, newRotationName.Trim(), selectedRotationScheduleIds);
                 if (updated is null)
                 {
-                    throw new InvalidOperationException("The rotation could not be updated. Its template shifts were deleted; please retry saving the rotation.");
+                    throw new InvalidOperationException("The rotation could not be updated. Its template work items were deleted; please retry saving the rotation.");
                 }
             }
             else
@@ -1161,13 +1161,13 @@
                 rotationId = added.Id;
             }
 
-            foreach (var templateShift in newRotationShifts)
+            foreach (var templateWorkItem in newRotationWorkItems)
             {
-                templateShift.RotationId = rotationId;
-                templateShift.ManagerCode = _managerCode;
-                templateShift.Username = _username ?? string.Empty;
-                templateShift.ScheduleId = null;
-                await ShiftsService.CreateShiftAsync(templateShift);
+                templateWorkItem.RotationId = rotationId;
+                templateWorkItem.ManagerCode = _managerCode;
+                templateWorkItem.Username = _username ?? string.Empty;
+                templateWorkItem.ScheduleId = null;
+                await WorkItemsService.CreateWorkItemAsync(templateWorkItem);
             }
 
             await LoadRotationsAsync();
@@ -1176,9 +1176,9 @@
             editingRotation = null;
             newRotationName = string.Empty;
             selectedRotationScheduleIds.Clear();
-            newRotationShifts.Clear();
+            newRotationWorkItems.Clear();
             originalRotationName = string.Empty;
-            originalRotationShifts.Clear();
+            originalRotationWorkItems.Clear();
         }
         catch (Exception ex)
         {
@@ -1200,13 +1200,13 @@
             isBusy = true;
             rotationModalState.ModalError = null;
             rotationListError = null;
-            // Delete all template shifts associated with this Rotation
-            await ShiftsService.DeleteRotationTemplateShiftsAsync(ww.Id!, _managerCode);
+            // Delete all template work items associated with this Rotation
+            await WorkItemsService.DeleteRotationTemplateWorkItemsAsync(ww.Id!, _managerCode);
 
             var removed = await RotationsService.DeleteAsync(ww.Id, _managerCode);
             if (!removed)
             {
-                throw new InvalidOperationException("The rotation could not be deleted. Its template shifts were deleted, but its rotation record remains.");
+                throw new InvalidOperationException("The rotation could not be deleted. Its template work items were deleted, but its rotation record remains.");
             }
 
             await LoadRotationsAsync();
@@ -1217,7 +1217,7 @@
             Logger.LogError(ex, "Error deleting rotation");
             rotationModalState.ModalError = ex is InvalidOperationException
                 ? ex.Message
-                : "The rotation could not be deleted because its template shifts failed to delete. Please try again.";
+                : "The rotation could not be deleted because its template work items failed to delete. Please try again.";
             rotationListError = rotationModalState.ModalError;
             return false;
         }
@@ -1261,9 +1261,9 @@
         editingRotation = null;
         newRotationName = string.Empty;
         selectedRotationScheduleIds.Clear();
-        newRotationShifts.Clear();
+        newRotationWorkItems.Clear();
         originalRotationName = string.Empty;
-        originalRotationShifts.Clear();
+        originalRotationWorkItems.Clear();
     }
 
     private bool CheckRotationChanges()
@@ -1274,7 +1274,7 @@
             return !string.IsNullOrWhiteSpace(newRotationName);
         }
 
-        // For existing rotations, check if name or shifts changed
+        // For existing rotations, check if name or work items changed
         if (newRotationName != originalRotationName)
         {
             return true;
@@ -1285,17 +1285,17 @@
             return true;
         }
 
-        // Check if shifts changed (count, content, or order)
-        if (newRotationShifts.Count != originalRotationShifts.Count)
+        // Check if work items changed (count, content, or order)
+        if (newRotationWorkItems.Count != originalRotationWorkItems.Count)
         {
             return true;
         }
 
-        // Deep comparison of shifts
-        for (int i = 0; i < newRotationShifts.Count; i++)
+        // Deep comparison of work items
+        for (int i = 0; i < newRotationWorkItems.Count; i++)
         {
-            var current = newRotationShifts[i];
-            var original = originalRotationShifts.FirstOrDefault(s => s.Id == current.Id);
+            var current = newRotationWorkItems[i];
+            var original = originalRotationWorkItems.FirstOrDefault(s => s.Id == current.Id);
 
             if (original == null ||
                 current.WorkDay != original.WorkDay ||
@@ -1351,7 +1351,7 @@
         selectedMemberMaxHours = member.MaxHours;
 
         // Populate editable priority buffer
-        selectedMemberPriority = member.ShiftAssignmentPriority;
+        selectedMemberPriority = member.WorkItemAssignmentPriority;
 
         // Populate editable schedule assignment buffer
         selectedMemberScheduleIds = new HashSet<string>(member.AssignedScheduleIds ?? new());
@@ -1734,17 +1734,17 @@
         isBusy = true;
         try
         {
-            if (selectedMemberPriority == selectedMember.ShiftAssignmentPriority)
+            if (selectedMemberPriority == selectedMember.WorkItemAssignmentPriority)
             {
                 selectedMemberPriorityMessage = "No changes.";
                 selectedMemberPriorityError = false;
                 return;
             }
 
-            var ok = await UserService.UpdateShiftAssignmentPriorityAsync(selectedMember.Username, selectedMemberPriority);
+            var ok = await UserService.UpdateWorkItemAssignmentPriorityAsync(selectedMember.Username, selectedMemberPriority);
             if (ok)
             {
-                selectedMember.ShiftAssignmentPriority = selectedMemberPriority;
+                selectedMember.WorkItemAssignmentPriority = selectedMemberPriority;
                 selectedMemberPriorityMessage = "Priority updated.";
                 selectedMemberPriorityError = false;
             }
@@ -1772,7 +1772,7 @@
             _userId = caller?.Id;
             _managerCode = caller?.ManagerCode;
 
-            // Load employees for shift assignment in Rotation templates
+            // Load employees for work item assignment in Rotation templates
             employees = await UserService.GetUsersByRoleAsync(Roles.Employee);
 
             // Load employees linked to this manager (exclude the manager themselves)
@@ -1927,7 +1927,7 @@
     private async Task LoadRotationsAsync()
     {
         rotations.Clear();
-        rotationShiftCounts.Clear();
+        rotationWorkItemCounts.Clear();
         if (string.IsNullOrEmpty(_managerCode)) return;
 
         try
@@ -1935,8 +1935,8 @@
             rotations = await RotationsService.GetForManagerAsync(_managerCode);
             foreach (var rotation in rotations.Where(rotation => !string.IsNullOrEmpty(rotation.Id)))
             {
-                var shifts = await ShiftsService.GetRotationTemplateShiftsAsync(rotation.Id!, _managerCode);
-                rotationShiftCounts[rotation.Id!] = shifts.Count;
+                var WorkItems = await WorkItemsService.GetRotationTemplateWorkItemsAsync(rotation.Id!, _managerCode);
+                rotationWorkItemCounts[rotation.Id!] = WorkItems.Count;
             }
         }
         catch (Exception ex)

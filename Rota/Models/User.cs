@@ -54,7 +54,7 @@ namespace Rota.Models
 
         /// <summary>
         /// The team member type for the user (manager-defined name stored as string).
-        /// Used when assigning employees to shifts.
+        /// Used when assigning employees to work items.
         /// </summary>
         [BsonElement("teamMemberType")]
         public string TeamMemberType { get; set; } = "General";
@@ -89,14 +89,14 @@ namespace Rota.Models
         public double MaxHours { get; set; } = 0.0;
 
         /// <summary>
-        /// Shift assignment priority set by the manager. Higher numbers mean higher priority.
-        /// When two employees share the same priority they are assigned shifts in round-robin
+        /// work item assignment priority set by the manager. Higher numbers mean higher priority.
+        /// When two employees share the same priority they are assigned work items in round-robin
         /// order. When priorities differ, the highest-priority employee is filled first (up to
         /// their weekly MaxHours cap), then the next highest, and so on.
         /// Defaults to 0 (lowest/equal priority).
         /// </summary>
-        [BsonElement("shiftAssignmentPriority")]
-        public int ShiftAssignmentPriority { get; set; } = 0;
+        [BsonElement("workItemAssignmentPriority")]
+        public int WorkItemAssignmentPriority { get; set; } = 0;
 
         /// <summary>
         /// IDs of the schedules the manager has assigned to this employee.

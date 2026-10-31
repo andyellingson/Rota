@@ -4,9 +4,9 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace Rota.Models
 {
     /// <summary>
-    /// Represents a reusable weekly rotation template containing shift definitions.
+    /// Represents a reusable weekly rotation template containing work item definitions.
     /// </summary>
-    // Ignore legacy elements (e.g. 'shifts') that no longer map to a property
+    // Ignore legacy elements (e.g. 'work items') that no longer map to a property
     [BsonIgnoreExtraElements]
     public class Rotation
     {
