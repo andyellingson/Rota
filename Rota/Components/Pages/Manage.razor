@@ -100,7 +100,7 @@
             <div class="d-flex align-items-center mb-3">
                 <div class="me-auto">
                     <h4 class="mb-0">Work Item Templates</h4>
-                    <small class="manage-subtitle">Create customized templates that contain desired work items</small>
+                    <small class="manage-subtitle">Create customized templates that contain the desired work items</small>
                 </div>
                 <button class="btn btn-primary" @onclick="OpenCreateRotation" disabled="@(schedules.Count == 0)">
                     <span class="me-1">+</span> New Work Item Template
@@ -389,7 +389,7 @@
             <div class="card mb-3">
                 <div class="card-body p-3">
                     <h6 class="mb-1">🏷️ Team Code</h6>
-                    <p class="manage-subtitle small mb-2">Share this code with any team members you'd like to invite to the team..</p>
+                    <p class="manage-subtitle small mb-2">Share this code with any team members you'd like to invite to the team.</p>
                     <div class="d-flex gap-2 align-items-center">
                         <input class="form-control manager-code-input" value="@(_managerCode ?? string.Empty)" readonly onclick="this.select()" />
                         <button class="btn btn-outline-secondary text-nowrap" @onclick="() => CopyManagerCode()" disabled="@codeCopied">@(codeCopied ? "Copied!" : "Copy")</button>
