@@ -107,6 +107,13 @@ namespace Rota.Models
             public DayOfWeek? WorkDay { get; set; }
 
             /// <summary>
+            /// True when this work item was auto-assigned using a worker's additional qualified types
+            /// rather than their primary TeamMemberType.
+            /// </summary>
+            [BsonElement("autoAssignedFromAdditionalQualifiedType")]
+            public bool AutoAssignedFromAdditionalQualifiedType { get; set; }
+
+            /// <summary>
             /// Creation timestamp.
             /// </summary>
             [BsonElement("createdAt")]

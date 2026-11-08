@@ -35,7 +35,7 @@ namespace Rota.Services
         /// <summary>
         /// Updates an existing work item owned by the specified username.
         /// </summary>
-        System.Threading.Tasks.Task<WorkItem?> UpdateWorkItemAsync(string id, string username, DateTime startUtc, DateTime endUtc, string? title, string? notes, string workerType, string? color, string? assignedToUserId);
+        System.Threading.Tasks.Task<WorkItem?> UpdateWorkItemAsync(string id, string username, DateTime startUtc, DateTime endUtc, string? title, string? notes, string workerType, string? color, string? assignedToUserId, bool autoAssignedFromAdditionalQualifiedType = false);
 
         /// <summary>
         /// Returns the distinct ScheduleIds of every work item the given user is assigned to.

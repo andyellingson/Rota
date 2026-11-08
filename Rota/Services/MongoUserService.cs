@@ -109,6 +109,64 @@ namespace Rota.Services
         }
 
         /// <summary>
+        /// Updates manager-level auto-assign behavior flags.
+        /// </summary>
+        public async System.Threading.Tasks.Task<bool> UpdateAutoAssignSettingsAsync(
+            string username,
+            bool allowMultiplePerDay,
+            bool respectMaxHours,
+            bool respectAvailability,
+            bool respectApprovedAbsences,
+            bool enableAdditionalRoleCoverage,
+            bool additionalRoleCoverageFallbackOnly)
+        {
+            try
+            {
+                var filter = Builders<User>.Filter.Eq(u => u.Username, username);
+                var update = Builders<User>.Update
+                    .Set(u => u.AutoAssignAllowMultiplePerDay, allowMultiplePerDay)
+                    .Set(u => u.AutoAssignRespectMaxHours, respectMaxHours)
+                    .Set(u => u.AutoAssignRespectAvailability, respectAvailability)
+                    .Set(u => u.AutoAssignRespectApprovedAbsences, respectApprovedAbsences)
+                    .Set(u => u.AutoAssignEnableAdditionalRoleCoverage, enableAdditionalRoleCoverage)
+                    .Set(u => u.AutoAssignAdditionalRoleCoverageFallbackOnly, additionalRoleCoverageFallbackOnly);
+
+                var result = await _users.UpdateOneAsync(filter, update);
+                return result.MatchedCount > 0;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error updating auto-assign settings for user {User}", username);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Updates the additional team member types a user is qualified to cover.
+        /// </summary>
+        public async System.Threading.Tasks.Task<bool> UpdateAvailableTeamMemberTypesAsync(string username, IEnumerable<string> availableTeamMemberTypes)
+        {
+            try
+            {
+                var normalized = (availableTeamMemberTypes ?? Array.Empty<string>())
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Select(t => t.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                var filter = Builders<User>.Filter.Eq(u => u.Username, username);
+                var update = Builders<User>.Update.Set(u => u.AvailableTeamMemberTypes, normalized);
+                var result = await _users.UpdateOneAsync(filter, update);
+                return result.MatchedCount > 0;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error updating available team member types for user {User}", username);
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Replaces the schedule IDs assigned to the specified employee.
         /// </summary>
         public async System.Threading.Tasks.Task<bool> UpdateAssignedSchedulesAsync(string username, IEnumerable<string> scheduleIds)

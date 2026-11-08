@@ -80,6 +80,12 @@
     animation: work-item-unassigned-pulse 2s ease-in-out infinite;
 }
 
+/* Additional-qualified assignment marker — add a secondary right border indicator. */
+.work-item--additional-qualified {
+    border-right: 3px solid #7c3aed;
+    box-shadow: inset -1px 0 0 rgba(124, 58, 237, 0.25);
+}
+
 @keyframes work-item-unassigned-pulse {
     0%, 100% { box-shadow: none; }
     50% { box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.25); }

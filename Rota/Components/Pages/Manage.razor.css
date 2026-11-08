@@ -131,6 +131,23 @@
     margin-bottom: 2rem;
 }
 
+/* ── Auto-assign settings section ─────────────────────────── */
+
+.auto-assign-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0.5rem 1rem;
+}
+
+.auto-assign-setting-item {
+    margin: 0;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg-subtle);
+    color: var(--color-text-primary);
+}
+
 /* ── Team Members section ─────────────────────────────────── */
 
 /* Master / detail container */

@@ -175,7 +175,7 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
-        public async System.Threading.Tasks.Task<WorkItem?> UpdateWorkItemAsync(string id, string username, DateTime startUtc, DateTime endUtc, string? title, string? notes, string workerType, string? color, string? assignedToUserId)
+        public async System.Threading.Tasks.Task<WorkItem?> UpdateWorkItemAsync(string id, string username, DateTime startUtc, DateTime endUtc, string? title, string? notes, string workerType, string? color, string? assignedToUserId, bool autoAssignedFromAdditionalQualifiedType = false)
         {
             try
             {
@@ -191,7 +191,8 @@ namespace Rota.Services
                     .Set(s => s.Notes, notes)
                     .Set(s => s.WorkerType, workerType)
                     .Set(s => s.Color, color)
-                    .Set(s => s.AssignedToUserId, assignedToUserId);
+                    .Set(s => s.AssignedToUserId, assignedToUserId)
+                    .Set(s => s.AutoAssignedFromAdditionalQualifiedType, autoAssignedFromAdditionalQualifiedType);
 
                 var options = new FindOneAndUpdateOptions<WorkItem> { ReturnDocument = ReturnDocument.After };
                 var updated = await _WorkItems.FindOneAndUpdateAsync(filter, update, options);

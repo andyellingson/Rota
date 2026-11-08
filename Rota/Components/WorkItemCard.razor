@@ -1,7 +1,9 @@
 @using System.Globalization
 @using Rota.Models
 
-<div class="work-item mb-1 @(IsUnassignedFuture ? "work-item--unassigned" : "") @(IsPast ? "item--past" : "")" style="border-left-color: @(WorkItem.Color ?? "#1890ff");"
+<div class="work-item mb-1 @(IsUnassignedFuture ? "work-item--unassigned" : "") @(IsPast ? "item--past" : "") @(IsAssignedFromAdditionalQualifiedType ? "work-item--additional-qualified" : "")"
+     style="border-left-color: @(WorkItem.Color ?? "#1890ff");"
+     title="@(IsAssignedFromAdditionalQualifiedType ? "Assigned via additional qualified role" : null)"
      @onclick:stopPropagation="true" @onclick="HandleEdit">
     <div class="work-item-header">
         <div class="work-item-title">@(string.IsNullOrWhiteSpace(WorkItem.Title) ? WorkItem.WorkerType : WorkItem.Title)</div>
@@ -81,6 +83,11 @@
 
     /// <summary>True when the work item has already ended.</summary>
     private bool IsPast => !UseWallClockTime && WorkItem.End.ToUniversalTime() < DateTime.UtcNow;
+
+    /// <summary>
+    /// True when auto-assignment used a worker's additional qualified type instead of their primary type.
+    /// </summary>
+    private bool IsAssignedFromAdditionalQualifiedType => WorkItem.AutoAssignedFromAdditionalQualifiedType;
 
     /// <summary>True when the work item is in the future and has no assigned user, visible only to managers (OnEdit delegate present).</summary>
     private bool IsUnassignedFuture =>

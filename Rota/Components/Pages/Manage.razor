@@ -436,6 +436,61 @@
 
             <hr class="my-3" />
 
+            @* Auto Assign Settings (nested card) *@
+            <div class="card mb-3">
+                <div class="card-body p-3">
+                    <h6 class="mb-1">⚙️ Auto Assign Settings</h6>
+                    <p class="manage-subtitle small mb-2">Control how workers are automatically assigned to unassigned work items.</p>
+
+                    <div class="auto-assign-settings-grid">
+                        <label class="form-check auto-assign-setting-item">
+                            <input class="form-check-input" type="checkbox" @bind="autoAssignAllowMultiplePerDay" />
+                            <span class="form-check-label">Allow multiple work items per worker per day</span>
+                        </label>
+
+                        <label class="form-check auto-assign-setting-item">
+                            <input class="form-check-input" type="checkbox" @bind="autoAssignRespectMaxHours" />
+                            <span class="form-check-label">Respect each worker's max hours per week</span>
+                        </label>
+
+                        <label class="form-check auto-assign-setting-item">
+                            <input class="form-check-input" type="checkbox" @bind="autoAssignRespectAvailability" />
+                            <span class="form-check-label">Respect each worker's availability windows</span>
+                        </label>
+
+                        <label class="form-check auto-assign-setting-item">
+                            <input class="form-check-input" type="checkbox" @bind="autoAssignRespectApprovedAbsences" />
+                            <span class="form-check-label">Block assignment during approved absences</span>
+                        </label>
+
+                        <label class="form-check auto-assign-setting-item">
+                            <input class="form-check-input" type="checkbox" @bind="autoAssignEnableAdditionalRoleCoverage" />
+                            <span class="form-check-label">Use additional qualified roles for remaining unassigned work items</span>
+                        </label>
+
+                        <label class="form-check auto-assign-setting-item">
+                            <input class="form-check-input" type="checkbox" @bind="autoAssignAdditionalRoleCoverageFallbackOnly" disabled="@(!autoAssignEnableAdditionalRoleCoverage)" />
+                            <span class="form-check-label">Run additional qualified-role coverage only after primary-role assignment</span>
+                        </label>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3 mt-3">
+                        <button class="btn btn-sm btn-primary"
+                                @onclick="SaveAutoAssignSettings"
+                                disabled="@(!HasAutoAssignSettingsChanged || isBusy)">
+                            Save
+                        </button>
+
+                        @if (!string.IsNullOrEmpty(autoAssignSettingsMessage))
+                        {
+                            <div class="team-detail-message @(autoAssignSettingsError ? "team-detail-message-error" : "team-detail-message-ok")">@autoAssignSettingsMessage</div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-3" />
+
             @* Team Members (nested card) *@
             <div class="card mb-0">
                 <div class="card-body p-3">
@@ -613,6 +668,45 @@
                                                 </div>
                                             }
                                         </div>
+
+                                        <div class="team-detail-field" style="grid-row: 2; grid-column: 3;">
+                                            <label class="team-detail-label">Additional Qualified Types</label>
+                                            @if (workerTypes.Count == 0)
+                                            {
+                                                <div class="team-member-no-avail mt-1">No team member types available.</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="mt-1 additional-qualified-types-list">
+                                                    @foreach (var wt in workerTypes)
+                                                    {
+                                                        var isPrimary = string.Equals(wt.Name, selectedMemberTeamMemberType, StringComparison.OrdinalIgnoreCase);
+                                                        var optionId = $"qualified-{selectedMember.Username}-{wt.Name}";
+                                                        <div class="form-check">
+                                                            <input class="form-check-input"
+                                                                   type="checkbox"
+                                                                   id="@optionId"
+                                                                   checked="@selectedMemberAvailableTeamMemberTypes.Contains(wt.Name)"
+                                                                   disabled="@isPrimary"
+                                                                   @onchange="e => ToggleMemberAvailableTeamMemberType(wt.Name, (bool)(e.Value ?? false))" />
+                                                            <label class="form-check-label" for="@optionId">
+                                                                @wt.Name
+                                                                @if (isPrimary)
+                                                                {
+                                                                    <span class="text-muted small">(primary)</span>
+                                                                }
+                                                            </label>
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <button class="btn btn-sm btn-primary mt-2" @onclick="SaveAvailableTeamMemberTypes" disabled="@(!HasAvailableTeamMemberTypesChanged || isBusy)">Save</button>
+                                                @if (!string.IsNullOrEmpty(memberAvailableTeamMemberTypesMessage))
+                                                {
+                                                    <div class="team-detail-message @(memberAvailableTeamMemberTypesError ? "team-detail-message-error" : "team-detail-message-ok") mt-2">@memberAvailableTeamMemberTypesMessage</div>
+                                                }
+                                                <div class="text-muted small mt-1">These are backup roles this team member can cover beyond their primary type.</div>
+                                            }
+                                        </div>
                                     </div>
                                 }
                             </div>
@@ -713,6 +807,25 @@
     private string? _managerCode;
     private bool codeCopied = false;
 
+    // Manager-level auto-assign settings editable on this page.
+    private bool autoAssignAllowMultiplePerDay = false;
+    private bool autoAssignRespectMaxHours = true;
+    private bool autoAssignRespectAvailability = true;
+    private bool autoAssignRespectApprovedAbsences = true;
+    private bool autoAssignEnableAdditionalRoleCoverage = true;
+    private bool autoAssignAdditionalRoleCoverageFallbackOnly = true;
+
+    // Snapshot of persisted settings to drive Save button enablement.
+    private bool savedAutoAssignAllowMultiplePerDay = false;
+    private bool savedAutoAssignRespectMaxHours = true;
+    private bool savedAutoAssignRespectAvailability = true;
+    private bool savedAutoAssignRespectApprovedAbsences = true;
+    private bool savedAutoAssignEnableAdditionalRoleCoverage = true;
+    private bool savedAutoAssignAdditionalRoleCoverageFallbackOnly = true;
+
+    private string? autoAssignSettingsMessage;
+    private bool autoAssignSettingsError;
+
     // Modal state
     private bool showModal = false;
     private bool showDeleteConfirm = false;
@@ -769,6 +882,12 @@
     private int selectedMemberPriority = 0;
     private string? selectedMemberPriorityMessage;
     private bool selectedMemberPriorityError;
+
+    // Local edit buffer for additional qualified team member types.
+    private HashSet<string> selectedMemberAvailableTeamMemberTypes = new(StringComparer.OrdinalIgnoreCase);
+    private string? memberAvailableTeamMemberTypesMessage;
+    private bool memberAvailableTeamMemberTypesError;
+
     private string? memberUnlinkMessage;
     private bool memberUnlinkError;
     private bool showUnlinkConfirm = false;
@@ -819,11 +938,87 @@
         }
     }
 
+    /// <summary>Adds or removes an additional qualified team member type for the selected member.</summary>
+    private void ToggleMemberAvailableTeamMemberType(string teamMemberType, bool isChecked)
+    {
+        if (string.IsNullOrWhiteSpace(teamMemberType) || selectedMember is null)
+        {
+            return;
+        }
+
+        if (string.Equals(teamMemberType, selectedMemberTeamMemberType, StringComparison.OrdinalIgnoreCase))
+        {
+            selectedMemberAvailableTeamMemberTypes.Remove(teamMemberType);
+            return;
+        }
+
+        if (isChecked)
+        {
+            selectedMemberAvailableTeamMemberTypes.Add(teamMemberType);
+        }
+        else
+        {
+            selectedMemberAvailableTeamMemberTypes.Remove(teamMemberType);
+        }
+    }
+
+    /// <summary>Persists additional qualified team member types for the selected member.</summary>
+    private async Task SaveAvailableTeamMemberTypes()
+    {
+        if (selectedMember is null) return;
+
+        memberAvailableTeamMemberTypesMessage = null;
+        memberAvailableTeamMemberTypesError = false;
+        isBusy = true;
+        try
+        {
+            var typesToSave = selectedMemberAvailableTeamMemberTypes
+                .Where(t => !string.IsNullOrWhiteSpace(t)
+                    && !string.Equals(t, selectedMemberTeamMemberType, StringComparison.OrdinalIgnoreCase))
+                .Select(t => t.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var ok = await UserService.UpdateAvailableTeamMemberTypesAsync(selectedMember.Username, typesToSave);
+            if (ok)
+            {
+                selectedMember.AvailableTeamMemberTypes = typesToSave;
+                memberAvailableTeamMemberTypesMessage = "Additional qualified types updated.";
+                memberAvailableTeamMemberTypesError = false;
+            }
+            else
+            {
+                memberAvailableTeamMemberTypesMessage = "Could not update additional qualified types. Please try again.";
+                memberAvailableTeamMemberTypesError = true;
+            }
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
     private bool HasTeamMemberTypeChanged => selectedMember is not null && selectedMemberTeamMemberType != selectedMember.TeamMemberType;
 
     private bool HasMaxHoursChanged => selectedMember is not null && selectedMemberMaxHours != (selectedMember?.MaxHours ?? 0.0);
 
     private bool HasPriorityChanged => selectedMember is not null && selectedMemberPriority != (selectedMember?.WorkItemAssignmentPriority ?? 0);
+
+    private bool HasAvailableTeamMemberTypesChanged =>
+        selectedMember is not null
+        && !selectedMemberAvailableTeamMemberTypes.SetEquals(
+            (selectedMember.AvailableTeamMemberTypes ?? new())
+                .Where(t => !string.IsNullOrWhiteSpace(t)
+                    && !string.Equals(t, selectedMemberTeamMemberType, StringComparison.OrdinalIgnoreCase))
+                .Select(t => t.Trim()));
+
+    private bool HasAutoAssignSettingsChanged =>
+        autoAssignAllowMultiplePerDay != savedAutoAssignAllowMultiplePerDay
+        || autoAssignRespectMaxHours != savedAutoAssignRespectMaxHours
+        || autoAssignRespectAvailability != savedAutoAssignRespectAvailability
+        || autoAssignRespectApprovedAbsences != savedAutoAssignRespectApprovedAbsences
+        || autoAssignEnableAdditionalRoleCoverage != savedAutoAssignEnableAdditionalRoleCoverage
+        || autoAssignAdditionalRoleCoverageFallbackOnly != savedAutoAssignAdditionalRoleCoverageFallbackOnly;
 
     /// <summary>
     /// Returns the member's full name (First + Last). Falls back to DisplayName then Username
@@ -1358,6 +1553,16 @@
         memberScheduleMessage = null;
         memberScheduleError = false;
 
+        // Populate editable additional qualified team member types (excluding primary role).
+        selectedMemberAvailableTeamMemberTypes = new HashSet<string>(
+            (member.AvailableTeamMemberTypes ?? new())
+                .Where(t => !string.IsNullOrWhiteSpace(t)
+                    && !string.Equals(t, selectedMemberTeamMemberType, StringComparison.OrdinalIgnoreCase))
+                .Select(t => t.Trim()),
+            StringComparer.OrdinalIgnoreCase);
+        memberAvailableTeamMemberTypesMessage = null;
+        memberAvailableTeamMemberTypesError = false;
+
         // Load upcoming absences for this member (next 30 days)
         await LoadUpcomingAbsencesForMember(member);
     }
@@ -1760,6 +1965,56 @@
         }
     }
 
+    /// <summary>
+    /// Saves manager-level auto-assign behavior flags used by the calendar auto-assign action.
+    /// </summary>
+    private async Task SaveAutoAssignSettings()
+    {
+        autoAssignSettingsMessage = null;
+        autoAssignSettingsError = false;
+
+        if (string.IsNullOrEmpty(_username))
+        {
+            autoAssignSettingsMessage = "Could not resolve your user profile.";
+            autoAssignSettingsError = true;
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            var ok = await UserService.UpdateAutoAssignSettingsAsync(
+                _username,
+                autoAssignAllowMultiplePerDay,
+                autoAssignRespectMaxHours,
+                autoAssignRespectAvailability,
+                autoAssignRespectApprovedAbsences,
+                autoAssignEnableAdditionalRoleCoverage,
+                autoAssignAdditionalRoleCoverageFallbackOnly);
+
+            if (!ok)
+            {
+                autoAssignSettingsMessage = "Could not save auto assign settings. Please try again.";
+                autoAssignSettingsError = true;
+                return;
+            }
+
+            savedAutoAssignAllowMultiplePerDay = autoAssignAllowMultiplePerDay;
+            savedAutoAssignRespectMaxHours = autoAssignRespectMaxHours;
+            savedAutoAssignRespectAvailability = autoAssignRespectAvailability;
+            savedAutoAssignRespectApprovedAbsences = autoAssignRespectApprovedAbsences;
+            savedAutoAssignEnableAdditionalRoleCoverage = autoAssignEnableAdditionalRoleCoverage;
+            savedAutoAssignAdditionalRoleCoverageFallbackOnly = autoAssignAdditionalRoleCoverageFallbackOnly;
+
+            autoAssignSettingsMessage = "Auto assign settings updated.";
+            autoAssignSettingsError = false;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -1771,6 +2026,21 @@
             var caller = await UserService.GetByUsernameAsync(_username);
             _userId = caller?.Id;
             _managerCode = caller?.TeamCode;
+
+            // Load manager auto-assign settings into edit buffers.
+            autoAssignAllowMultiplePerDay = caller?.AutoAssignAllowMultiplePerDay ?? false;
+            autoAssignRespectMaxHours = caller?.AutoAssignRespectMaxHours ?? true;
+            autoAssignRespectAvailability = caller?.AutoAssignRespectAvailability ?? true;
+            autoAssignRespectApprovedAbsences = caller?.AutoAssignRespectApprovedAbsences ?? true;
+            autoAssignEnableAdditionalRoleCoverage = caller?.AutoAssignEnableAdditionalRoleCoverage ?? true;
+            autoAssignAdditionalRoleCoverageFallbackOnly = caller?.AutoAssignAdditionalRoleCoverageFallbackOnly ?? true;
+
+            savedAutoAssignAllowMultiplePerDay = autoAssignAllowMultiplePerDay;
+            savedAutoAssignRespectMaxHours = autoAssignRespectMaxHours;
+            savedAutoAssignRespectAvailability = autoAssignRespectAvailability;
+            savedAutoAssignRespectApprovedAbsences = autoAssignRespectApprovedAbsences;
+            savedAutoAssignEnableAdditionalRoleCoverage = autoAssignEnableAdditionalRoleCoverage;
+            savedAutoAssignAdditionalRoleCoverageFallbackOnly = autoAssignAdditionalRoleCoverageFallbackOnly;
 
             // Load employees for work item assignment in Work Item Templates
             employees = await UserService.GetUsersByRoleAsync(Roles.Employee);

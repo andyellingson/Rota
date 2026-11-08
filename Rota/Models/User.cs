@@ -99,6 +99,55 @@ namespace Rota.Models
         public int WorkItemAssignmentPriority { get; set; } = 0;
 
         /// <summary>
+        /// Additional team member types this user is qualified to cover beyond their primary
+        /// <see cref="TeamMemberType"/>.
+        /// </summary>
+        [BsonElement("availableTeamMemberTypes")]
+        public List<string> AvailableTeamMemberTypes { get; set; } = new();
+
+        /// <summary>
+        /// For manager accounts, determines whether auto-assign can place more than one work item
+        /// on the same day for a given employee. Defaults to false.
+        /// </summary>
+        [BsonElement("autoAssignAllowMultiplePerDay")]
+        public bool AutoAssignAllowMultiplePerDay { get; set; } = false;
+
+        /// <summary>
+        /// For manager accounts, determines whether auto-assign enforces each employee's weekly
+        /// MaxHours cap. Defaults to true.
+        /// </summary>
+        [BsonElement("autoAssignRespectMaxHours")]
+        public bool AutoAssignRespectMaxHours { get; set; } = true;
+
+        /// <summary>
+        /// For manager accounts, determines whether auto-assign requires each work item to fit
+        /// within the employee's saved availability windows. Defaults to true.
+        /// </summary>
+        [BsonElement("autoAssignRespectAvailability")]
+        public bool AutoAssignRespectAvailability { get; set; } = true;
+
+        /// <summary>
+        /// For manager accounts, determines whether approved absences block auto-assignment.
+        /// Defaults to true.
+        /// </summary>
+        [BsonElement("autoAssignRespectApprovedAbsences")]
+        public bool AutoAssignRespectApprovedAbsences { get; set; } = true;
+
+        /// <summary>
+        /// For manager accounts, enables using workers' <see cref="AvailableTeamMemberTypes"/>
+        /// to fill remaining unassigned work items after primary-role assignment.
+        /// </summary>
+        [BsonElement("autoAssignEnableAdditionalRoleCoverage")]
+        public bool AutoAssignEnableAdditionalRoleCoverage { get; set; } = true;
+
+        /// <summary>
+        /// For manager accounts, when enabled the scheduler first attempts primary-role assignment,
+        /// then runs additional-role coverage only for work items that remain unassigned.
+        /// </summary>
+        [BsonElement("autoAssignAdditionalRoleCoverageFallbackOnly")]
+        public bool AutoAssignAdditionalRoleCoverageFallbackOnly { get; set; } = true;
+
+        /// <summary>
         /// IDs of the schedules the manager has assigned to this employee.
         /// Employees can only view schedules listed here.
         /// </summary>

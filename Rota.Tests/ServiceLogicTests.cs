@@ -156,10 +156,9 @@ public class WorkItemAutoAssignServiceTests
         var WorkItems = new Mock<IWorkItemsService>();
         SetupWorkItemLoads(WorkItems, [WorkItem1, WorkItem2], []);
         var assignedIds = new List<string?>();
-        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), "owner", It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .Callback<string, string, DateTime, DateTime, string?, string?, string, string?, string?>((_, _, _, _, _, _, _, _, assignedId) => assignedIds.Add(assignedId))
-            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId) => new WorkItem { Id = id, AssignedToUserId = assignedId });
-        var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
+        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), "owner", It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool>()))
+            .Callback<string, string, DateTime, DateTime, string?, string?, string, string?, string?, bool>((_, _, _, _, _, _, _, _, assignedId, _) => assignedIds.Add(assignedId))
+            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId, bool _) => new WorkItem { Id = id, AssignedToUserId = assignedId });        var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
 
         var outcome = await service.AutoAssignAsync("owner", "manager-id", "manager", Monday, Monday.AddDays(1), null, "No work items");
 
@@ -195,8 +194,8 @@ public class WorkItemAutoAssignServiceTests
 
         var WorkItems = new Mock<IWorkItemsService>();
         SetupWorkItemLoads(WorkItems, [managerWorkItem], []);
-        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId) => new WorkItem { Id = id, AssignedToUserId = assignedId });
+        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool>()))
+            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId, bool _) => new WorkItem { Id = id, AssignedToUserId = assignedId });
         var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
 
         var outcome = await service.AutoAssignAsync("owner", "manager-id", "manager", Monday, Monday, null, "No work items");
@@ -207,8 +206,7 @@ public class WorkItemAutoAssignServiceTests
             Assert.That(outcome.SuccessMessage, Does.Contain("Successfully assigned 1 work item"));
             Assert.That(outcome.WarningMessage, Is.Null);
         });
-        WorkItems.Verify(s => s.UpdateWorkItemAsync("manager-work-item", "owner", It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), "Cook", It.IsAny<string?>(), "manager-id"), Times.Once);
-    }
+        WorkItems.Verify(s => s.UpdateWorkItemAsync("manager-work-item", "owner", It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), "Cook", It.IsAny<string?>(), "manager-id", It.IsAny<bool>()), Times.Once);    }
 
     [Test]
     public async Task AutoAssignAsync_RespectsIncludeDayAndMatchingTeamMemberType()
@@ -223,8 +221,8 @@ public class WorkItemAutoAssignServiceTests
             .ReturnsAsync([]);
         var WorkItems = new Mock<IWorkItemsService>();
         SetupWorkItemLoads(WorkItems, [included, excluded], []);
-        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId) => new WorkItem { Id = id, AssignedToUserId = assignedId });
+        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool>()))
+            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId, bool _) => new WorkItem { Id = id, AssignedToUserId = assignedId });
         var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
 
         var outcome = await service.AutoAssignAsync("owner", null, "manager", Monday, Monday.AddDays(1), day => day == Monday, "No work items");
@@ -235,8 +233,8 @@ public class WorkItemAutoAssignServiceTests
             Assert.That(outcome.SuccessMessage, Does.Contain("Successfully assigned 1 work item"));
             Assert.That(outcome.WarningMessage, Does.Contain("worker"));
         });
-        WorkItems.Verify(s => s.UpdateWorkItemAsync("included", "owner", It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), "Dishwasher", It.IsAny<string?>(), "worker-id"), Times.Once);
-        WorkItems.Verify(s => s.UpdateWorkItemAsync("excluded", It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
+        WorkItems.Verify(s => s.UpdateWorkItemAsync("included", "owner", It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), "Dishwasher", It.IsAny<string?>(), "worker-id", It.IsAny<bool>()), Times.Once);
+        WorkItems.Verify(s => s.UpdateWorkItemAsync("excluded", It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool>()), Times.Never);
     }
 
     [Test]
@@ -254,9 +252,9 @@ public class WorkItemAutoAssignServiceTests
         var WorkItems = new Mock<IWorkItemsService>();
         SetupWorkItemLoads(WorkItems, [first, sameDay, laterDay], [CreateWorkItem("existing", Monday.AddDays(-1), "Cook", 2, "worker-id")]);
         var assigned = new List<string>();
-        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .Callback<string, string, DateTime, DateTime, string?, string?, string, string?, string?>((id, _, _, _, _, _, _, _, _) => assigned.Add(id))
-            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId) => new WorkItem { Id = id, AssignedToUserId = assignedId });
+        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool>()))
+            .Callback<string, string, DateTime, DateTime, string?, string?, string, string?, string?, bool>((id, _, _, _, _, _, _, _, _, _) => assigned.Add(id))
+            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId, bool _) => new WorkItem { Id = id, AssignedToUserId = assignedId });
         var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
 
         var outcome = await service.AutoAssignAsync("owner", null, "manager", Monday, Monday.AddDays(1), null, "No work items");
@@ -264,6 +262,54 @@ public class WorkItemAutoAssignServiceTests
         Assert.That(assigned, Is.EqualTo(new[] { "first" }));
         Assert.That(outcome.SuccessMessage, Does.Contain("1 work item"));
         Assert.That(outcome.WarningMessage, Is.Null);
+    }
+
+    [Test]
+    public async Task AutoAssignAsync_DoesNotAssignOverlappingWorkItemsWhenMultiplePerDayEnabled()
+    {
+        var first = CreateWorkItemAtTime("first", Monday, "Cook", new TimeOnly(8, 0), 8);
+        var overlapping = CreateWorkItemAtTime("overlapping", Monday, "Cook", new TimeOnly(12, 0), 4);
+        var nonOverlapping = CreateWorkItemAtTime("non-overlapping", Monday, "Cook", new TimeOnly(16, 0), 4);
+
+        var employee = new User
+        {
+            Id = "worker-id",
+            Username = "worker",
+            TeamMemberType = "Cook",
+            MaxHours = 20,
+            Availability = BuildFullWeekAvailability()
+        };
+
+        var manager = new User
+        {
+            Id = "manager-id",
+            Username = "manager",
+            AutoAssignAllowMultiplePerDay = true
+        };
+
+        var users = new Mock<IUserService>();
+        var absences = new Mock<IAbsencesService>();
+        users.Setup(s => s.GetLinkedUsersForManagerAsync("manager")).ReturnsAsync([employee]);
+        users.Setup(s => s.GetByManagerCodeAsync("manager")).ReturnsAsync(manager);
+        absences.Setup(s => s.GetAbsencesAsync("manager", null, It.IsAny<DateOnly>(), It.IsAny<DateOnly>())).ReturnsAsync([]);
+
+        var WorkItems = new Mock<IWorkItemsService>();
+        SetupWorkItemLoads(WorkItems, [first, overlapping, nonOverlapping], []);
+        var assigned = new List<string>();
+        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool>()))
+            .Callback<string, string, DateTime, DateTime, string?, string?, string, string?, string?, bool>((id, _, _, _, _, _, _, _, _, _) => assigned.Add(id))
+            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId, bool _) => new WorkItem { Id = id, AssignedToUserId = assignedId });
+
+        var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
+
+        var outcome = await service.AutoAssignAsync("owner", null, "manager", Monday, Monday, null, "No work items");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.WorkItemsChanged, Is.True);
+            Assert.That(assigned, Is.EqualTo(new[] { "first", "non-overlapping" }));
+        });
+        WorkItems.Verify(s => s.UpdateWorkItemAsync("overlapping", It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool>()), Times.Never);
     }
 
     [Test]
@@ -295,7 +341,7 @@ public class WorkItemAutoAssignServiceTests
             Assert.That(outcome.WorkItemsChanged, Is.False);
             Assert.That(outcome.SuccessMessage, Does.Contain("No work items could be assigned"));
         });
-        WorkItems.Verify(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
+        WorkItems.Verify(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool>()), Times.Never);
     }
 
     [Test]
@@ -325,7 +371,7 @@ public class WorkItemAutoAssignServiceTests
         var outcome = await service.AutoAssignAsync("owner", null, "manager", Monday, Monday, null, "No work items");
 
         Assert.That(outcome.WorkItemsChanged, Is.False);
-        WorkItems.Verify(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
+        WorkItems.Verify(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool>()), Times.Never);
     }
 
     [Test]
@@ -347,9 +393,9 @@ public class WorkItemAutoAssignServiceTests
         var WorkItems = new Mock<IWorkItemsService>();
         SetupWorkItemLoads(WorkItems, [saturdayWorkItem, sundayWorkItem], []);
         var assigned = new List<string>();
-        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .Callback<string, string, DateTime, DateTime, string?, string?, string, string?, string?>((id, _, _, _, _, _, _, _, _) => assigned.Add(id))
-            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId) => new WorkItem { Id = id, AssignedToUserId = assignedId });
+        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool>()))
+            .Callback<string, string, DateTime, DateTime, string?, string?, string, string?, string?, bool>((id, _, _, _, _, _, _, _, _, _) => assigned.Add(id))
+            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId, bool _) => new WorkItem { Id = id, AssignedToUserId = assignedId });
 
         var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
 

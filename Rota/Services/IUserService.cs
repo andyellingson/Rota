@@ -57,6 +57,25 @@ namespace Rota.Services
         System.Threading.Tasks.Task<bool> UpdateWorkItemAssignmentPriorityAsync(string username, int priority);
 
         /// <summary>
+        /// Updates manager-level auto-assign behavior flags.
+        /// Returns true when the user document exists.
+        /// </summary>
+        System.Threading.Tasks.Task<bool> UpdateAutoAssignSettingsAsync(
+            string username,
+            bool allowMultiplePerDay,
+            bool respectMaxHours,
+            bool respectAvailability,
+            bool respectApprovedAbsences,
+            bool enableAdditionalRoleCoverage,
+            bool additionalRoleCoverageFallbackOnly);
+
+        /// <summary>
+        /// Updates the additional team member types a user is qualified to cover.
+        /// Returns true when the user document exists.
+        /// </summary>
+        System.Threading.Tasks.Task<bool> UpdateAvailableTeamMemberTypesAsync(string username, IEnumerable<string> availableTeamMemberTypes);
+
+        /// <summary>
         /// Replaces the list of schedule IDs assigned to the specified employee.
         /// Returns true when the update succeeded.
         /// </summary>

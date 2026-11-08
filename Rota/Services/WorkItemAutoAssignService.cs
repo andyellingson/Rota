@@ -32,6 +32,15 @@ namespace Rota.Services
             // Refresh linked users so we have the latest MaxHours / priority values.
             var linkedUsers = await _userService.GetLinkedUsersForManagerAsync(teamCode);
 
+            // Load manager-level auto-assign settings; defaults preserve current behavior if missing.
+            var manager = await _userService.GetByManagerCodeAsync(teamCode);
+            var allowMultiplePerDay = manager?.AutoAssignAllowMultiplePerDay ?? false;
+            var respectMaxHours = manager?.AutoAssignRespectMaxHours ?? true;
+            var respectAvailability = manager?.AutoAssignRespectAvailability ?? true;
+            var respectApprovedAbsences = manager?.AutoAssignRespectApprovedAbsences ?? true;
+            var enableAdditionalRoleCoverage = manager?.AutoAssignEnableAdditionalRoleCoverage ?? true;
+            var additionalRoleCoverageFallbackOnly = manager?.AutoAssignAdditionalRoleCoverageFallbackOnly ?? true;
+
             // Load work items for the requested range (padded for UTC boundaries).
             var rangeWorkItems = await _WorkItemsService.GetWorkItemsAsync(username, userId, teamCode, rangeStart.AddDays(-1), rangeEnd.AddDays(1));
 
@@ -59,7 +68,9 @@ namespace Rota.Services
             // Load approved absences for the same assignment span so overlapping requests block assignment.
             var approvedAbsences = await LoadApprovedAbsencesAsync(teamCode, weekRangeStart, weekRangeEnd);
 
-            var result = await ExecuteAsync(username, linkedUsers, unassigned, allWeekWorkItems, approvedAbsences);
+            var result = await ExecuteAsync(username, linkedUsers, unassigned, allWeekWorkItems, approvedAbsences,
+                allowMultiplePerDay, respectMaxHours, respectAvailability, respectApprovedAbsences,
+                enableAdditionalRoleCoverage, additionalRoleCoverageFallbackOnly);
             var (success, warning) = BuildMessages(result, linkedUsers);
 
             return new AutoAssignOutcome(result.AssignedCount > 0, success, warning, linkedUsers);
@@ -90,13 +101,33 @@ namespace Rota.Services
                 List<User> linkedUsers,
                 List<WorkItem> unassigned,
                 List<WorkItem> allWeekWorkItems,
-                List<Absence> approvedAbsences)
+                List<Absence> approvedAbsences,
+                bool allowMultiplePerDay,
+                bool respectMaxHours,
+                bool respectAvailability,
+                bool respectApprovedAbsences,
+                bool enableAdditionalRoleCoverage,
+                bool additionalRoleCoverageFallbackOnly)
         {
-            // Build lookup: team-member-type -> eligible roster members (including the logged-in manager)
-            // so manager work items can also be auto-filled when manager constraints allow it.
-            var eligibleByTeamMemberType = linkedUsers
+            // Build lookup: primary team-member-type -> eligible roster members.
+            var primaryEligibleByTeamMemberType = linkedUsers
                 .GroupBy(u => string.IsNullOrWhiteSpace(u.TeamMemberType) ? "General" : u.TeamMemberType, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+            // Build lookup: additional qualified team-member-type -> eligible roster members.
+            var additionalEligibleByTeamMemberType = linkedUsers
+                .SelectMany(u => (u.AvailableTeamMemberTypes ?? [])
+                    .Where(t => !string.IsNullOrWhiteSpace(t)
+                        && !string.Equals(t.Trim(), u.TeamMemberType, StringComparison.OrdinalIgnoreCase))
+                    .Select(t => new { Type = t.Trim(), User = u }))
+                .GroupBy(x => x.Type, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => x.User)
+                        .GroupBy(u => u.Id ?? u.Username, StringComparer.OrdinalIgnoreCase)
+                        .Select(x => x.First())
+                        .ToList(),
+                    StringComparer.OrdinalIgnoreCase);
 
             var approvedAbsencesByUser = approvedAbsences
                 .Where(a => !string.IsNullOrWhiteSpace(a.AssignedToUserId) || !string.IsNullOrWhiteSpace(a.UserId))
@@ -106,7 +137,6 @@ namespace Rota.Services
             // Seed weekly hours from already-assigned work items so existing workload is respected.
             // Key: employeeId -> (weekKey -> hoursAssigned)
             var weeklyHours = new Dictionary<string, Dictionary<string, double>>(StringComparer.OrdinalIgnoreCase);
-
             foreach (var s in allWeekWorkItems.Where(s => !string.IsNullOrEmpty(s.AssignedToUserId)))
             {
                 var wk = GetWeekKey(s.Start.ToLocalTime());
@@ -119,9 +149,12 @@ namespace Rota.Services
                 empMap[wk] = prev + (s.End - s.Start).TotalHours;
             }
 
-            // Track days already assigned per employee so auto-assign never gives more than
-            // one work item to the same person on a single day.
+            // Track days already assigned per employee so auto-assign can enforce one-per-day when enabled.
             var assignedDaysByUser = new Dictionary<string, HashSet<DateOnly>>(StringComparer.OrdinalIgnoreCase);
+
+            // Track assigned time ranges per employee to prevent overlapping work items.
+            var assignedTimeRangesByUser = new Dictionary<string, List<(DateTime StartUtc, DateTime EndUtc)>>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var s in allWeekWorkItems.Where(s => !string.IsNullOrEmpty(s.AssignedToUserId)))
             {
                 var day = DateOnly.FromDateTime(s.Start.ToLocalTime());
@@ -131,14 +164,23 @@ namespace Rota.Services
                     assignedDaysByUser[s.AssignedToUserId!] = daySet;
                 }
                 daySet.Add(day);
+
+                if (!assignedTimeRangesByUser.TryGetValue(s.AssignedToUserId!, out var timeRanges))
+                {
+                    timeRanges = [];
+                    assignedTimeRangesByUser[s.AssignedToUserId!] = timeRanges;
+                }
+
+                timeRanges.Add((s.Start, s.End));
             }
 
             var assignedThisRun = new Dictionary<string, (int Count, double Hours)>(StringComparer.OrdinalIgnoreCase);
             var uncappedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var newlyAssignedWorkItemIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             int assignedCount = 0;
 
-            // Assign in day + team-member-type batches so when multiple work items exist for the same
-            // team member type on one day, they are distributed by descending priority.
+            // Assign in day + team-member-type batches so multiple work items for the same type/day
+            // are distributed by descending priority.
             var groupedUnassigned = unassigned
                 .GroupBy(s => new
                 {
@@ -149,98 +191,161 @@ namespace Rota.Services
                 .ThenBy(g => g.Min(s => s.Start))
                 .ToList();
 
-            foreach (var group in groupedUnassigned)
+            async Task AssignByEligibilityAsync(
+                Dictionary<string, List<User>> eligibilityByType,
+                Func<User, string, bool> isAdditionalCoverageAssignment)
             {
-                if (!eligibleByTeamMemberType.TryGetValue(group.Key.WorkerType, out var candidates) || candidates.Count == 0)
+                foreach (var group in groupedUnassigned)
                 {
-                    continue;
-                }
-
-                var orderedCandidates = candidates
-                    .OrderByDescending(c => c.WorkItemAssignmentPriority)
-                    .ThenBy(c => c.DisplayName ?? c.Username ?? c.Id)
-                    .ToList();
-
-                foreach (var WorkItem in group.OrderBy(s => s.Start))
-                {
-                    var WorkItemHours = (WorkItem.End - WorkItem.Start).TotalHours;
-                    var weekKey = GetWeekKey(WorkItem.Start.ToLocalTime());
-                    var WorkItemDay = group.Key.Day;
-
-                    string? chosenId = null;
-
-                    foreach (var candidate in orderedCandidates)
-                    {
-                        if (candidate.Id is null)
-                        {
-                            continue;
-                        }
-
-                        if (assignedDaysByUser.TryGetValue(candidate.Id, out var assignedDays) && assignedDays.Contains(WorkItemDay))
-                        {
-                            continue;
-                        }
-
-                        // Employee availability must fully contain the work item for that day.
-                        if (!IsWorkItemWithinCandidateAvailability(candidate, WorkItem.Start, WorkItem.End))
-                        {
-                            continue;
-                        }
-
-                        // Approved absences block any overlapping assignment windows.
-                        if (HasApprovedAbsenceConflict(candidate.Id, WorkItem.Start, WorkItem.End, approvedAbsencesByUser))
-                        {
-                            continue;
-                        }
-
-                        // Enforce MaxHours cap per Sunday-Saturday calendar week.
-                        if (candidate.MaxHours > 0)
-                        {
-                            weeklyHours.TryGetValue(candidate.Id, out var empMap);
-                            double hoursUsed = 0;
-                            empMap?.TryGetValue(weekKey, out hoursUsed);
-                            if (hoursUsed + WorkItemHours > candidate.MaxHours)
-                            {
-                                continue;
-                            }
-                        }
-
-                        chosenId = candidate.Id;
-                        if (candidate.MaxHours <= 0)
-                        {
-                            uncappedIds.Add(candidate.Id);
-                        }
-                        break;
-                    }
-
-                    if (chosenId is null)
+                    if (!eligibilityByType.TryGetValue(group.Key.WorkerType, out var candidates) || candidates.Count == 0)
                     {
                         continue;
                     }
 
-                    await _WorkItemsService.UpdateWorkItemAsync(WorkItem.Id!, username, WorkItem.Start, WorkItem.End,
-                        WorkItem.Title, WorkItem.Notes, WorkItem.WorkerType, WorkItem.Color, chosenId);
+                    var orderedCandidates = candidates
+                        .OrderByDescending(c => c.WorkItemAssignmentPriority)
+                        .ThenBy(c => c.DisplayName ?? c.Username ?? c.Id)
+                        .ToList();
 
-                    // Immediately update in-memory weekly hours so the next iteration in the same
-                    // week sees the hours just committed.
-                    if (!weeklyHours.TryGetValue(chosenId, out var chosenWeeks))
+                    foreach (var WorkItem in group.OrderBy(s => s.Start))
                     {
-                        chosenWeeks = new Dictionary<string, double>();
-                        weeklyHours[chosenId] = chosenWeeks;
-                    }
-                    chosenWeeks.TryGetValue(weekKey, out var currentHours);
-                    chosenWeeks[weekKey] = currentHours + WorkItemHours;
+                        if (string.IsNullOrEmpty(WorkItem.Id) || newlyAssignedWorkItemIds.Contains(WorkItem.Id))
+                        {
+                            continue;
+                        }
 
-                    if (!assignedDaysByUser.TryGetValue(chosenId, out var chosenDays))
+                        var WorkItemHours = (WorkItem.End - WorkItem.Start).TotalHours;
+                        var weekKey = GetWeekKey(WorkItem.Start.ToLocalTime());
+                        var WorkItemDay = group.Key.Day;
+
+                        string? chosenId = null;
+                        bool chosenFromAdditionalQualifiedType = false;
+                        foreach (var candidate in orderedCandidates)
+                        {
+                            if (candidate.Id is null)
+                            {
+                                continue;
+                            }
+
+                            if (!allowMultiplePerDay
+                                && assignedDaysByUser.TryGetValue(candidate.Id, out var assignedDays)
+                                && assignedDays.Contains(WorkItemDay))
+                            {
+                                continue;
+                            }
+
+                            if (respectAvailability && !IsWorkItemWithinCandidateAvailability(candidate, WorkItem.Start, WorkItem.End))
+                            {
+                                continue;
+                            }
+
+                            if (respectApprovedAbsences
+                                && HasApprovedAbsenceConflict(candidate.Id, WorkItem.Start, WorkItem.End, approvedAbsencesByUser))
+                            {
+                                continue;
+                            }
+
+                            if (respectMaxHours && candidate.MaxHours > 0)
+                            {
+                                weeklyHours.TryGetValue(candidate.Id, out var empMap);
+                                double hoursUsed = 0;
+                                empMap?.TryGetValue(weekKey, out hoursUsed);
+                                if (hoursUsed + WorkItemHours > candidate.MaxHours)
+                                {
+                                    continue;
+                                }
+                            }
+
+                            // Always block overlapping work items for the same employee.
+                            if (HasWorkItemOverlap(candidate.Id, WorkItem.Start, WorkItem.End, assignedTimeRangesByUser))
+                            {
+                                continue;
+                            }
+
+                            chosenId = candidate.Id;
+                            chosenFromAdditionalQualifiedType = isAdditionalCoverageAssignment(candidate, group.Key.WorkerType);
+                            if (candidate.MaxHours <= 0)
+                            {
+                                uncappedIds.Add(candidate.Id);
+                            }
+                            break;
+                        }
+
+                        if (chosenId is null)
+                        {
+                            continue;
+                        }
+
+                        await _WorkItemsService.UpdateWorkItemAsync(WorkItem.Id, username, WorkItem.Start, WorkItem.End,
+                            WorkItem.Title, WorkItem.Notes, WorkItem.WorkerType, WorkItem.Color, chosenId,
+                            autoAssignedFromAdditionalQualifiedType: chosenFromAdditionalQualifiedType);
+
+                        newlyAssignedWorkItemIds.Add(WorkItem.Id);
+
+                        if (!weeklyHours.TryGetValue(chosenId, out var chosenWeeks))
+                        {
+                            chosenWeeks = new Dictionary<string, double>();
+                            weeklyHours[chosenId] = chosenWeeks;
+                        }
+                        chosenWeeks.TryGetValue(weekKey, out var currentHours);
+                        chosenWeeks[weekKey] = currentHours + WorkItemHours;
+
+                        if (!assignedDaysByUser.TryGetValue(chosenId, out var chosenDays))
+                        {
+                            chosenDays = new HashSet<DateOnly>();
+                            assignedDaysByUser[chosenId] = chosenDays;
+                        }
+                        chosenDays.Add(WorkItemDay);
+
+                        if (!assignedTimeRangesByUser.TryGetValue(chosenId, out var chosenTimeRanges))
+                        {
+                            chosenTimeRanges = [];
+                            assignedTimeRangesByUser[chosenId] = chosenTimeRanges;
+                        }
+                        chosenTimeRanges.Add((WorkItem.Start, WorkItem.End));
+
+                        assignedThisRun.TryGetValue(chosenId, out var runPrev);
+                        assignedThisRun[chosenId] = (runPrev.Count + 1, runPrev.Hours + WorkItemHours);
+                        assignedCount++;
+                    }
+                }
+            }
+
+            // Pass 1: primary role assignment.
+            await AssignByEligibilityAsync(primaryEligibleByTeamMemberType, static (_, _) => false);
+
+            // Pass 2 (optional): fill remaining work items from additional qualifications.
+            if (enableAdditionalRoleCoverage)
+            {
+                if (additionalRoleCoverageFallbackOnly)
+                {
+                    await AssignByEligibilityAsync(additionalEligibleByTeamMemberType, static (_, _) => true);
+                }
+                else
+                {
+                    var mergedEligibilityByType = new Dictionary<string, List<User>>(primaryEligibleByTeamMemberType, StringComparer.OrdinalIgnoreCase);
+                    foreach (var kvp in additionalEligibleByTeamMemberType)
                     {
-                        chosenDays = new HashSet<DateOnly>();
-                        assignedDaysByUser[chosenId] = chosenDays;
-                    }
-                    chosenDays.Add(WorkItemDay);
+                        if (!mergedEligibilityByType.TryGetValue(kvp.Key, out var existing))
+                        {
+                            mergedEligibilityByType[kvp.Key] = kvp.Value;
+                            continue;
+                        }
 
-                    assignedThisRun.TryGetValue(chosenId, out var runPrev);
-                    assignedThisRun[chosenId] = (runPrev.Count + 1, runPrev.Hours + WorkItemHours);
-                    assignedCount++;
+                        mergedEligibilityByType[kvp.Key] = existing
+                            .Concat(kvp.Value)
+                            .GroupBy(u => u.Id ?? u.Username, StringComparer.OrdinalIgnoreCase)
+                            .Select(g => g.First())
+                            .ToList();
+                    }
+
+                    await AssignByEligibilityAsync(
+                        mergedEligibilityByType,
+                        static (candidate, workerType) =>
+                            (candidate.AvailableTeamMemberTypes ?? [])
+                                .Any(t => !string.IsNullOrWhiteSpace(t)
+                                    && string.Equals(t.Trim(), workerType, StringComparison.OrdinalIgnoreCase))
+                            && !string.Equals(candidate.TeamMemberType, workerType, StringComparison.OrdinalIgnoreCase));
                 }
             }
 
@@ -356,6 +461,31 @@ namespace Rota.Services
             foreach (var absence in absences)
             {
                 if (WorkItemstartUtc < absence.EndDate && WorkItemEndUtc > absence.StartDate)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Returns true when the work item overlaps any existing assigned work item for the user.
+        /// </summary>
+        private static bool HasWorkItemOverlap(
+            string candidateId,
+            DateTime workItemStartUtc,
+            DateTime workItemEndUtc,
+            Dictionary<string, List<(DateTime StartUtc, DateTime EndUtc)>> assignedTimeRangesByUser)
+        {
+            if (!assignedTimeRangesByUser.TryGetValue(candidateId, out var assignedRanges) || assignedRanges.Count == 0)
+            {
+                return false;
+            }
+
+            foreach (var range in assignedRanges)
+            {
+                if (workItemStartUtc < range.EndUtc && workItemEndUtc > range.StartUtc)
                 {
                     return true;
                 }
