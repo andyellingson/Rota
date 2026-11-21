@@ -45,6 +45,12 @@ namespace Rota.Services
         System.Threading.Tasks.Task<bool> UpdateNamesAsync(string username, string? firstName, string? lastName);
 
         /// <summary>
+        /// Updates the optional contact information for the specified user.
+        /// Returns true when the document was modified.
+        /// </summary>
+        System.Threading.Tasks.Task<bool> UpdateContactInfoAsync(string username, string? email, string? phoneNumber);
+
+        /// <summary>
         /// Updates the maximum weekly hours for the specified user.
         /// Returns true when the document was modified.
         /// </summary>

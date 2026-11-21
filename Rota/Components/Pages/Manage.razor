@@ -95,152 +95,8 @@
         </div>
     </div>
 
-    <div class="card shadow-sm mt-3">
-        <div class="card-body">
-            <div class="d-flex align-items-center mb-3">
-                <div class="me-auto">
-                    <h4 class="mb-0">Work Item Templates</h4>
-                    <small class="manage-subtitle">Create customized templates that contain the desired work items</small>
-                </div>
-                <button class="btn btn-primary" @onclick="OpenCreateRotation" disabled="@(schedules.Count == 0)">
-                    <span class="me-1">+</span> New Work Item Template
-                </button>
-            </div>
-
-            @if (isLoading)
-            {
-                <div class="text-center py-3">
-                    <div class="spinner-border spinner-border-sm text-primary" role="status">
-                        <span class="visually-hidden">Loading Work Item Templates...</span>
-                    </div>
-                </div>
-            }
-            else if (workItemTemplates.Count == 0)
-            {
-                <div class="alert alert-info mb-0">No Work Item Templates yet. Create a Work Item Template to use it on one or more schedules.</div>
-            }
-            else
-            {
-                <div class="schedule-list">
-                    @foreach (var workItemTemplate in workItemTemplates)
-                    {
-                        <div class="schedule-card">
-                            <div class="schedule-card-body">
-                                <div class="schedule-card-title">@workItemTemplate.Name</div>
-                                <div class="schedule-card-desc">Available on @workItemTemplate.ScheduleIds.Count schedule(s)</div>
-                                <div class="schedule-card-meta">@(rotationWorkItemCounts.GetValueOrDefault(workItemTemplate.Id ?? string.Empty, 0)) template WorkItem(s)</div>
-                            </div>
-                            <div class="schedule-card-actions">
-                                <button class="btn btn-sm btn-outline-warning" @onclick="(() => OpenEditRotation(workItemTemplate))">Edit</button>
-                                <button class="btn btn-sm btn-outline-danger" @onclick="(() => DeleteRotationFromList(workItemTemplate))" disabled="@isBusy">Delete</button>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-        </div>
-    </div>
 </div>
 
-@* Work Item Template edit modal *@
-@if (showRotationModal)
-{
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-dialog-centered ww-modal-dialog modal-dialog-scrollable" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">@(editingRotation == null ? "Create New Work Item Template" : "Edit Work Item Template")</h5>
-                    <button type="button" class="btn-close" @onclick="CloseRotationModal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    @if (showCreateRotation)
-                    {
-                        @if (!string.IsNullOrEmpty(rotationModalState.ModalError))
-                        {
-                            <div class="alert alert-danger" role="alert">@rotationModalState.ModalError</div>
-                        }
-
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Work Item Template Name</label>
-                            <input class="form-control" @bind="newRotationName" @bind:after="OnRotationChanged" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Available Schedules</label>
-                            <div class="work-item-template-schedule-options">
-                                @foreach (var schedule in schedules)
-                                {
-                                    <label class="form-check work-item-template-schedule-option" for="work-item-template-schedule-@schedule.Id">
-                                        <input class="form-check-input" type="checkbox" id="work-item-template-schedule-@schedule.Id"
-                                               checked="@selectedRotationScheduleIds.Contains(schedule.Id ?? string.Empty)"
-                                               @onchange="(e => ToggleRotationSchedule(schedule.Id, e.Value is bool selected && selected))" />
-                                        <span class="form-check-label">@schedule.Name</span>
-                                    </label>
-                                }
-                            </div>
-                            @if (selectedRotationScheduleIds.Count == 0)
-                            {
-                                <div class="text-danger small mt-1">Select at least one schedule.</div>
-                            }
-                        </div>
-
-                        <div class="mb-2">
-                            <strong>Work items</strong>
-                            <div class="text-muted small">Click a day to open its work item list. Click an existing work item to edit it.</div>
-                        </div>
-
-                        @* Week view for adding work items to weekdays *@
-                        <div class="week-grid mb-3">
-                            @{
-                                var today = DateOnly.FromDateTime(DateTime.Today);
-                                var firstDay = CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek;
-                                var diff = ((int)today.DayOfWeek - (int)firstDay + 7) % 7;
-                                var start = today.AddDays(-diff);
-                            }
-                            @foreach (var d in Enumerable.Range(0, 7).Select(i => start.AddDays(i)))
-                            {
-                                var dow = d.DayOfWeek;
-                                <div class="week-day-card card p-2" @onclick="(() => OpenRotationDayModal(dow))">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div class="fw-bold">@d.ToString("dddd")</div>
-                                    </div>
-                                    <div class="events">
-                                        @foreach (var s in newRotationWorkItems.Where(s => s.WorkDay == dow).OrderBy(s => s.Start))
-                                        {
-                                            <WorkItemCard WorkItem="s"
-                                                       UseWallClockTime="true"
-                                                       AssignedToDisplayName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.DisplayName ?? employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.Username ?? string.Empty)"
-                                                       AssignedToFirstName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.FirstName ?? string.Empty)"
-                                                       AssignedToLastName="@(employees.FirstOrDefault(e => e.Id == s.AssignedToUserId)?.LastName ?? string.Empty)"
-                                                       OnEdit="@(EventCallback.Factory.Create<WorkItem>(this, EditRotationWorkItem))" />
-                                        }
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    }
-                </div>
-
-                @* Footer: Delete on the left, Cancel + Save on the right *@
-                <div class="modal-footer">
-                    <div class="me-auto">
-                        @if (editingRotation != null)
-                        {
-                            <button class="btn btn-outline-danger" @onclick="DeleteCurrentRotation" disabled="@isBusy">
-                                Delete Work Item Template
-                            </button>
-                        }
-                    </div>
-                    <button class="btn btn-secondary" @onclick="CancelCreateRotation" disabled="@isBusy">Cancel</button>
-                    <button class="btn btn-primary" @onclick="SaveRotation" disabled="@(!hasRotationChanges || isBusy)">
-                        @(isBusy ? "Saving…" : "Save Work Item Template")
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
 
 @* Create/Edit Schedule Modal *@
 @if (showModal)
@@ -436,61 +292,6 @@
 
             <hr class="my-3" />
 
-            @* Auto Assign Settings (nested card) *@
-            <div class="card mb-3">
-                <div class="card-body p-3">
-                    <h6 class="mb-1">⚙️ Auto Assign Settings</h6>
-                    <p class="manage-subtitle small mb-2">Control how workers are automatically assigned to unassigned work items.</p>
-
-                    <div class="auto-assign-settings-grid">
-                        <label class="form-check auto-assign-setting-item">
-                            <input class="form-check-input" type="checkbox" @bind="autoAssignAllowMultiplePerDay" />
-                            <span class="form-check-label">Allow multiple work items per worker per day</span>
-                        </label>
-
-                        <label class="form-check auto-assign-setting-item">
-                            <input class="form-check-input" type="checkbox" @bind="autoAssignRespectMaxHours" />
-                            <span class="form-check-label">Respect each worker's max hours per week</span>
-                        </label>
-
-                        <label class="form-check auto-assign-setting-item">
-                            <input class="form-check-input" type="checkbox" @bind="autoAssignRespectAvailability" />
-                            <span class="form-check-label">Respect each worker's availability windows</span>
-                        </label>
-
-                        <label class="form-check auto-assign-setting-item">
-                            <input class="form-check-input" type="checkbox" @bind="autoAssignRespectApprovedAbsences" />
-                            <span class="form-check-label">Block assignment during approved absences</span>
-                        </label>
-
-                        <label class="form-check auto-assign-setting-item">
-                            <input class="form-check-input" type="checkbox" @bind="autoAssignEnableAdditionalRoleCoverage" />
-                            <span class="form-check-label">Use additional qualified roles for remaining unassigned work items</span>
-                        </label>
-
-                        <label class="form-check auto-assign-setting-item">
-                            <input class="form-check-input" type="checkbox" @bind="autoAssignAdditionalRoleCoverageFallbackOnly" disabled="@(!autoAssignEnableAdditionalRoleCoverage)" />
-                            <span class="form-check-label">Run additional qualified-role coverage only after primary-role assignment</span>
-                        </label>
-                    </div>
-
-                    <div class="d-flex align-items-center gap-3 mt-3">
-                        <button class="btn btn-sm btn-primary"
-                                @onclick="SaveAutoAssignSettings"
-                                disabled="@(!HasAutoAssignSettingsChanged || isBusy)">
-                            Save
-                        </button>
-
-                        @if (!string.IsNullOrEmpty(autoAssignSettingsMessage))
-                        {
-                            <div class="team-detail-message @(autoAssignSettingsError ? "team-detail-message-error" : "team-detail-message-ok")">@autoAssignSettingsMessage</div>
-                        }
-                    </div>
-                </div>
-            </div>
-
-            <hr class="my-3" />
-
             @* Team Members (nested card) *@
             <div class="card mb-0">
                 <div class="card-body p-3">
@@ -524,7 +325,18 @@
                                     <div class="team-detail-header">
                                         <div>
                                             <div class="team-detail-name">@GetMemberFullName(selectedMember)</div>
-                                            <div class="team-detail-username text-muted small">@selectedMember.Username</div>
+                                            @if (!string.IsNullOrWhiteSpace(selectedMember.PhoneNumber))
+                                            {
+                                                <div class="team-detail-contact"><strong>Phone:</strong> @selectedMember.PhoneNumber</div>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(selectedMember.Email))
+                                            {
+                                                <div class="team-detail-contact"><strong>Email:</strong> <a href="@($"mailto:{selectedMember.Email}")">@selectedMember.Email</a></div>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(selectedMember.Username))
+                                            {
+                                                <div class="team-detail-username text-muted small">@selectedMember.Username</div>
+                                            }
                                         </div>
                                         <button class="btn btn-sm btn-outline-danger"
                                                 @onclick="PromptUnlinkSelectedMember"
@@ -552,13 +364,6 @@
                                                         <option value="@selectedMemberTeamMemberType">@selectedMemberTeamMemberType (removed)</option>
                                                     }
                                                 </select>
-
-                                                <button class="btn btn-sm btn-primary" @onclick="SaveTeamMemberTypeOnly" disabled="@(!HasTeamMemberTypeChanged || isBusy)">Save</button>
-
-                                                @if (!string.IsNullOrEmpty(memberTeamMemberTypeMessage))
-                                                {
-                                                    <div class="team-detail-message @(memberTeamMemberTypeError ? "team-detail-message-error" : "team-detail-message-ok") ms-3">@memberTeamMemberTypeMessage</div>
-                                                }
                                             </div>
                                         </div>
 
@@ -566,12 +371,7 @@
                                             <label class="team-detail-label small mb-1">Max hours / week</label>
                                             <div class="d-flex gap-2 mt-1">
                                                 <input type="number" step="0.5" min="0" class="form-control form-control-sm" style="width:120px;" @bind="selectedMemberMaxHours" />
-                                                <button class="btn btn-sm btn-primary" @onclick="SaveMaxHoursOnly" disabled="@(!HasMaxHoursChanged || isBusy)">Save</button>
                                             </div>
-                                            @if (!string.IsNullOrEmpty(selectedMemberMaxHoursMessage))
-                                            {
-                                                <div class="team-detail-message @(selectedMemberMaxHoursError ? "team-detail-message-error" : "team-detail-message-ok") mt-2">@selectedMemberMaxHoursMessage</div>
-                                            }
                                         </div>
 
                                         <div class="team-detail-field" style="grid-row: 1; grid-column: 3;">
@@ -579,12 +379,7 @@
                                             <div class="d-flex gap-2 mt-1 align-items-center">
                                                 <input type="number" step="1" min="0" class="form-control form-control-sm" style="width:100px;" @bind="selectedMemberPriority"
                                                        title="Higher number = assigned WorkItems first. Employees with equal priority share WorkItems in round-robin order." />
-                                                <button class="btn btn-sm btn-primary" @onclick="SavePriorityOnly" disabled="@(!HasPriorityChanged || isBusy)">Save</button>
                                             </div>
-                                            @if (!string.IsNullOrEmpty(selectedMemberPriorityMessage))
-                                            {
-                                                <div class="team-detail-message @(selectedMemberPriorityError ? "team-detail-message-error" : "team-detail-message-ok") mt-2">@selectedMemberPriorityMessage</div>
-                                            }
                                             <div class="text-muted small mt-1">Higher = assigned first. Equal priority = round-robin.</div>
                                         </div>
 
@@ -608,11 +403,6 @@
                                                         </div>
                                                     }
                                                 </div>
-                                                <button class="btn btn-sm btn-primary mt-2" @onclick="SaveAssignedSchedules" disabled="@(!HasScheduleAssignmentChanged || isBusy)">Save</button>
-                                                @if (!string.IsNullOrEmpty(memberScheduleMessage))
-                                                {
-                                                    <div class="team-detail-message @(memberScheduleError ? "team-detail-message-error" : "team-detail-message-ok") mt-2">@memberScheduleMessage</div>
-                                                }
                                             }
                                         </div>
 
@@ -699,15 +489,15 @@
                                                         </div>
                                                     }
                                                 </div>
-                                                <button class="btn btn-sm btn-primary mt-2" @onclick="SaveAvailableTeamMemberTypes" disabled="@(!HasAvailableTeamMemberTypesChanged || isBusy)">Save</button>
-                                                @if (!string.IsNullOrEmpty(memberAvailableTeamMemberTypesMessage))
-                                                {
-                                                    <div class="team-detail-message @(memberAvailableTeamMemberTypesError ? "team-detail-message-error" : "team-detail-message-ok") mt-2">@memberAvailableTeamMemberTypesMessage</div>
-                                                }
                                                 <div class="text-muted small mt-1">These are backup roles this team member can cover beyond their primary type.</div>
                                             }
                                         </div>
                                     </div>
+                                    @if (!string.IsNullOrEmpty(memberChangesMessage))
+                                    {
+                                        <div class="team-detail-message @(memberChangesError ? "team-detail-message-error" : "team-detail-message-ok") mt-3">@memberChangesMessage</div>
+                                    }
+                                    <button class="btn btn-sm btn-primary mt-3" @onclick="SaveSelectedMemberChanges" disabled="@(!HasSelectedMemberChanges || isBusy)">Save Changes</button>
                                 }
                             </div>
                         </div>
@@ -715,6 +505,110 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+</div>
+
+<div class="container my-4">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="d-flex align-items-center mb-3">
+                <div class="me-auto">
+                    <h4 class="mb-0">Manage Work Item Templates</h4>
+                    <small class="manage-subtitle">Create customized templates that contain the desired work items</small>
+                </div>
+                <button class="btn btn-primary" @onclick="OpenCreateRotation" disabled="@(schedules.Count == 0)">
+                    <span class="me-1">+</span> New Work Item Template
+                </button>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading Work Item Templates...</span>
+                    </div>
+                </div>
+            }
+            else if (workItemTemplates.Count == 0)
+            {
+                <div class="alert alert-info mb-0">No Work Item Templates yet. Create a Work Item Template to use it on one or more schedules.</div>
+            }
+            else
+            {
+                <div class="schedule-list">
+                    @foreach (var workItemTemplate in workItemTemplates)
+                    {
+                        <div class="schedule-card">
+                            <div class="schedule-card-body">
+                                <div class="schedule-card-title">@workItemTemplate.Name</div>
+                                <div class="schedule-card-desc">Available on @workItemTemplate.ScheduleIds.Count schedule(s)</div>
+                                <div class="schedule-card-meta">@(rotationWorkItemCounts.GetValueOrDefault(workItemTemplate.Id ?? string.Empty, 0)) template WorkItem(s)</div>
+                            </div>
+                            <div class="schedule-card-actions">
+                                <button class="btn btn-sm btn-outline-warning" @onclick="(() => OpenEditRotation(workItemTemplate))">Edit</button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="(() => DeleteRotationFromList(workItemTemplate))" disabled="@isBusy">Delete</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="container my-4">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h4 class="mb-0">⚙️ Auto Assign Settings</h4>
+            <small class="manage-subtitle">Control how workers are automatically assigned to unassigned work items.</small>
+
+            <hr class="my-3" />
+
+            <div class="auto-assign-settings-grid">
+                <label class="form-check auto-assign-setting-item">
+                    <input class="form-check-input" type="checkbox" @bind="autoAssignAllowMultiplePerDay" />
+                    <span class="form-check-label">Allow multiple work items per worker per day</span>
+                </label>
+
+                <label class="form-check auto-assign-setting-item">
+                    <input class="form-check-input" type="checkbox" @bind="autoAssignRespectMaxHours" />
+                    <span class="form-check-label">Respect each worker's max hours per week</span>
+                </label>
+
+                <label class="form-check auto-assign-setting-item">
+                    <input class="form-check-input" type="checkbox" @bind="autoAssignRespectAvailability" />
+                    <span class="form-check-label">Respect each worker's availability windows</span>
+                </label>
+
+                <label class="form-check auto-assign-setting-item">
+                    <input class="form-check-input" type="checkbox" @bind="autoAssignRespectApprovedAbsences" />
+                    <span class="form-check-label">Block assignment during approved absences</span>
+                </label>
+
+                <label class="form-check auto-assign-setting-item">
+                    <input class="form-check-input" type="checkbox" @bind="autoAssignEnableAdditionalRoleCoverage" />
+                    <span class="form-check-label">Use additional qualified roles for remaining unassigned work items</span>
+                </label>
+
+                <label class="form-check auto-assign-setting-item">
+                    <input class="form-check-input" type="checkbox" @bind="autoAssignAdditionalRoleCoverageFallbackOnly" disabled="@(!autoAssignEnableAdditionalRoleCoverage)" />
+                    <span class="form-check-label">Run additional qualified-role coverage only after primary-role assignment</span>
+                </label>
+            </div>
+
+            <div class="d-flex align-items-center gap-3 mt-3">
+                <button class="btn btn-sm btn-primary"
+                        @onclick="SaveAutoAssignSettings"
+                        disabled="@(!HasAutoAssignSettingsChanged || isBusy)">
+                    Save
+                </button>
+
+                @if (!string.IsNullOrEmpty(autoAssignSettingsMessage))
+                {
+                    <div class="team-detail-message @(autoAssignSettingsError ? "team-detail-message-error" : "team-detail-message-ok")">@autoAssignSettingsMessage</div>
+                }
+            </div>
         </div>
     </div>
 </div>
@@ -874,23 +768,17 @@
     private string selectedMemberTeamMemberType = "General";
     // Local edit buffer for the selected member's MaxHours value
     private double selectedMemberMaxHours = 0.0;
-    private string? memberTeamMemberTypeMessage;
-    private bool memberTeamMemberTypeError;
-    private string? selectedMemberMaxHoursMessage;
-    private bool selectedMemberMaxHoursError;
     // Local edit buffer for the selected member's WorkItemAssignmentPriority
     private int selectedMemberPriority = 0;
-    private string? selectedMemberPriorityMessage;
-    private bool selectedMemberPriorityError;
 
     // Local edit buffer for additional qualified team member types.
     private HashSet<string> selectedMemberAvailableTeamMemberTypes = new(StringComparer.OrdinalIgnoreCase);
-    private string? memberAvailableTeamMemberTypesMessage;
-    private bool memberAvailableTeamMemberTypesError;
 
     private string? memberUnlinkMessage;
     private bool memberUnlinkError;
     private bool showUnlinkConfirm = false;
+    private string? memberChangesMessage;
+    private bool memberChangesError;
 
     /// <summary>True when any of the member editable fields differ from the selected member's saved values.</summary>
     private bool HasMemberChanges =>
@@ -898,44 +786,19 @@
 
     // Local edit buffer for the schedules assigned to the selected member
     private HashSet<string> selectedMemberScheduleIds = new();
-    private string? memberScheduleMessage;
-    private bool memberScheduleError;
 
     private bool HasScheduleAssignmentChanged =>
         selectedMember is not null && !selectedMemberScheduleIds.SetEquals(selectedMember.AssignedScheduleIds ?? new());
+
+    /// <summary>True when any editable value or selection differs from the selected member's saved values.</summary>
+    private bool HasSelectedMemberChanges =>
+        HasMemberChanges || HasAvailableTeamMemberTypesChanged || HasScheduleAssignmentChanged;
 
     /// <summary>Adds or removes a schedule from the selected member's pending assignments.</summary>
     private void ToggleMemberSchedule(string scheduleId, bool isChecked)
     {
         if (isChecked) selectedMemberScheduleIds.Add(scheduleId);
         else selectedMemberScheduleIds.Remove(scheduleId);
-    }
-
-    /// <summary>Persists the selected member's schedule assignments.</summary>
-    private async Task SaveAssignedSchedules()
-    {
-        if (selectedMember is null) return;
-        memberScheduleMessage = null;
-        isBusy = true;
-        try
-        {
-            var ok = await UserService.UpdateAssignedSchedulesAsync(selectedMember.Username, selectedMemberScheduleIds);
-            if (ok)
-            {
-                selectedMember.AssignedScheduleIds = selectedMemberScheduleIds.ToList();
-                memberScheduleMessage = "Assigned schedules updated.";
-                memberScheduleError = false;
-            }
-            else
-            {
-                memberScheduleMessage = "Could not update assigned schedules. Please try again.";
-                memberScheduleError = true;
-            }
-        }
-        finally
-        {
-            isBusy = false;
-        }
     }
 
     /// <summary>Adds or removes an additional qualified team member type for the selected member.</summary>
@@ -959,42 +822,6 @@
         else
         {
             selectedMemberAvailableTeamMemberTypes.Remove(teamMemberType);
-        }
-    }
-
-    /// <summary>Persists additional qualified team member types for the selected member.</summary>
-    private async Task SaveAvailableTeamMemberTypes()
-    {
-        if (selectedMember is null) return;
-
-        memberAvailableTeamMemberTypesMessage = null;
-        memberAvailableTeamMemberTypesError = false;
-        isBusy = true;
-        try
-        {
-            var typesToSave = selectedMemberAvailableTeamMemberTypes
-                .Where(t => !string.IsNullOrWhiteSpace(t)
-                    && !string.Equals(t, selectedMemberTeamMemberType, StringComparison.OrdinalIgnoreCase))
-                .Select(t => t.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            var ok = await UserService.UpdateAvailableTeamMemberTypesAsync(selectedMember.Username, typesToSave);
-            if (ok)
-            {
-                selectedMember.AvailableTeamMemberTypes = typesToSave;
-                memberAvailableTeamMemberTypesMessage = "Additional qualified types updated.";
-                memberAvailableTeamMemberTypesError = false;
-            }
-            else
-            {
-                memberAvailableTeamMemberTypesMessage = "Could not update additional qualified types. Please try again.";
-                memberAvailableTeamMemberTypesError = true;
-            }
-        }
-        finally
-        {
-            isBusy = false;
         }
     }
 
@@ -1537,8 +1364,8 @@
     {
         selectedMember = member;
         selectedMemberTeamMemberType = member.TeamMemberType;
-        memberTeamMemberTypeMessage = null;
-        memberTeamMemberTypeError = false;
+        memberChangesMessage = null;
+        memberChangesError = false;
         memberUnlinkMessage = null;
         memberUnlinkError = false;
 
@@ -1550,8 +1377,6 @@
 
         // Populate editable schedule assignment buffer
         selectedMemberScheduleIds = new HashSet<string>(member.AssignedScheduleIds ?? new());
-        memberScheduleMessage = null;
-        memberScheduleError = false;
 
         // Populate editable additional qualified team member types (excluding primary role).
         selectedMemberAvailableTeamMemberTypes = new HashSet<string>(
@@ -1560,8 +1385,6 @@
                     && !string.Equals(t, selectedMemberTeamMemberType, StringComparison.OrdinalIgnoreCase))
                 .Select(t => t.Trim()),
             StringComparer.OrdinalIgnoreCase);
-        memberAvailableTeamMemberTypesMessage = null;
-        memberAvailableTeamMemberTypesError = false;
 
         // Load upcoming absences for this member (next 30 days)
         await LoadUpcomingAbsencesForMember(member);
@@ -1809,154 +1632,124 @@
     }
 
     /// <summary>
-    /// Persists the team member type change for the selected team member.
-    /// Updates the local copy on success so the list badge stays in sync.
+    /// Saves all changed team member settings and selections in one operation.
+    /// Validates numeric fields, persists each changed group independently, defers dependent
+    /// additional-role updates when the primary role save fails, and reports partial failures.
     /// </summary>
-    private async Task SaveMemberTeamMemberType()
+    private async Task SaveSelectedMemberChanges()
     {
-        if (selectedMember is null) return;
-        memberTeamMemberTypeMessage = null;
+        if (selectedMember is null || !HasSelectedMemberChanges) return;
+        memberChangesMessage = null;
+        memberChangesError = false;
+
+        if (HasMaxHoursChanged && selectedMemberMaxHours < 0)
+        {
+            memberChangesMessage = "Max hours must be zero or greater.";
+            memberChangesError = true;
+            return;
+        }
+
+        if (HasPriorityChanged && selectedMemberPriority < 0)
+        {
+            memberChangesMessage = "Work item priority must be zero or greater.";
+            memberChangesError = true;
+            return;
+        }
+
+        var failedUpdates = new List<string>();
+        var teamMemberTypeSaved = !HasTeamMemberTypeChanged;
+
         isBusy = true;
         try
         {
-            // Only call updates for fields that actually changed. Treat unchanged fields as successful.
-            var teamMemberTypeOk = true;
-            var maxOk = true;
-
-            var teamMemberTypeChanged = selectedMemberTeamMemberType != selectedMember.TeamMemberType;
-            var maxChanged = selectedMemberMaxHours != (selectedMember.MaxHours);
-
-            if (teamMemberTypeChanged)
+            if (HasTeamMemberTypeChanged)
             {
-                teamMemberTypeOk = await UserService.UpdateTeamMemberTypeAsync(selectedMember.Username, selectedMemberTeamMemberType);
+                teamMemberTypeSaved = await UserService.UpdateTeamMemberTypeAsync(selectedMember.Username, selectedMemberTeamMemberType);
+                if (teamMemberTypeSaved)
+                {
+                    selectedMember.TeamMemberType = selectedMemberTeamMemberType;
+                }
+                else
+                {
+                    failedUpdates.Add("team member type");
+                }
             }
 
-            if (maxChanged)
+            if (HasMaxHoursChanged)
             {
-                maxOk = await UserService.UpdateMaxHoursAsync(selectedMember.Username, selectedMemberMaxHours);
+                var maxHoursSaved = await UserService.UpdateMaxHoursAsync(selectedMember.Username, selectedMemberMaxHours);
+                if (maxHoursSaved)
+                {
+                    selectedMember.MaxHours = selectedMemberMaxHours;
+                }
+                else
+                {
+                    failedUpdates.Add("max hours");
+                }
             }
 
-            // Consider operation successful if all attempted updates returned true.
-            if ((teamMemberTypeChanged ? teamMemberTypeOk : true) && (maxChanged ? maxOk : true))
+            if (HasPriorityChanged)
             {
-                // Keep the in-memory list in sync so the list badge updates immediately
-                selectedMember.TeamMemberType = selectedMemberTeamMemberType;
-                selectedMember.MaxHours = selectedMemberMaxHours;
-                memberTeamMemberTypeMessage = "Member updated.";
-                memberTeamMemberTypeError = false;
+                var prioritySaved = await UserService.UpdateWorkItemAssignmentPriorityAsync(selectedMember.Username, selectedMemberPriority);
+                if (prioritySaved)
+                {
+                    selectedMember.WorkItemAssignmentPriority = selectedMemberPriority;
+                }
+                else
+                {
+                    failedUpdates.Add("work item priority");
+                }
+            }
+
+            if (HasAvailableTeamMemberTypesChanged)
+            {
+                if (!teamMemberTypeSaved)
+                {
+                    failedUpdates.Add("additional qualified types (save the team member type first)");
+                }
+                else
+                {
+                    var typesToSave = selectedMemberAvailableTeamMemberTypes
+                        .Where(t => !string.IsNullOrWhiteSpace(t)
+                            && !string.Equals(t, selectedMemberTeamMemberType, StringComparison.OrdinalIgnoreCase))
+                        .Select(t => t.Trim())
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+
+                    var additionalTypesSaved = await UserService.UpdateAvailableTeamMemberTypesAsync(selectedMember.Username, typesToSave);
+                    if (additionalTypesSaved)
+                    {
+                        selectedMember.AvailableTeamMemberTypes = typesToSave;
+                    }
+                    else
+                    {
+                        failedUpdates.Add("additional qualified types");
+                    }
+                }
+            }
+
+            if (HasScheduleAssignmentChanged)
+            {
+                var scheduleAssignmentsSaved = await UserService.UpdateAssignedSchedulesAsync(selectedMember.Username, selectedMemberScheduleIds);
+                if (scheduleAssignmentsSaved)
+                {
+                    selectedMember.AssignedScheduleIds = selectedMemberScheduleIds.ToList();
+                }
+                else
+                {
+                    failedUpdates.Add("assigned schedules");
+                }
+            }
+
+            if (failedUpdates.Count > 0)
+            {
+                memberChangesMessage = $"Could not save {string.Join(", ", failedUpdates)}. Other changes may have been saved; try again.";
+                memberChangesError = true;
             }
             else
             {
-                // Partial or full failure. If DB was updated but the Update call returned false
-                // (ModifiedCount == 0) treat that as success — query DB is the source of truth.
-                // However, we can't call DB here; instead provide a clearer guidance message.
-                memberTeamMemberTypeMessage = "Could not update all member values. Please try again.";
-                memberTeamMemberTypeError = true;
-            }
-        }
-        finally
-        {
-            isBusy = false;
-        }
-    }
-
-    /// <summary>
-    /// Saves the member settings (team member type and max hours). This is invoked by the controls' Save button.
-    /// Delegates to the same logic as SaveMemberTeamMemberType for consistency.
-    /// </summary>
-    private Task SaveMemberDetails() => SaveMemberTeamMemberType();
-
-    private async Task SaveTeamMemberTypeOnly()
-    {
-        if (selectedMember is null) return;
-        memberTeamMemberTypeMessage = null;
-        isBusy = true;
-        try
-        {
-            if (selectedMemberTeamMemberType == selectedMember.TeamMemberType)
-            {
-                memberTeamMemberTypeMessage = "No changes.";
-                memberTeamMemberTypeError = false;
-                return;
-            }
-
-            var ok = await UserService.UpdateTeamMemberTypeAsync(selectedMember.Username, selectedMemberTeamMemberType);
-            if (ok)
-            {
-                selectedMember.TeamMemberType = selectedMemberTeamMemberType;
-                memberTeamMemberTypeMessage = "Team member type updated.";
-                memberTeamMemberTypeError = false;
-            }
-            else
-            {
-                memberTeamMemberTypeMessage = "Could not update team member type. Please try again.";
-                memberTeamMemberTypeError = true;
-            }
-        }
-        finally
-        {
-            isBusy = false;
-        }
-    }
-
-    private async Task SaveMaxHoursOnly()
-    {
-        if (selectedMember is null) return;
-        selectedMemberMaxHoursMessage = null;
-        isBusy = true;
-        try
-        {
-            if (selectedMemberMaxHours == (selectedMember.MaxHours))
-            {
-                selectedMemberMaxHoursMessage = "No changes.";
-                selectedMemberMaxHoursError = false;
-                return;
-            }
-
-            var ok = await UserService.UpdateMaxHoursAsync(selectedMember.Username, selectedMemberMaxHours);
-            if (ok)
-            {
-                selectedMember.MaxHours = selectedMemberMaxHours;
-                selectedMemberMaxHoursMessage = "Max hours updated.";
-                selectedMemberMaxHoursError = false;
-            }
-            else
-            {
-                selectedMemberMaxHoursMessage = "Could not update max hours. Please try again.";
-                selectedMemberMaxHoursError = true;
-            }
-        }
-        finally
-        {
-            isBusy = false;
-        }
-    }
-
-    private async Task SavePriorityOnly()
-    {
-        if (selectedMember is null) return;
-        selectedMemberPriorityMessage = null;
-        isBusy = true;
-        try
-        {
-            if (selectedMemberPriority == selectedMember.WorkItemAssignmentPriority)
-            {
-                selectedMemberPriorityMessage = "No changes.";
-                selectedMemberPriorityError = false;
-                return;
-            }
-
-            var ok = await UserService.UpdateWorkItemAssignmentPriorityAsync(selectedMember.Username, selectedMemberPriority);
-            if (ok)
-            {
-                selectedMember.WorkItemAssignmentPriority = selectedMemberPriority;
-                selectedMemberPriorityMessage = "Priority updated.";
-                selectedMemberPriorityError = false;
-            }
-            else
-            {
-                selectedMemberPriorityMessage = "Could not update priority. Please try again.";
-                selectedMemberPriorityError = true;
+                memberChangesMessage = "Member changes saved.";
+                memberChangesError = false;
             }
         }
         finally
@@ -2047,6 +1840,10 @@
 
             // Load employees linked to this manager (exclude the manager themselves)
             await RefreshLinkedUsersAsync();
+            if (linkedUsers.Count > 0)
+            {
+                await SelectMember(linkedUsers[0]);
+            }
         }
 
         await LoadSchedules();

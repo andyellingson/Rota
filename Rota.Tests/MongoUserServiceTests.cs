@@ -97,6 +97,7 @@ namespace Rota.Tests
             Assert.Multiple(async () =>
             {
                 Assert.That(await service.UpdateNamesAsync("user", "First", "Last"), Is.True);
+                Assert.That(await service.UpdateContactInfoAsync("user", "user@example.com", "+1 555 0100"), Is.True);
                 Assert.That(await service.UpdateMaxHoursAsync("user", 32), Is.True);
                 Assert.That(await service.UpdateWorkItemAssignmentPriorityAsync("user", 4), Is.True);
                 Assert.That(await service.UpdateAssignedSchedulesAsync("user", ["schedule-a", "schedule-a", "schedule-b"]), Is.True);
@@ -106,7 +107,7 @@ namespace Rota.Tests
                 Assert.That(await service.UpdateThemeAsync("user", "amoled"), Is.True);
             });
 
-            collection.Verify(c => c.UpdateOneAsync(It.IsAny<FilterDefinition<User>>(), It.IsAny<UpdateDefinition<User>>(), It.IsAny<UpdateOptions>(), It.IsAny<CancellationToken>()), Times.Exactly(8));
+            collection.Verify(c => c.UpdateOneAsync(It.IsAny<FilterDefinition<User>>(), It.IsAny<UpdateDefinition<User>>(), It.IsAny<UpdateOptions>(), It.IsAny<CancellationToken>()), Times.Exactly(9));
         }
 
         [Test]

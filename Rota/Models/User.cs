@@ -53,6 +53,18 @@ namespace Rota.Models
         public string? LastName { get; set; }
 
         /// <summary>
+        /// The user's optional email address.
+        /// </summary>
+        [BsonElement("email")]
+        public string? Email { get; set; }
+
+        /// <summary>
+        /// The user's optional phone number.
+        /// </summary>
+        [BsonElement("phoneNumber")]
+        public string? PhoneNumber { get; set; }
+
+        /// <summary>
         /// The team member type for the user (manager-defined name stored as string).
         /// Used when assigning employees to work items.
         /// </summary>

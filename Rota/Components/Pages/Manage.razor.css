@@ -230,14 +230,20 @@
     justify-content: space-between;
     gap: 0.75rem;
     border-bottom: 1px solid var(--color-border);
-    padding-bottom: 0.75rem;
-    margin-bottom: 0.25rem;
+    padding-bottom: 0.375rem;
+    margin-bottom: 0.125rem;
 }
 
 .team-detail-name {
     font-size: 1.2rem;
     font-weight: 700;
     color: var(--color-text-primary);
+}
+
+.team-detail-contact {
+    font-size: 0.78rem;
+    line-height: 1.25;
+    color: var(--color-text-secondary);
 }
 
 .team-detail-label {

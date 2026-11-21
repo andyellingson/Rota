@@ -43,26 +43,20 @@
 
             <div class="account-card mt-3">
                 <label class="account-field-label mb-1">Display Name</label>
-                <div class="d-flex gap-2 align-items-start">
-                    <input class="form-control" @bind="displayNameInput" placeholder="Enter a display name" maxlength="64" />
-                    <button class="btn btn-primary text-nowrap" @onclick="SaveDisplayName" disabled="@(!HasDisplayNameChanged || isBusy)">Save</button>
-                </div>
-                @if (!string.IsNullOrEmpty(displayNameMessage))
-                {
-                    <div class="account-message @(displayNameError ? "account-message-error" : "account-message-ok")">@displayNameMessage</div>
-                }
+                <input class="form-control" @bind="displayNameInput" placeholder="Enter a display name" maxlength="64" />
 
                 <hr class="my-3" />
                 <label class="account-field-label mb-1">First name</label>
                 <div class="d-flex gap-2 align-items-start">
                     <input class="form-control" @bind="firstNameInput" placeholder="First name" maxlength="64" />
                     <input class="form-control" @bind="lastNameInput" placeholder="Last name" maxlength="64" />
-                    <button class="btn btn-primary text-nowrap" @onclick="SaveNames" disabled="@(!HasNameChanged || isBusy)">Save</button>
                 </div>
-                @if (!string.IsNullOrEmpty(nameMessage))
-                {
-                    <div class="account-message @(nameError ? "account-message-error" : "account-message-ok")">@nameMessage</div>
-                }
+
+                <hr class="my-3" />
+                <label class="account-field-label mb-1">Email address (optional)</label>
+                <input type="email" class="form-control mb-4" @bind="emailInput" placeholder="Enter an email address" maxlength="254" autocomplete="email" />
+                <label class="account-field-label mb-1">Phone number (optional)</label>
+                <input type="tel" class="form-control mb-2" @bind="phoneNumberInput" placeholder="Enter a phone number" maxlength="32" autocomplete="tel" />
 
                 <hr class="my-3" />
 
@@ -81,23 +75,13 @@
                                 <option value="@teamMemberTypeInput">@teamMemberTypeInput (removed)</option>
                             }
                         </select>
-                        <button class="btn btn-primary text-nowrap" @onclick="SaveTeamMemberType" disabled="@(!HasTeamMemberTypeChanged || isBusy)">Save</button>
                     </div>
-                    @if (!string.IsNullOrEmpty(teamMemberTypeMessage))
-                    {
-                        <div class="account-message @(teamMemberTypeError ? "account-message-error" : "account-message-ok")">@teamMemberTypeMessage</div>
-                    }
                     <hr class="my-3" />
                     <label class="account-field-label mb-1">Max hours / week</label>
                     <div class="d-flex gap-2 align-items-start">
                         <input type="number" class="form-control" @bind="maxHoursInput" min="0" step="0.5" />
-                        <button class="btn btn-primary text-nowrap" @onclick="SaveMaxHours" disabled="@( (Math.Abs(maxHoursInput - (user?.MaxHours ?? 0.0)) < 0.001) || isBusy)">Save</button>
                     </div>
                     <div class="account-field-hint mt-1">Enter 0 for no limit.</div>
-                    @if (!string.IsNullOrEmpty(maxHoursMessage))
-                    {
-                        <div class="account-message @(maxHoursError ? "account-message-error" : "account-message-ok")">@maxHoursMessage</div>
-                    }
                 }
                 else
                 {
@@ -106,6 +90,12 @@
                     <label class="account-field-label mt-3 mb-1">Max hours / week</label>
                     <div class="account-field-value">@(user.MaxHours <= 0 ? "No limit" : (user.MaxHours.ToString("0.##") + " hours"))</div>
                     <div class="account-field-hint mt-1">This value is set by your team leader.</div>
+                }
+
+                <button class="btn btn-primary mt-3" @onclick="SaveProfileChanges" disabled="@(!HasProfileChanges || isBusy)">Save Changes</button>
+                @if (!string.IsNullOrEmpty(profileMessage))
+                {
+                    <div class="account-message @(profileError ? "account-message-error" : "account-message-ok")">@profileMessage</div>
                 }
             </div>
         </div>
@@ -296,22 +286,17 @@
     private bool isBusy = false;
 
     private string displayNameInput = string.Empty;
-    private string? displayNameMessage;
-    private bool displayNameError;
+    private string emailInput = string.Empty;
+    private string phoneNumberInput = string.Empty;
+    private string? profileMessage;
+    private bool profileError;
 
     private string teamMemberTypeInput = "General";
     private List<string> teamMemberTypeChoices = new();
-    private string? teamMemberTypeMessage;
-    private bool teamMemberTypeError;
-    
     private double maxHoursInput = 0.0;
-    private string? maxHoursMessage;
-    private bool maxHoursError;
 
     private string firstNameInput = string.Empty;
     private string lastNameInput = string.Empty;
-    private string? nameMessage;
-    private bool nameError;
 
     private string currentPassword = string.Empty;
     private string newPassword = string.Empty;
@@ -355,6 +340,11 @@
     private bool HasDisplayNameChanged =>
         displayNameInput.Trim() != (user?.DisplayName ?? string.Empty);
 
+    /// <summary>True when either optional contact value differs from the saved value.</summary>
+    private bool HasContactInfoChanged =>
+        emailInput.Trim() != (user?.Email ?? string.Empty) ||
+        phoneNumberInput.Trim() != (user?.PhoneNumber ?? string.Empty);
+
     /// <summary>True when first or last name inputs differ from the saved values.</summary>
     private bool HasNameChanged =>
         (firstNameInput.Trim() != (user?.FirstName ?? string.Empty)) ||
@@ -363,6 +353,17 @@
     /// <summary>True when the team member type dropdown differs from the saved value.</summary>
     private bool HasTeamMemberTypeChanged =>
         teamMemberTypeInput != (user?.TeamMemberType ?? "General");
+
+    /// <summary>True when the manager-controlled weekly hours value differs from the saved value.</summary>
+    private bool HasMaxHoursChanged =>
+        maxHoursInput != (user?.MaxHours ?? 0.0);
+
+    /// <summary>True when any editable profile field differs from its saved value.</summary>
+    private bool HasProfileChanges =>
+        HasDisplayNameChanged ||
+        HasNameChanged ||
+        HasContactInfoChanged ||
+        (user?.Roles.Contains(Roles.Manager) == true && (HasTeamMemberTypeChanged || HasMaxHoursChanged));
 
     /// <summary>True when all three password fields contain text.</summary>
     private bool HasPasswordInput =>
@@ -377,6 +378,8 @@
         {
             user = await UserService.GetByUsernameAsync(username);
             displayNameInput = user?.DisplayName ?? string.Empty;
+            emailInput = user?.Email ?? string.Empty;
+            phoneNumberInput = user?.PhoneNumber ?? string.Empty;
             teamMemberTypeInput = user?.TeamMemberType ?? "General";
             themeInput = user?.Theme ?? "light";
                 firstNameInput = user?.FirstName ?? string.Empty;
@@ -451,117 +454,108 @@
         }
     }
 
-    private async Task SaveNames()
+    private async Task SaveProfileChanges()
     {
         if (user is null) return;
-        nameMessage = null;
+        profileMessage = null;
 
-        // Normalize empty strings to null for storage
-        var f = string.IsNullOrWhiteSpace(firstNameInput) ? null : firstNameInput.Trim();
-        var l = string.IsNullOrWhiteSpace(lastNameInput) ? null : lastNameInput.Trim();
+        // Normalize optional fields and validate all inputs before saving any changes.
+        var displayName = string.IsNullOrWhiteSpace(displayNameInput) ? null : displayNameInput.Trim();
+        var firstName = string.IsNullOrWhiteSpace(firstNameInput) ? null : firstNameInput.Trim();
+        var lastName = string.IsNullOrWhiteSpace(lastNameInput) ? null : lastNameInput.Trim();
+        var email = string.IsNullOrWhiteSpace(emailInput) ? null : emailInput.Trim();
+        var phoneNumber = string.IsNullOrWhiteSpace(phoneNumberInput) ? null : phoneNumberInput.Trim();
 
-        isBusy = true;
-        try
+        if (email is not null && !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email))
         {
-            var ok = await UserService.UpdateNamesAsync(user.Username, f, l);
-            if (ok)
-            {
-                user.FirstName = f;
-                user.LastName = l;
-                nameMessage = "Name updated.";
-                nameError = false;
-            }
-            else
-            {
-                nameMessage = "Could not update name. Please try again.";
-                nameError = true;
-            }
-        }
-        finally
-        {
-            isBusy = false;
-        }
-    }
-
-    private async Task SaveTeamMemberType()
-    {
-        if (user is null) return;
-        teamMemberTypeMessage = null;
-        isBusy = true;
-        try
-        {
-            var ok = await UserService.UpdateTeamMemberTypeAsync(user.Username, teamMemberTypeInput);
-            if (ok)
-            {
-                user.TeamMemberType = teamMemberTypeInput;
-                teamMemberTypeMessage = "Team member type updated.";
-                teamMemberTypeError = false;
-            }
-            else
-            {
-                teamMemberTypeMessage = "Could not update team member type. Please try again.";
-                teamMemberTypeError = true;
-            }
-        }
-        finally
-        {
-            isBusy = false;
-        }
-    }
-
-    private async Task SaveMaxHours()
-    {
-        if (user is null) return;
-        maxHoursMessage = null;
-
-        if (maxHoursInput < 0)
-        {
-            maxHoursMessage = "Max hours must be zero or greater.";
-            maxHoursError = true;
+            profileMessage = "Enter a valid email address, or leave the field blank.";
+            profileError = true;
             return;
         }
 
-        isBusy = true;
-        try
+        var isManager = user.Roles.Contains(Roles.Manager);
+        if (isManager && maxHoursInput < 0)
         {
-            var ok = await UserService.UpdateMaxHoursAsync(user.Username, maxHoursInput);
-            if (ok)
-            {
-                user.MaxHours = maxHoursInput;
-                maxHoursMessage = "Max hours updated.";
-                maxHoursError = false;
-            }
-            else
-            {
-                maxHoursMessage = "Could not update max hours. Please try again.";
-                maxHoursError = true;
-            }
+            profileMessage = "Max hours must be zero or greater.";
+            profileError = true;
+            return;
         }
-        finally
-        {
-            isBusy = false;
-        }
-    }
 
-    private async Task SaveDisplayName()
-    {
-        if (user is null) return;
-        displayNameMessage = null;
+        var failedUpdates = new List<string>();
         isBusy = true;
         try
         {
-            var trimmed = string.IsNullOrWhiteSpace(displayNameInput) ? null : displayNameInput.Trim();
-            var ok = await UserService.UpdateDisplayNameAsync(user.Username, trimmed);
-            if (ok)
+            if (HasDisplayNameChanged)
             {
-                user.DisplayName = trimmed;
-                displayNameMessage = "Display name updated.";
-                displayNameError = false;
+                if (await UserService.UpdateDisplayNameAsync(user.Username, displayName))
+                {
+                    user.DisplayName = displayName;
+                }
+                else
+                {
+                    failedUpdates.Add("display name");
+                }
+            }
+
+            if (HasNameChanged)
+            {
+                if (await UserService.UpdateNamesAsync(user.Username, firstName, lastName))
+                {
+                    user.FirstName = firstName;
+                    user.LastName = lastName;
+                }
+                else
+                {
+                    failedUpdates.Add("name");
+                }
+            }
+
+            if (HasContactInfoChanged)
+            {
+                if (await UserService.UpdateContactInfoAsync(user.Username, email, phoneNumber))
+                {
+                    user.Email = email;
+                    user.PhoneNumber = phoneNumber;
+                }
+                else
+                {
+                    failedUpdates.Add("contact details");
+                }
+            }
+
+            if (isManager && HasTeamMemberTypeChanged)
+            {
+                if (await UserService.UpdateTeamMemberTypeAsync(user.Username, teamMemberTypeInput))
+                {
+                    user.TeamMemberType = teamMemberTypeInput;
+                }
+                else
+                {
+                    failedUpdates.Add("team member type");
+                }
+            }
+
+            if (isManager && HasMaxHoursChanged)
+            {
+                if (await UserService.UpdateMaxHoursAsync(user.Username, maxHoursInput))
+                {
+                    user.MaxHours = maxHoursInput;
+                }
+                else
+                {
+                    failedUpdates.Add("max hours");
+                }
+            }
+
+            if (failedUpdates.Count > 0)
+            {
+                profileMessage = $"Could not save {string.Join(", ", failedUpdates)}. Other changes may have been saved; try again.";
+                profileError = true;
             }
             else
             {
-                displayNameMessage = "Could not update display name. Please try again.";
-                displayNameError = true;
+                profileMessage = "Profile changes saved.";
+                profileError = false;
             }
         }
         finally

@@ -1,4 +1,6 @@
 @page "/faq"
+@using Microsoft.AspNetCore.Components.Authorization
+@using Rota.Models
 
 <PageTitle>FAQ – ScheduleMeister</PageTitle>
 
@@ -32,8 +34,85 @@
         </div>
     </div>
 
+    <AuthorizeView Roles="@Roles.ManagerOrAdmin">
+        <Authorized>
+            <div class="faq-section">
+                <h5 class="faq-section-title">🕐 Work items</h5>
+
+                <div class="faq-item">
+                    <div class="faq-question">How do I add a work item?</div>
+                    <div class="faq-answer">Click any day on the calendar to open the event modal, switch to the <strong>Work item</strong> tab, fill in the start time, end time, team member role, and any notes, then click <strong>Save work item</strong>.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Can I assign a work item to a specific employee?</div>
+                    <div class="faq-answer">Yes. When creating or editing a WorkItem, use the <strong>Assign To</strong> dropdown to pick a linked team member. The WorkItem will then appear attributed to that employee on the calendar.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Can I create a recurring work item?</div>
+                    <div class="faq-answer">Yes. When adding a WorkItem, choose a <strong>Repeat</strong> option — Daily, Work Week (Mon–Fri), or Weekends — and ScheduleMeister will create one WorkItem for every matching day in that week.</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">How do I edit or delete a work item?</div>
+                    <div class="faq-answer">Click the WorkItem card on the calendar to open it for editing. Update any fields and click <strong>Save Changes</strong>, or click <strong>Delete</strong> to remove just that occurrence. For recurring WorkItems, you can also delete the entire series at once.</div>
+                </div>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
     <div class="faq-section">
-        <h5 class="faq-section-title">🗂 Managing Schedules</h5>
+        <h5 class="faq-section-title">🙅 Absences</h5>
+
+        <div class="faq-item">
+            <div class="faq-question">How do I request an absence?</div>
+            <div class="faq-answer">Click a day on the calendar, switch to the <strong>Absence</strong> tab, enter the absence details and duration, and click <strong>Save</strong>. The request is submitted as pending approval for your manager.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">Can I request a part-day absence?</div>
+            <div class="faq-answer">Yes. When creating a single-day absence, tick the <strong>Part Day</strong> checkbox and enter the start and end times for the partial absence.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">How do I know if my absence has been approved?</div>
+            <div class="faq-answer">Absence cards on the calendar display a coloured badge — <strong>Pending</strong> (grey), <strong>Approved</strong> (green), or <strong>Denied</strong> (red) — so you can see the status at a glance.</div>
+        </div>
+
+        <AuthorizeView Roles="@Roles.ManagerOrAdmin">
+            <Authorized>
+                <div class="faq-item">
+                    <div class="faq-question">How does a manager approve or deny an absence?</div>
+                    <div class="faq-answer">Go to the <strong>Manage</strong> page and select a team member from the Team Members panel. Their upcoming absences are listed on the right. Click any absence to open it, change the approval state using the dropdown, and click <strong>Save</strong>.</div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+
+    <div class="faq-section">
+        <h5 class="faq-section-title">🔔 Reminders</h5>
+
+        <div class="faq-item">
+            <div class="faq-question">How do I add a reminder?</div>
+            <div class="faq-answer">Click a day on the calendar, switch to the <strong>Reminder</strong> tab, enter a title, choose a colour, add optional notes, and click <strong>Save</strong>. By default, the reminder is for the current user. <AuthorizeView Roles="@Roles.ManagerOrAdmin"><Authorized>Team leaders can choose a linked team member in the <strong>For</strong> field. </Authorized></AuthorizeView>Reminder visibility follows the team leader/team calendar and assigned user.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">What do the reminder colours mean?</div>
+            <div class="faq-answer">Colours are purely for your own organisation — use them however you like, for example red for urgent items and blue for informational notes.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">How do I edit or delete a reminder?</div>
+            <div class="faq-answer">Click the reminder on the calendar to open the edit form. Update any field and click <strong>Save Changes</strong>, or click <strong>Delete</strong> to remove it.</div>
+        </div>
+    </div>
+
+    <AuthorizeView Roles="@Roles.ManagerOrAdmin">
+        <Authorized>
+            <div class="faq-section">
+                <h5 class="faq-section-title">🗂 Managing Schedules</h5>
 
         <div class="faq-item">
             <div class="faq-question">How do I create a new schedule?</div>
@@ -54,10 +133,14 @@
             <div class="faq-question">How do I delete a schedule?</div>
             <div class="faq-answer">On the <strong>Manage</strong> page, click <strong>Delete</strong> next to the schedule and confirm. You cannot delete your only remaining schedule. Its WorkItems, absences, and reminders are permanently deleted before the schedule. If cleanup fails, the schedule is not deleted and an error is shown; data already deleted earlier in the cleanup is not restored.</div>
         </div>
-    </div>
+            </div>
+        </Authorized>
+    </AuthorizeView>
 
-    <div class="faq-section">
-        <h5 class="faq-section-title">🔁 Work Item Templates (Managers)</h5>
+    <AuthorizeView Roles="@Roles.ManagerOrAdmin">
+        <Authorized>
+            <div class="faq-section">
+                <h5 class="faq-section-title">🔁 Work Item Templates (Managers)</h5>
 
         <div class="faq-item">
             <div class="faq-question">What is a Work Item Template?</div>
@@ -83,10 +166,14 @@
             <div class="faq-question">What happens when I delete a Work Item Template?</div>
             <div class="faq-answer">On the <strong>Manage</strong> page, click <strong>Delete</strong> next to the Work Item Template and confirm. The Work Item Template and its template WorkItems are deleted. Calendar WorkItems that were already created by applying the Work Item Template are not deleted.</div>
         </div>
-    </div>
+            </div>
+        </Authorized>
+    </AuthorizeView>
 
-    <div class="faq-section">
-        <h5 class="faq-section-title">⚙️ Automatic Work Item Assignment (Managers)</h5>
+    <AuthorizeView Roles="@Roles.ManagerOrAdmin">
+        <Authorized>
+            <div class="faq-section">
+                <h5 class="faq-section-title">⚙️ Automatic Work Item Assignment (Managers)</h5>
 
         <div class="faq-item">
             <div class="faq-question">How does automatic assignment work?</div>
@@ -125,77 +212,14 @@
             <div class="faq-question">How does additional-role coverage work?</div>
             <div class="faq-answer">A manager can give a worker additional qualified team member types from that worker's details on the <strong>Manage</strong> page. Additional-role coverage is enabled by default and, by default, is used only after workers with the required type as their primary type have been considered. Turn off <strong>Run additional qualified-role coverage only after primary-role assignment</strong> to include additional-role workers when retrying any WorkItems still unassigned after the primary-role pass. Priority and eligibility rules still apply.</div>
         </div>
-    </div>
+            </div>
+        </Authorized>
+    </AuthorizeView>
 
-    <div class="faq-section">
-        <h5 class="faq-section-title">🕐 Work items</h5>
-
-        <div class="faq-item">
-            <div class="faq-question">How do I add a work item?</div>
-            <div class="faq-answer">Click any day on the calendar to open the event modal, switch to the <strong>Work item</strong> tab, fill in the start time, end time, team member type, and any notes, then click <strong>Save work item</strong>.</div>
-        </div>
-
-        <div class="faq-item">
-            <div class="faq-question">Can I assign a work item to a specific employee?</div>
-            <div class="faq-answer">Yes. When creating or editing a WorkItem, use the <strong>Assign To</strong> dropdown to pick a linked team member. The WorkItem will then appear attributed to that employee on the calendar.</div>
-        </div>
-
-        <div class="faq-item">
-            <div class="faq-question">Can I create a recurring work item?</div>
-            <div class="faq-answer">Yes. When adding a WorkItem, choose a <strong>Repeat</strong> option — Daily, Work Week (Mon–Fri), or Weekends — and ScheduleMeister will create one WorkItem for every matching day in that month.</div>
-        </div>
-
-        <div class="faq-item">
-            <div class="faq-question">How do I edit or delete a work item?</div>
-            <div class="faq-answer">Click the WorkItem card on the calendar to open it for editing. Update any fields and click <strong>Save Changes</strong>, or click <strong>Delete</strong> to remove just that occurrence. For recurring WorkItems, you can also delete the entire series at once.</div>
-        </div>
-    </div>
-
-    <div class="faq-section">
-        <h5 class="faq-section-title">🙅 Absences</h5>
-
-        <div class="faq-item">
-            <div class="faq-question">How do I request an absence?</div>
-            <div class="faq-answer">Click a day on the calendar, switch to the <strong>Absence</strong> tab, enter the absence details and duration, and click <strong>Save</strong>. The request is submitted as pending approval for your manager.</div>
-        </div>
-
-        <div class="faq-item">
-            <div class="faq-question">Can I request a part-day absence?</div>
-            <div class="faq-answer">Yes. When creating a single-day absence, tick the <strong>Part Day</strong> checkbox and enter the start and end times for the partial absence.</div>
-        </div>
-
-        <div class="faq-item">
-            <div class="faq-question">How do I know if my absence has been approved?</div>
-            <div class="faq-answer">Absence cards on the calendar display a coloured badge — <strong>Pending</strong> (grey), <strong>Approved</strong> (green), or <strong>Denied</strong> (red) — so you can see the status at a glance.</div>
-        </div>
-
-        <div class="faq-item">
-            <div class="faq-question">How does a manager approve or deny an absence? (Managers)</div>
-            <div class="faq-answer">Go to the <strong>Manage</strong> page and select a team member from the Team Members panel. Their upcoming absences are listed on the right. Click any absence to open it, change the approval state using the dropdown, and click <strong>Save</strong>.</div>
-        </div>
-    </div>
-
-    <div class="faq-section">
-        <h5 class="faq-section-title">🔔 Reminders</h5>
-
-        <div class="faq-item">
-            <div class="faq-question">How do I add a reminder?</div>
-            <div class="faq-answer">Click a day on the calendar, switch to the <strong>Reminder</strong> tab, enter a title, choose a colour, add optional notes, and click <strong>Save</strong>. Team leaders can choose a linked team member in the <strong>For</strong> field; otherwise the reminder is for the current user. Reminder visibility follows the team leader/team calendar and assigned user.</div>
-        </div>
-
-        <div class="faq-item">
-            <div class="faq-question">What do the reminder colours mean?</div>
-            <div class="faq-answer">Colours are purely for your own organisation — use them however you like, for example red for urgent items and blue for informational notes.</div>
-        </div>
-
-        <div class="faq-item">
-            <div class="faq-question">How do I edit or delete a reminder?</div>
-            <div class="faq-answer">Click the reminder on the calendar to open the edit form. Update any field and click <strong>Save Changes</strong>, or click <strong>Delete</strong> to remove it.</div>
-        </div>
-    </div>
-
-    <div class="faq-section">
-        <h5 class="faq-section-title">👥 Team Members (Team Leaders)</h5>
+    <AuthorizeView Roles="@Roles.ManagerOrAdmin">
+        <Authorized>
+            <div class="faq-section">
+                <h5 class="faq-section-title">👥 Team Members (Team Leaders)</h5>
 
         <div class="faq-item">
             <div class="faq-question">How do team members join my team?</div>
@@ -216,14 +240,16 @@
             <div class="faq-question">Can I see a team member's availability?</div>
             <div class="faq-answer">Yes. Select any team member on the Manage page and their <strong>Weekly Availability</strong> is shown in the detail panel, displaying the days and time windows they have set on their own Account page.</div>
         </div>
-    </div>
+            </div>
+        </Authorized>
+    </AuthorizeView>
 
     <div class="faq-section">
-        <h5 class="faq-section-title">🔐 Account</h5>
+        <h5 class="faq-section-title">🔐 Settings</h5>
 
         <div class="faq-item">
             <div class="faq-question">How do I set my availability?</div>
-            <div class="faq-answer">Go to the <strong>Account</strong> page and use the Weekly Availability section to add time windows for each day of the week. Your team leader can view this to help plan WorkItems around your schedule.</div>
+            <div class="faq-answer">Go to the <strong>Settings</strong> page and use the Weekly Availability section to add time windows for each day of the week. Your team leader can view this to help plan WorkItems around your schedule.</div>
         </div>
 
         <div class="faq-item">

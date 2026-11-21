@@ -40,6 +40,27 @@ namespace Rota.Services
         }
 
         /// <summary>
+        /// Updates the optional contact information for the specified user.
+        /// </summary>
+        public async System.Threading.Tasks.Task<bool> UpdateContactInfoAsync(string username, string? email, string? phoneNumber)
+        {
+            try
+            {
+                var filter = Builders<User>.Filter.Eq(u => u.Username, username);
+                var update = Builders<User>.Update
+                    .Set(u => u.Email, email)
+                    .Set(u => u.PhoneNumber, phoneNumber);
+                var result = await _users.UpdateOneAsync(filter, update);
+                return result.ModifiedCount > 0;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error updating contact information for user {User}", username);
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Updates the user's first and last name fields.
         /// </summary>
         public async System.Threading.Tasks.Task<bool> UpdateNamesAsync(string username, string? firstName, string? lastName)
