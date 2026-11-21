@@ -91,8 +91,9 @@ namespace Rota.Models
         /// <summary>
         /// work item assignment priority set by the manager. Higher numbers mean higher priority.
         /// When two employees share the same priority they are assigned work items in round-robin
-        /// order. When priorities differ, the highest-priority employee is filled first (up to
-        /// their weekly MaxHours cap), then the next highest, and so on.
+        /// order, starting with display-name order. When priorities differ, the highest-priority
+        /// tier is considered first; lower-priority tiers are considered only when no worker in a
+        /// higher tier is eligible for the work item.
         /// Defaults to 0 (lowest/equal priority).
         /// </summary>
         [BsonElement("workItemAssignmentPriority")]

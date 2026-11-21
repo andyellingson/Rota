@@ -86,6 +86,48 @@
     </div>
 
     <div class="faq-section">
+        <h5 class="faq-section-title">⚙️ Automatic Work Item Assignment (Managers)</h5>
+
+        <div class="faq-item">
+            <div class="faq-question">How does automatic assignment work?</div>
+            <div class="faq-answer">
+                When you run auto-assign from the Calendar, ScheduleMeister processes only unassigned WorkItems in the selected date range or selected days. It groups them by date and required team member type, orders groups by date and earliest start time, and considers WorkItems within each group by start time:
+                <ol>
+                    <li>It checks the WorkItem's required team member type against the linked team's workers' primary types.</li>
+                    <li>For each WorkItem, it considers matching workers in priority order and assigns it to the first worker who passes the applicable availability, absence, hours, and scheduling checks.</li>
+                    <li>After each assignment, it updates that worker's hours and schedule before considering the next WorkItem.</li>
+                    <li>If additional-role coverage is enabled, it makes another pass over WorkItems still unassigned, using workers qualified for the required type as an additional role.</li>
+                </ol>
+                WorkItems that have no eligible worker are left unassigned; auto-assign does not change WorkItems that already have an assignee.
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">How are workers prioritized?</div>
+            <div class="faq-answer">Workers with a higher <strong>Work Item Assignment Priority</strong> are considered before lower-priority workers. Workers at the same priority are assigned WorkItems in round-robin order: the starting order is based on display name, then the order rotates after each successful assignment. If a worker is not eligible for a WorkItem, the next worker in that priority group is tried. Lower-priority workers are considered only when no worker in the higher-priority group is eligible. Managers can set each worker's priority from the worker details on the <strong>Manage</strong> page.</div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">What makes a worker eligible for a WorkItem?</div>
+            <div class="faq-answer">
+                The worker must have a matching primary team member type, or be qualified for that type through additional-role coverage. The <strong>Auto Assign Settings</strong> on the <strong>Manage</strong> page control these checks:
+                <ul>
+                    <li><strong>Availability:</strong> By default, the entire WorkItem must fit within one of the worker's saved availability windows for that day.</li>
+                    <li><strong>Approved absences:</strong> By default, an approved absence that overlaps any part of the WorkItem blocks assignment. Pending or denied absences do not block it.</li>
+                    <li><strong>Weekly hours:</strong> By default, the worker's existing assigned hours and new assignments are counted against their maximum for a Sunday-to-Saturday week. A maximum of 0 means no weekly cap.</li>
+                    <li><strong>WorkItems per day:</strong> By default, a worker can receive at most one WorkItem per day. Turn on <strong>Allow multiple work items per worker per day</strong> to allow more; WorkItems that overlap in time are always blocked.</li>
+                </ul>
+                Managers can turn off the availability, approved-absence, or weekly-hours checks in Auto Assign Settings. The no-overlapping-WorkItems check always applies.
+            </div>
+        </div>
+
+        <div class="faq-item">
+            <div class="faq-question">How does additional-role coverage work?</div>
+            <div class="faq-answer">A manager can give a worker additional qualified team member types from that worker's details on the <strong>Manage</strong> page. Additional-role coverage is enabled by default and, by default, is used only after workers with the required type as their primary type have been considered. Turn off <strong>Run additional qualified-role coverage only after primary-role assignment</strong> to include additional-role workers when retrying any WorkItems still unassigned after the primary-role pass. Priority and eligibility rules still apply.</div>
+        </div>
+    </div>
+
+    <div class="faq-section">
         <h5 class="faq-section-title">🕐 Work items</h5>
 
         <div class="faq-item">

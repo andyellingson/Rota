@@ -177,10 +177,10 @@ namespace Rota.Services
             var assignedThisRun = new Dictionary<string, (int Count, double Hours)>(StringComparer.OrdinalIgnoreCase);
             var uncappedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var newlyAssignedWorkItemIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var lastAssignedByTypeAndPriority = new Dictionary<(string WorkerType, int Priority), string>();
             int assignedCount = 0;
 
-            // Assign in day + team-member-type batches so multiple work items for the same type/day
-            // are distributed by descending priority.
+            // Assign in day + team-member-type batches, preserving round-robin state by type and priority.
             var groupedUnassigned = unassigned
                 .GroupBy(s => new
                 {
@@ -202,9 +202,14 @@ namespace Rota.Services
                         continue;
                     }
 
-                    var orderedCandidates = candidates
-                        .OrderByDescending(c => c.WorkItemAssignmentPriority)
-                        .ThenBy(c => c.DisplayName ?? c.Username ?? c.Id)
+                    var candidatesByPriority = candidates
+                        .GroupBy(c => c.WorkItemAssignmentPriority)
+                        .OrderByDescending(g => g.Key)
+                        .Select(g => g
+                            .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
+                            .ThenBy(c => c.Username, StringComparer.OrdinalIgnoreCase)
+                            .ThenBy(c => c.Id, StringComparer.OrdinalIgnoreCase)
+                            .ToList())
                         .ToList();
 
                     foreach (var WorkItem in group.OrderBy(s => s.Start))
@@ -220,55 +225,78 @@ namespace Rota.Services
 
                         string? chosenId = null;
                         bool chosenFromAdditionalQualifiedType = false;
-                        foreach (var candidate in orderedCandidates)
+                        foreach (var priorityCandidates in candidatesByPriority)
                         {
-                            if (candidate.Id is null)
+                            var priority = priorityCandidates[0].WorkItemAssignmentPriority;
+                            var rotationKey = (group.Key.WorkerType.Trim().ToUpperInvariant(), priority);
+                            var startIndex = 0;
+                            if (lastAssignedByTypeAndPriority.TryGetValue(rotationKey, out var lastAssignedId))
                             {
-                                continue;
-                            }
-
-                            if (!allowMultiplePerDay
-                                && assignedDaysByUser.TryGetValue(candidate.Id, out var assignedDays)
-                                && assignedDays.Contains(WorkItemDay))
-                            {
-                                continue;
-                            }
-
-                            if (respectAvailability && !IsWorkItemWithinCandidateAvailability(candidate, WorkItem.Start, WorkItem.End))
-                            {
-                                continue;
-                            }
-
-                            if (respectApprovedAbsences
-                                && HasApprovedAbsenceConflict(candidate.Id, WorkItem.Start, WorkItem.End, approvedAbsencesByUser))
-                            {
-                                continue;
-                            }
-
-                            if (respectMaxHours && candidate.MaxHours > 0)
-                            {
-                                weeklyHours.TryGetValue(candidate.Id, out var empMap);
-                                double hoursUsed = 0;
-                                empMap?.TryGetValue(weekKey, out hoursUsed);
-                                if (hoursUsed + WorkItemHours > candidate.MaxHours)
+                                var lastIndex = priorityCandidates.FindIndex(c => c.Id == lastAssignedId);
+                                if (lastIndex >= 0)
                                 {
-                                    continue;
+                                    startIndex = (lastIndex + 1) % priorityCandidates.Count;
                                 }
                             }
 
-                            // Always block overlapping work items for the same employee.
-                            if (HasWorkItemOverlap(candidate.Id, WorkItem.Start, WorkItem.End, assignedTimeRangesByUser))
+                            // Start after the last worker assigned at this priority, skipping anyone ineligible.
+                            for (var offset = 0; offset < priorityCandidates.Count; offset++)
                             {
-                                continue;
+                                var candidate = priorityCandidates[(startIndex + offset) % priorityCandidates.Count];
+                                if (candidate.Id is null)
+                                {
+                                    continue;
+                                }
+
+                                if (!allowMultiplePerDay
+                                    && assignedDaysByUser.TryGetValue(candidate.Id, out var assignedDays)
+                                    && assignedDays.Contains(WorkItemDay))
+                                {
+                                    continue;
+                                }
+
+                                if (respectAvailability && !IsWorkItemWithinCandidateAvailability(candidate, WorkItem.Start, WorkItem.End))
+                                {
+                                    continue;
+                                }
+
+                                if (respectApprovedAbsences
+                                    && HasApprovedAbsenceConflict(candidate.Id, WorkItem.Start, WorkItem.End, approvedAbsencesByUser))
+                                {
+                                    continue;
+                                }
+
+                                if (respectMaxHours && candidate.MaxHours > 0)
+                                {
+                                    weeklyHours.TryGetValue(candidate.Id, out var empMap);
+                                    double hoursUsed = 0;
+                                    empMap?.TryGetValue(weekKey, out hoursUsed);
+                                    if (hoursUsed + WorkItemHours > candidate.MaxHours)
+                                    {
+                                        continue;
+                                    }
+                                }
+
+                                // Always block overlapping work items for the same employee.
+                                if (HasWorkItemOverlap(candidate.Id, WorkItem.Start, WorkItem.End, assignedTimeRangesByUser))
+                                {
+                                    continue;
+                                }
+
+                                chosenId = candidate.Id;
+                                chosenFromAdditionalQualifiedType = isAdditionalCoverageAssignment(candidate, group.Key.WorkerType);
+                                lastAssignedByTypeAndPriority[rotationKey] = candidate.Id;
+                                if (candidate.MaxHours <= 0)
+                                {
+                                    uncappedIds.Add(candidate.Id);
+                                }
+                                break;
                             }
 
-                            chosenId = candidate.Id;
-                            chosenFromAdditionalQualifiedType = isAdditionalCoverageAssignment(candidate, group.Key.WorkerType);
-                            if (candidate.MaxHours <= 0)
+                            if (chosenId is not null)
                             {
-                                uncappedIds.Add(candidate.Id);
+                                break;
                             }
-                            break;
                         }
 
                         if (chosenId is null)

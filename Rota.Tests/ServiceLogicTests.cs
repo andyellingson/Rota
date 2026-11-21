@@ -186,6 +186,53 @@ public class WorkItemAutoAssignServiceTests
     }
 
     [Test]
+    public async Task AutoAssignAsync_RotatesWorkersWithEqualPriority()
+    {
+        var firstWorkItem = CreateWorkItem("first", Monday, "Cook");
+        var secondWorkItem = CreateWorkItem("second", Monday.AddDays(1), "Cook");
+        var thirdWorkItem = CreateWorkItem("third", Monday.AddDays(2), "Cook");
+        var beta = new User
+        {
+            Id = "beta-id",
+            Username = "beta",
+            DisplayName = "Beta",
+            TeamMemberType = "Cook",
+            WorkItemAssignmentPriority = 1,
+            Availability = BuildFullWeekAvailability()
+        };
+        var alpha = new User
+        {
+            Id = "alpha-id",
+            Username = "alpha",
+            DisplayName = "Alpha",
+            TeamMemberType = "Cook",
+            WorkItemAssignmentPriority = 1,
+            Availability = BuildFullWeekAvailability()
+        };
+        var users = new Mock<IUserService>();
+        var absences = new Mock<IAbsencesService>();
+        users.Setup(s => s.GetLinkedUsersForManagerAsync("manager")).ReturnsAsync([beta, alpha]);
+        absences.Setup(s => s.GetAbsencesAsync("manager", null, It.IsAny<DateOnly>(), It.IsAny<DateOnly>()))
+            .ReturnsAsync([]);
+
+        var WorkItems = new Mock<IWorkItemsService>();
+        SetupWorkItemLoads(WorkItems, [firstWorkItem, secondWorkItem, thirdWorkItem], []);
+        var assignedIds = new List<string?>();
+        WorkItems.Setup(s => s.UpdateWorkItemAsync(It.IsAny<string>(), "owner", It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<bool>()))
+            .Callback<string, string, DateTime, DateTime, string?, string?, string, string?, string?, bool>((_, _, _, _, _, _, _, _, assignedId, _) => assignedIds.Add(assignedId))
+            .ReturnsAsync((string id, string username, DateTime start, DateTime end, string? title, string? notes, string workerType, string? color, string? assignedId, bool _) => new WorkItem { Id = id, AssignedToUserId = assignedId });
+        var service = new WorkItemAutoAssignService(WorkItems.Object, users.Object, absences.Object);
+
+        var outcome = await service.AutoAssignAsync("owner", "manager-id", "manager", Monday, Monday.AddDays(2), null, "No work items");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.WorkItemsChanged, Is.True);
+            Assert.That(assignedIds, Is.EqualTo(new[] { "alpha-id", "beta-id", "alpha-id" }));
+        });
+    }
+
+    [Test]
     public async Task AutoAssignAsync_AssignsManagerWhenManagerMatchesWorkItemConstraints()
     {
         var managerWorkItem = CreateWorkItem("manager-work-item", Monday, "Cook", 4);
