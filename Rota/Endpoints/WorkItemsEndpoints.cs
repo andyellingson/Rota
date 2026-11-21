@@ -182,6 +182,56 @@ namespace Rota.Endpoints
                 }
             }).RequireAuthorization();
 
+            app.MapPost("/api/workitems/{id}/cover/request", async (string id, IWorkItemsService WorkItems, IUserService users, Microsoft.AspNetCore.Http.HttpContext context) =>
+            {
+                try
+                {
+                    var username = context.User.Identity?.Name;
+                    if (string.IsNullOrEmpty(username))
+                        return Results.Json(new { ok = false, message = "Unauthorized", code = 401 }, statusCode: 401);
+
+                    var caller = await users.GetByUsernameAsync(username);
+                    if (caller?.Id is null)
+                        return Results.Json(new { ok = false, message = "User profile not found", code = 404 }, statusCode: 404);
+
+                    var result = await WorkItems.RequestCoverAsync(id, caller.Id, caller.TeamCode);
+                    if (!result.Success)
+                        return Results.Json(new { ok = false, message = result.ErrorMessage ?? "Unable to request cover", code = 400 }, statusCode: 400);
+
+                    return Results.Json(new { ok = true, WorkItem = result.WorkItem, code = 200 }, statusCode: 200);
+                }
+                catch (Exception ex)
+                {
+                    app.Logger.LogError(ex, "Unhandled exception in POST /api/workitems/{Id}/cover/request", id);
+                    return Results.Json(new { ok = false, message = "Internal server error", code = 500 }, statusCode: 500);
+                }
+            }).RequireAuthorization();
+
+            app.MapPost("/api/workitems/{id}/cover/pickup", async (string id, IWorkItemsService WorkItems, IUserService users, Microsoft.AspNetCore.Http.HttpContext context) =>
+            {
+                try
+                {
+                    var username = context.User.Identity?.Name;
+                    if (string.IsNullOrEmpty(username))
+                        return Results.Json(new { ok = false, message = "Unauthorized", code = 401 }, statusCode: 401);
+
+                    var caller = await users.GetByUsernameAsync(username);
+                    if (caller?.Id is null)
+                        return Results.Json(new { ok = false, message = "User profile not found", code = 404 }, statusCode: 404);
+
+                    var result = await WorkItems.PickupCoverAsync(id, caller.Id, caller.TeamCode);
+                    if (!result.Success)
+                        return Results.Json(new { ok = false, message = result.ErrorMessage ?? "Unable to pick up cover", code = 400 }, statusCode: 400);
+
+                    return Results.Json(new { ok = true, WorkItem = result.WorkItem, code = 200 }, statusCode: 200);
+                }
+                catch (Exception ex)
+                {
+                    app.Logger.LogError(ex, "Unhandled exception in POST /api/workitems/{Id}/cover/pickup", id);
+                    return Results.Json(new { ok = false, message = "Internal server error", code = 500 }, statusCode: 500);
+                }
+            }).RequireAuthorization();
+
             return app;
         }
     }

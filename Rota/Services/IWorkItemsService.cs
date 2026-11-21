@@ -3,6 +3,11 @@ using Rota.Models;
 namespace Rota.Services
 {
     /// <summary>
+    /// Represents the result of a cover-request action for a work item.
+    /// </summary>
+    public sealed record WorkItemCoverActionResult(bool Success, string? ErrorMessage, WorkItem? WorkItem);
+
+    /// <summary>
     /// Service contract for managing work items and work item templates.
     /// </summary>
     public interface IWorkItemsService
@@ -41,6 +46,21 @@ namespace Rota.Services
         /// Returns the distinct ScheduleIds of every work item the given user is assigned to.
         /// </summary>
         System.Threading.Tasks.Task<List<string>> GetDistinctScheduleIdsForUserAsync(string userId);
+
+        /// <summary>
+        /// Marks a future work item as requesting cover for the current assignee.
+        /// </summary>
+        System.Threading.Tasks.Task<WorkItemCoverActionResult> RequestCoverAsync(string workItemId, string requesterUserId, string? teamCode);
+
+        /// <summary>
+        /// Reassigns a cover-requested future work item to an eligible teammate.
+        /// </summary>
+        System.Threading.Tasks.Task<WorkItemCoverActionResult> PickupCoverAsync(string workItemId, string pickerUserId, string? teamCode);
+
+        /// <summary>
+        /// Clears the cover request on a future work item for the currently assigned team member.
+        /// </summary>
+        System.Threading.Tasks.Task<WorkItemCoverActionResult> CancelCoverAsync(string workItemId, string requesterUserId, string? teamCode);
 
         /// <summary>
         /// Gets all template work items for a specific Work Item Template ID.

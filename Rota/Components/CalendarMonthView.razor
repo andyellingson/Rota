@@ -5,7 +5,7 @@
     <div class="calendar-header-tools mb-2">
         <div class="calendar-header-left"></div>
         <div class="calendar-header-center">
-            <strong class="calendar-title">@Current.ToString("MMMM yyyy", CultureInfo.CurrentCulture)</strong>
+            <strong class="calendar-title">@MonthTitle</strong>
         </div>
         <div class="calendar-header-actions">
             <div class="btn-group" role="group" aria-label="View mode">
@@ -90,6 +90,12 @@
             return format.AbbreviatedDayNames.Skip(first).Concat(format.AbbreviatedDayNames.Take(first)).ToArray();
         }
     }
+
+    /// <summary>
+    /// Upper-cased month title rendered in the calendar header.
+    /// </summary>
+    private string MonthTitle =>
+        Current.ToString("MMMM yyyy", CultureInfo.CurrentCulture).ToUpper(CultureInfo.CurrentCulture);
 
     /// <summary>
     /// Returns the 42 days (six weeks) shown for the month, starting on the first day of the

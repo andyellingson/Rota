@@ -148,7 +148,112 @@ public class MongoWorkItemsServiceTests
         Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteWorkItemTemplateWorkItemsAsync("rotation", "manager"));
     }
 
-    private static MongoWorkItemsService CreateService(Mock<IMongoCollection<WorkItem>> collection) => new(collection.Object, Mock.Of<ILogger<MongoWorkItemsService>>());
+    [Test]
+    public async Task PickupCoverAsync_ReturnsFailureWhenUserServiceUnavailable()
+    {
+        var collection = new Mock<IMongoCollection<WorkItem>>();
+        var service = CreateService(collection, null);
+
+        var result = await service.PickupCoverAsync("507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012", "team-1");
+
+        Assert.That(result.Success, Is.False);
+        Assert.That(result.ErrorMessage, Is.EqualTo("User service is unavailable."));
+    }
+
+    [Test]
+    public async Task PickupCoverAsync_ReturnsFailureWhenWorkItemNotFound()
+    {
+        var collection = new Mock<IMongoCollection<WorkItem>>();
+        collection.Setup(c => c.FindAsync(It.IsAny<FilterDefinition<WorkItem>>(), It.IsAny<FindOptions<WorkItem, WorkItem>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateCursor());
+
+        var users = new Mock<IUserService>();
+        var service = CreateService(collection, users.Object);
+
+        var result = await service.PickupCoverAsync("507f1f77bcf86cd799439021", "507f1f77bcf86cd799439022", "team-2");
+
+        Assert.That(result.Success, Is.False);
+        Assert.That(result.ErrorMessage, Is.EqualTo("Work item was not found."));
+        users.Verify(u => u.GetLinkedUsersForManagerAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Test]
+    public async Task CancelCoverAsync_ClearsCoverFlagsForAssignedRequester()
+    {
+        var requesterId = "507f1f77bcf86cd799439032";
+        var workItem = new WorkItem
+        {
+            Id = "507f1f77bcf86cd799439031",
+            TeamCode = "team-3",
+            Start = DateTime.UtcNow.AddHours(6),
+            End = DateTime.UtcNow.AddHours(14),
+            CoverRequested = true,
+            AssignedToUserId = requesterId,
+            CoverRequestedByUserId = requesterId,
+            CoverRequestedAt = DateTime.UtcNow.AddHours(-1)
+        };
+
+        var updated = new WorkItem
+        {
+            Id = workItem.Id,
+            TeamCode = workItem.TeamCode,
+            Start = workItem.Start,
+            End = workItem.End,
+            AssignedToUserId = requesterId,
+            CoverRequested = false,
+            CoverRequestedByUserId = null,
+            CoverRequestedAt = null
+        };
+
+        var collection = new Mock<IMongoCollection<WorkItem>>();
+        var cursors = new Queue<IAsyncCursor<WorkItem>>();
+        cursors.Enqueue(CreateCursor(workItem)); // initial work item lookup
+        collection.Setup(c => c.FindAsync(It.IsAny<FilterDefinition<WorkItem>>(), It.IsAny<FindOptions<WorkItem, WorkItem>>(), It.IsAny<CancellationToken>()))
+            .Returns(() => Task.FromResult(cursors.Dequeue()));
+        collection.Setup(c => c.FindOneAndUpdateAsync(
+                It.IsAny<FilterDefinition<WorkItem>>(),
+                It.IsAny<UpdateDefinition<WorkItem>>(),
+                It.IsAny<FindOneAndUpdateOptions<WorkItem, WorkItem>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updated);
+
+        var service = CreateService(collection);
+
+        var result = await service.CancelCoverAsync(workItem.Id!, requesterId, "team-3");
+
+        Assert.That(result.Success, Is.True);
+        Assert.That(result.WorkItem, Is.Not.Null);
+        Assert.That(result.WorkItem!.CoverRequested, Is.False);
+        Assert.That(result.WorkItem.CoverRequestedByUserId, Is.Null);
+        Assert.That(result.WorkItem.CoverRequestedAt, Is.Null);
+    }
+
+    private static MongoWorkItemsService CreateService(Mock<IMongoCollection<WorkItem>> collection, IUserService? userService = null)
+        => new(collection.Object, Mock.Of<ILogger<MongoWorkItemsService>>(), userService);
+
+    private static IAsyncCursor<WorkItem> CreateCursor(params WorkItem[] items)
+    {
+        var cursor = new Mock<IAsyncCursor<WorkItem>>();
+        cursor.SetupSequence(c => c.MoveNext(It.IsAny<CancellationToken>())).Returns(true).Returns(false);
+        cursor.SetupSequence(c => c.MoveNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true).ReturnsAsync(false);
+        cursor.SetupGet(c => c.Current).Returns(items);
+        return cursor.Object;
+    }
+
+    private static IFindFluent<WorkItem, WorkItem> CreateFindFluent(params WorkItem[] items)
+    {
+        var cursor = new Mock<IAsyncCursor<WorkItem>>();
+        cursor.SetupSequence(c => c.MoveNext(It.IsAny<CancellationToken>())).Returns(true).Returns(false);
+        cursor.SetupSequence(c => c.MoveNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true).ReturnsAsync(false);
+        cursor.SetupGet(c => c.Current).Returns(items);
+
+        var fluent = new Mock<IFindFluent<WorkItem, WorkItem>>();
+        fluent.Setup(f => f.Limit(It.IsAny<int?>())).Returns(fluent.Object);
+        fluent.Setup(f => f.ToCursor(It.IsAny<CancellationToken>())).Returns(cursor.Object);
+        fluent.Setup(f => f.ToCursorAsync(It.IsAny<CancellationToken>())).ReturnsAsync(cursor.Object);
+        return fluent.Object;
+    }
+
     private static BsonDocument Render(FilterDefinition<WorkItem>? filter)
     {
         Assert.That(filter, Is.Not.Null);

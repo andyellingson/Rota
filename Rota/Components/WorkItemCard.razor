@@ -1,9 +1,9 @@
 @using System.Globalization
 @using Rota.Models
 
-<div class="work-item mb-1 @(IsUnassignedFuture ? "work-item--unassigned" : "") @(IsPast ? "item--past" : "") @(IsAssignedFromAdditionalQualifiedType ? "work-item--additional-qualified" : "")"
+<div class="work-item mb-1 @(IsUnassignedFuture ? "work-item--unassigned" : "") @(IsPast ? "item--past" : "") @(IsAssignedFromAdditionalQualifiedType ? "work-item--additional-qualified" : "") @(IsCoverRequested ? "work-item--cover-requested" : "")"
      style="border-left-color: @(WorkItem.Color ?? "#1890ff");"
-     title="@(IsAssignedFromAdditionalQualifiedType ? "Assigned via additional qualified role" : null)"
+     title="@GetWorkItemTitleTooltip()"
      @onclick:stopPropagation="true" @onclick="HandleEdit">
     <div class="work-item-header">
         <div class="work-item-title">@(string.IsNullOrWhiteSpace(WorkItem.Title) ? WorkItem.WorkerType : WorkItem.Title)</div>
@@ -22,9 +22,14 @@
         <div class="work-item-time-inline">@CompactTime(GetDisplayTime(WorkItem.Start)) – @CompactTime(GetDisplayTime(WorkItem.End))</div>
     </div>
 
+    @if (IsCoverRequested)
+    {
+        <div class="work-item-chip work-item-cover-indicator"><span class="work-item-chip-icon">🔁</span><span>Needs Cover</span></div>
+    }
+
     @if (OvertimeHours > 0)
     {
-        <div class="work-item-overtime">⚠ Overtime @FormatOvertimeHours(OvertimeHours)</div>
+        <div class="work-item-chip work-item-overtime"><span class="work-item-chip-icon">⚠</span><span>Overtime @FormatOvertimeHours(OvertimeHours)</span></div>
     }
 </div>
 
@@ -89,6 +94,11 @@
     /// </summary>
     private bool IsAssignedFromAdditionalQualifiedType => WorkItem.AutoAssignedFromAdditionalQualifiedType;
 
+    /// <summary>
+    /// True when the assigned employee has requested coverage for this work item.
+    /// </summary>
+    private bool IsCoverRequested => WorkItem.CoverRequested;
+
     /// <summary>True when the work item is in the future and has no assigned user, visible only to managers (OnEdit delegate present).</summary>
     private bool IsUnassignedFuture =>
         !UseWallClockTime &&
@@ -98,6 +108,25 @@
 
     private Task HandleEdit()
         => OnEdit.HasDelegate ? OnEdit.InvokeAsync(WorkItem) : Task.CompletedTask;
+
+    /// <summary>
+    /// Builds the card tooltip text, including optional assignment metadata.
+    /// </summary>
+    private string? GetWorkItemTitleTooltip()
+    {
+        var tooltips = new List<string>();
+        if (IsAssignedFromAdditionalQualifiedType)
+        {
+            tooltips.Add("Assigned via additional qualified role");
+        }
+
+        if (IsCoverRequested)
+        {
+            tooltips.Add("Cover requested");
+        }
+
+        return tooltips.Count == 0 ? null : string.Join(" • ", tooltips);
+    }
 
     private DateTime GetDisplayTime(DateTime time)
     {

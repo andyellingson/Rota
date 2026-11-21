@@ -51,7 +51,11 @@
                     <div class="mt-2 events events-overlay">
                         @DayContent(d)
                     </div>
-                    <button class="btn btn-sm btn-outline-secondary w-100 mt-1" @onclick:stopPropagation="true" @onclick="() => OnAddClick.InvokeAsync(capturedDay)">+ Add</button>
+                    @if (CanManageWorkItems)
+                    {
+                        <button class="btn btn-sm btn-primary w-100 mt-1" @onclick:stopPropagation="true" @onclick="() => OnAddWorkItemClick.InvokeAsync(capturedDay)">+ Add Work Item</button>
+                    }
+                    <button class="btn btn-sm btn-outline-secondary w-100 mt-1" @onclick:stopPropagation="true" @onclick="() => OnAddClick.InvokeAsync(capturedDay)">+ Add Reminder</button>
                 </div>
             </div>
         }
@@ -71,8 +75,14 @@
     /// <summary>Raised when a day card is clicked.</summary>
     [Parameter] public EventCallback<DateOnly> OnDayClick { get; set; }
 
-    /// <summary>Raised when the "+ Add" button of a day is clicked.</summary>
+    /// <summary>Raised when the "+ Add Work Item" button of a day is clicked.</summary>
+    [Parameter] public EventCallback<DateOnly> OnAddWorkItemClick { get; set; }
+
+    /// <summary>Raised when the "+ Add Reminder" button of a day is clicked.</summary>
     [Parameter] public EventCallback<DateOnly> OnAddClick { get; set; }
+
+    /// <summary>True when the current user can create and manage work items.</summary>
+    [Parameter] public bool CanManageWorkItems { get; set; }
 
     /// <summary>Raised when the user clicks previous in the header.</summary>
     [Parameter] public EventCallback OnPrev { get; set; }

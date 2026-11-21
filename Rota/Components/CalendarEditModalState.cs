@@ -164,6 +164,26 @@ namespace Rota.Components
         public string EditWorkItemAssignedTo { get; set; } = string.Empty;
 
         /// <summary>
+        /// Gets or sets a value indicating whether the current user can request cover for the editing work item.
+        /// </summary>
+        public bool CanRequestWorkItemCover { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the current user can pick up the editing work item as cover.
+        /// </summary>
+        public bool CanPickupWorkItemCover { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the current user can cancel a previously requested cover.
+        /// </summary>
+        public bool CanCancelWorkItemCover { get; set; }
+
+        /// <summary>
+        /// Gets or sets the cover status message shown in the work item editor.
+        /// </summary>
+        public string? WorkItemCoverStatus { get; set; }
+
+        /// <summary>
         /// Gets or sets the start time for a new work item.
         /// </summary>
         public TimeOnly NewWorkItemstartTime { get; set; } = new(9, 0);

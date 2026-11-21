@@ -77,60 +77,135 @@
     background-color: rgba(0,0,0,0.5);
 }
 
-.modal-content {
+.calendar-edit-modal-dialog .modal-content {
     background: var(--color-bg-card);
     border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
     color: var(--color-text-primary);
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.26);
+    overflow: hidden;
 }
 
-.modal-header,
-.modal-body,
-.modal-footer {
+.calendar-edit-modal-dialog .modal-header,
+.calendar-edit-modal-dialog .modal-body,
+.calendar-edit-modal-dialog .modal-footer {
     padding-left: 1.25rem;
     padding-right: 1.25rem;
 }
 
-.modal-header,
-.modal-footer {
+.calendar-edit-modal-dialog .modal-header,
+.calendar-edit-modal-dialog .modal-footer {
     padding-top: 0.85rem;
     padding-bottom: 0.85rem;
 }
 
-.modal-body {
+.calendar-edit-modal-dialog .modal-header {
+    background: color-mix(in srgb, var(--color-bg-card) 86%, var(--color-border) 14%);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.calendar-edit-modal-dialog .modal-title {
+    font-weight: 650;
+    letter-spacing: 0.01em;
+}
+
+.calendar-edit-modal-dialog .btn-close {
+    opacity: 0.72;
+}
+
+.calendar-edit-modal-dialog .btn-close:hover {
+    opacity: 1;
+}
+
+.calendar-edit-modal-dialog .modal-footer {
+    background: color-mix(in srgb, var(--color-bg-card) 90%, var(--color-border) 10%);
+    border-top: 1px solid var(--color-border);
+    gap: 0.5rem;
+}
+
+.calendar-edit-modal-dialog .modal-body {
     padding-top: 1rem;
     padding-bottom: 1rem;
 }
 
-.modal-body .alert {
-    margin-bottom: 0.85rem;
-}
-
-.modal-body .mb-3 {
+.calendar-edit-modal-dialog .modal-body .mb-3 {
     margin-bottom: 0.85rem !important;
 }
 
-.modal-body .form-control,
-.modal-body .form-select {
+.calendar-edit-modal-dialog .modal-body .form-control,
+.calendar-edit-modal-dialog .modal-body .form-select {
     min-height: calc(2.35rem + 2px);
     padding-top: 0.42rem;
     padding-bottom: 0.42rem;
 }
 
-.modal-footer {
-    gap: 0.5rem;
+.calendar-edit-cover-status {
+    border-radius: 0.4rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 62%, #f59e0b 38%);
+    background: color-mix(in srgb, var(--color-bg-card) 74%, #f59e0b 26%);
+    color: var(--color-text-primary);
+    font-weight: 600;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+
+.calendar-edit-readonly-grid {
+    border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+    border-radius: 0.6rem;
+    background: color-mix(in srgb, var(--color-bg-card) 92%, var(--color-border) 8%);
+    padding: 0.9rem;
+}
+
+.calendar-edit-readonly-grid .form-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-text-medium);
+    margin-bottom: 0.25rem;
+}
+
+.calendar-edit-readonly-value {
+    margin-bottom: 0;
+    padding: 0.35rem 0.55rem;
+    border-radius: 0.4rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+    background: color-mix(in srgb, var(--color-bg-card) 82%, var(--color-border) 18%);
+    color: var(--color-text-primary);
+    font-weight: 500;
+    min-height: 2rem;
+    display: flex;
+    align-items: center;
 }
 
 [data-theme="dark"] .modal .form-control-plaintext,
 [data-theme="dark"] .modal .form-label,
 [data-theme="dark"] .modal .form-control,
 [data-theme="dark"] .modal .form-select,
-[data-theme="dark"] .modal .form-check-label,
-[data-theme="dark"] .modal .btn {
+[data-theme="dark"] .modal .form-check-label {
     color: var(--color-text-medium) !important;
 }
 
 [data-theme="dark"] .modal .form-control-plaintext {
     color: var(--color-text-primary) !important;
+}
+
+.calendar-edit-modal-dialog .btn-warning {
+    color: #2b1f05 !important;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+}
+
+.calendar-edit-modal-dialog .btn-warning:hover,
+.calendar-edit-modal-dialog .btn-warning:focus-visible {
+    filter: brightness(0.98);
+}
+
+.calendar-edit-modal-dialog .btn-outline-warning {
+    font-weight: 600;
+}
+
+:global([data-bs-theme="dark"]) .calendar-edit-modal-dialog .btn-warning,
+:global([data-theme="dark"]) .calendar-edit-modal-dialog .btn-warning {
+    color: #2b1f05 !important;
 }
 
 @media (max-width: 767.98px) {

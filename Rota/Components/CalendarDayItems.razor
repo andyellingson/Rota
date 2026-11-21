@@ -10,7 +10,7 @@
                    AssignedToFirstName="@GetFirstName(s.AssignedToUserId)"
                    AssignedToLastName="@GetLastName(s.AssignedToUserId)"
                    OvertimeHours="@GetOvertimeHours(s)"
-                   OnEdit="@(CanManageWorkItems ? OnEditWorkItem : default)" />
+                   OnEdit="@(CanOpenWorkItems ? OnEditWorkItem : default)" />
     }
     else if (item.Absence is { } ab)
     {
@@ -29,7 +29,10 @@
     /// <summary>Items to render, already sorted.</summary>
     [Parameter, EditorRequired] public List<CalendarDayItem> Items { get; set; } = new();
 
-    /// <summary>work items are only editable (clickable) for managers.</summary>
+    /// <summary>Determines whether work items should open a details/editor dialog when clicked.</summary>
+    [Parameter] public bool CanOpenWorkItems { get; set; }
+
+    /// <summary>Indicates manager permissions for absence presentation logic.</summary>
     [Parameter] public bool CanManageWorkItems { get; set; }
 
     [Parameter, EditorRequired] public Func<string?, string> GetDisplayName { get; set; } = default!;

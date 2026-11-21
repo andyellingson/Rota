@@ -48,9 +48,9 @@
                             : $"{WorkItemDuration.Minutes}m";
 
                         <div class="day-detail-work-item-card" style="border-left-color: @(ds.Color ?? "#1890ff");"
-                             @onclick="() => { if (CanManageWorkItems) OnEditWorkItem.InvokeAsync(ds); }"
-                             role="@(CanManageWorkItems ? "button" : "")"
-                             title="@(CanManageWorkItems ? "Click to edit" : "")">
+                             @onclick="() => { if (CanOpenWorkItems) OnEditWorkItem.InvokeAsync(ds); }"
+                             role="@(CanOpenWorkItems ? "button" : "")"
+                             title="@(CanOpenWorkItems ? "Open details" : "")">
                             <div class="day-detail-card-header day-detail-work-item-header">
                                 <span class="day-detail-work-item-title">@(string.IsNullOrWhiteSpace(ds.Title) ? ds.WorkerType : ds.Title)</span>
                                 <span class="day-detail-worker-badge" style="color: @(ds.Color ?? "#1890ff"); background-color: @(ds.Color ?? "#1890ff")1a;">
@@ -68,9 +68,9 @@
                                 }
                                 <div class="d-flex align-items-center gap-2 ms-auto">
                                     <span class="day-detail-time-badge">@FormatWorkItemTime(ds.Start) – @FormatWorkItemTime(ds.End)</span>
-                                    @if (CanManageWorkItems)
+                                    @if (CanOpenWorkItems)
                                     {
-                                        <span class="day-detail-edit-hint">Edit ›</span>
+                                        <span class="day-detail-edit-hint">Open ›</span>
                                     }
                                 </div>
                             </div>
@@ -194,8 +194,11 @@
     [Parameter] public List<Absence> Absences { get; set; } = new();
     [Parameter] public List<Reminder> Reminders { get; set; } = new();
 
-    /// <summary>True when the user may edit work items.</summary>
+    /// <summary>True when manager-level work item actions are available.</summary>
     [Parameter] public bool CanManageWorkItems { get; set; }
+
+    /// <summary>True when work item cards should open details for the current user.</summary>
+    [Parameter] public bool CanOpenWorkItems { get; set; }
 
     [Parameter, EditorRequired] public Func<string?, string> GetDisplayName { get; set; } = default!;
     [Parameter] public EventCallback OnClose { get; set; }

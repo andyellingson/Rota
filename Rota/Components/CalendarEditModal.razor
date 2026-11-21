@@ -181,52 +181,89 @@
                         }
                         else
                         {
-                            <div class="compact-editor-grid compact-editor-grid--work-item">
-                                <div class="compact-editor-field compact-editor-field--span-2">
-                                    <label class="form-label">WorkItem title (optional)</label>
-                                    <input class="form-control" @bind="State.EditWorkItemTitle" placeholder="Enter work item title" />
-                                </div>
-                                <div class="compact-editor-field">
-                                    <label class="form-label">Start time</label>
-                                    <input type="time" class="form-control" @bind="State.EditWorkItemstartTime" />
-                                </div>
-                                <div class="compact-editor-field">
-                                    <label class="form-label">End time</label>
-                                    <input type="time" class="form-control" @bind="State.EditWorkItemEndTime" />
-                                </div>
-                                <div class="compact-editor-field">
-                                    <label class="form-label">Team member type</label>
-                                    <select class="form-select" @bind="State.EditWorkItemWorkerType">
-                                        @foreach (var workerType in WorkerTypes)
-                                        {
-                                            <option value="@workerType">@workerType</option>
-                                        }
-                                    </select>
-                                </div>
-                                <div class="compact-editor-field">
-                                    <label class="form-label">Assign to team member</label>
-                                    <select class="form-select" @bind="State.EditWorkItemAssignedTo">
-                                        <option value="">— Unassigned —</option>
-                                        @foreach (var employee in Employees)
-                                        {
-                                            <option value="@employee.Id">@(employee.DisplayName ?? employee.Username) (@employee.TeamMemberType)</option>
-                                        }
-                                    </select>
-                                </div>
-                                <div class="compact-editor-field compact-editor-field--span-2">
-                                    <label class="form-label">Color</label>
-                                    <div class="color-swatch-container">
-                                        @foreach (var color in ColorChoices)
-                                        {
-                                            <button type="button" class="color-swatch @(color == State.EditWorkItemColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.EditWorkItemColor = color)" aria-label=$"Select color {color}"></button>
-                                        }
+                            @if (!string.IsNullOrWhiteSpace(WorkItemCoverStatus))
+                            {
+                                <div class="calendar-edit-cover-status py-2 mb-3">@WorkItemCoverStatus</div>
+                            }
+
+                            @if (CanEditWorkItem)
+                            {
+                                <div class="compact-editor-grid compact-editor-grid--work-item">
+                                    <div class="compact-editor-field compact-editor-field--span-2">
+                                        <label class="form-label">WorkItem title (optional)</label>
+                                        <input class="form-control" @bind="State.EditWorkItemTitle" placeholder="Enter work item title" />
+                                    </div>
+                                    <div class="compact-editor-field">
+                                        <label class="form-label">Start time</label>
+                                        <input type="time" class="form-control" @bind="State.EditWorkItemstartTime" />
+                                    </div>
+                                    <div class="compact-editor-field">
+                                        <label class="form-label">End time</label>
+                                        <input type="time" class="form-control" @bind="State.EditWorkItemEndTime" />
+                                    </div>
+                                    <div class="compact-editor-field">
+                                        <label class="form-label">Team member type</label>
+                                        <select class="form-select" @bind="State.EditWorkItemWorkerType">
+                                            @foreach (var workerType in WorkerTypes)
+                                            {
+                                                <option value="@workerType">@workerType</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="compact-editor-field">
+                                        <label class="form-label">Assign to team member</label>
+                                        <select class="form-select" @bind="State.EditWorkItemAssignedTo">
+                                            <option value="">— Unassigned —</option>
+                                            @foreach (var employee in Employees)
+                                            {
+                                                <option value="@employee.Id">@(employee.DisplayName ?? employee.Username) (@employee.TeamMemberType)</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="compact-editor-field compact-editor-field--span-2">
+                                        <label class="form-label">Color</label>
+                                        <div class="color-swatch-container">
+                                            @foreach (var color in ColorChoices)
+                                            {
+                                                <button type="button" class="color-swatch @(color == State.EditWorkItemColor ? "selected" : "")" style="background-color: @color;" @onclick="(() => State.EditWorkItemColor = color)" aria-label=$"Select color {color}"></button>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="compact-editor-field compact-editor-field--span-2">
+                                        <label class="form-label">Notes (optional)</label>
+                                        <textarea class="form-control compact-editor-notes" rows="2" @bind="State.EditWorkItemNotes" placeholder="Add additional notes"></textarea>
                                     </div>
                                 </div>
-                                <div class="compact-editor-field compact-editor-field--span-2">
-                                    <label class="form-label">Notes (optional)</label>
-                                    <textarea class="form-control compact-editor-notes" rows="2" @bind="State.EditWorkItemNotes" placeholder="Add additional notes"></textarea>
+                            }
+                            else
+                            {
+                                <div class="compact-editor-grid compact-editor-grid--work-item calendar-edit-readonly-grid">
+                                    <div class="compact-editor-field compact-editor-field--span-2">
+                                        <label class="form-label">Work item title</label>
+                                        <p class="form-control-plaintext calendar-edit-readonly-value">@(string.IsNullOrWhiteSpace(State.EditWorkItemTitle) ? "(No title)" : State.EditWorkItemTitle)</p>
+                                    </div>
+                                    <div class="compact-editor-field">
+                                        <label class="form-label">Start time</label>
+                                        <p class="form-control-plaintext calendar-edit-readonly-value">@State.EditWorkItemstartTime.ToString("t", CultureInfo.CurrentCulture)</p>
+                                    </div>
+                                    <div class="compact-editor-field">
+                                        <label class="form-label">End time</label>
+                                        <p class="form-control-plaintext calendar-edit-readonly-value">@State.EditWorkItemEndTime.ToString("t", CultureInfo.CurrentCulture)</p>
+                                    </div>
+                                    <div class="compact-editor-field">
+                                        <label class="form-label">Team member type</label>
+                                        <p class="form-control-plaintext calendar-edit-readonly-value">@State.EditWorkItemWorkerType</p>
+                                    </div>
+                                    <div class="compact-editor-field">
+                                        <label class="form-label">Assigned to</label>
+                                        <p class="form-control-plaintext calendar-edit-readonly-value">@GetAssignedEmployeeLabel(State.EditWorkItemAssignedTo)</p>
+                                    </div>
+                                    <div class="compact-editor-field compact-editor-field--span-2">
+                                        <label class="form-label">Notes</label>
+                                        <p class="form-control-plaintext calendar-edit-readonly-value">@(string.IsNullOrWhiteSpace(State.EditWorkItemNotes) ? "(No notes)" : State.EditWorkItemNotes)</p>
+                                    </div>
                                 </div>
-                            </div>
+                            }
                         }
                     }
                     else if (State.ModalMode == ModalMode.Absence)
@@ -461,6 +498,25 @@
                             <button type="button" class="btn btn-secondary" @onclick="OnClose" disabled="@State.IsBusy">Cancel</button>
                             <button type="button" class="btn btn-primary" @onclick="OnSaveWorkItem" disabled="@State.IsBusy">Create work item</button>
                         }
+                        else if (!CanEditWorkItem)
+                        {
+                            <button type="button" class="btn btn-secondary me-auto" @onclick="OnClose" disabled="@State.IsBusy">Close</button>
+                            @if (CanCancelWorkItemCover)
+                            {
+                                <button type="button" class="btn btn-outline-warning" @onclick="OnCancelWorkItemCover" disabled="@State.IsBusy">Cancel Needs Cover</button>
+                            }
+                            @if (CanRequestWorkItemCover)
+                            {
+                                <button type="button" class="btn btn-warning"
+                                        title="Mark this shift as needing coverage from another qualified team member."
+                                        aria-label="Request cover for this work item"
+                                        @onclick="OnRequestWorkItemCover" disabled="@State.IsBusy">Request Cover</button>
+                            }
+                            @if (CanPickupWorkItemCover)
+                            {
+                                <button type="button" class="btn btn-success" @onclick="OnPickupWorkItemCover" disabled="@State.IsBusy">Pick Up Shift</button>
+                            }
+                        }
                         else if (State.EditingWorkItem.SeriesId is not null)
                         {
                             <button type="button" class="btn btn-danger me-2" @onclick="OnDeleteWorkItemseries" disabled="@State.IsBusy">Delete Series</button>
@@ -514,6 +570,36 @@
     public bool CanManageWorkItems { get; set; }
 
     /// <summary>
+    /// True when the current user can edit work item fields (manager/admin behavior).
+    /// </summary>
+    [Parameter]
+    public bool CanEditWorkItem { get; set; } = true;
+
+    /// <summary>
+    /// True when the current user can request cover for the opened work item.
+    /// </summary>
+    [Parameter]
+    public bool CanRequestWorkItemCover { get; set; }
+
+    /// <summary>
+    /// True when the current user can pick up the opened work item as cover.
+    /// </summary>
+    [Parameter]
+    public bool CanPickupWorkItemCover { get; set; }
+
+    /// <summary>
+    /// True when the current user can cancel their existing cover request.
+    /// </summary>
+    [Parameter]
+    public bool CanCancelWorkItemCover { get; set; }
+
+    /// <summary>
+    /// Optional status message describing current cover-request state.
+    /// </summary>
+    [Parameter]
+    public string? WorkItemCoverStatus { get; set; }
+
+    /// <summary>
     /// False when the current user may only view the absence being opened (read-only dialog).
     /// </summary>
     [Parameter]
@@ -553,6 +639,15 @@
     public EventCallback OnDeleteWorkItemseries { get; set; }
 
     [Parameter]
+    public EventCallback OnRequestWorkItemCover { get; set; }
+
+    [Parameter]
+    public EventCallback OnPickupWorkItemCover { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancelWorkItemCover { get; set; }
+
+    [Parameter]
     public EventCallback OnSaveAbsence { get; set; }
 
     [Parameter]
@@ -564,6 +659,27 @@
     private static string GetLinkedUserLabel(User user)
     {
         return user.DisplayName ?? user.Username;
+    }
+
+    /// <summary>
+    /// Resolves the display label for an assigned employee id.
+    /// </summary>
+    private string GetAssignedEmployeeLabel(string? userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return "Unassigned";
+        }
+
+        var matched = Employees.FirstOrDefault(e => string.Equals(e.Id, userId, StringComparison.OrdinalIgnoreCase))
+            ?? LinkedUsers.FirstOrDefault(u => string.Equals(u.Id, userId, StringComparison.OrdinalIgnoreCase));
+
+        if (matched is null)
+        {
+            return userId;
+        }
+
+        return matched.DisplayName ?? matched.Username;
     }
 
     private string GetModalTitle()

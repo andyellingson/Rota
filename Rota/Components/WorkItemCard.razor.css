@@ -86,6 +86,13 @@
     box-shadow: inset -1px 0 0 rgba(124, 58, 237, 0.25);
 }
 
+/* Cover-requested work items get a warm highlight so teammates can quickly spot open coverage needs. */
+.work-item--cover-requested {
+    border-left-color: #f59e0b !important;
+    background: rgba(245, 158, 11, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.3);
+}
+
 @keyframes work-item-unassigned-pulse {
     0%, 100% { box-shadow: none; }
     50% { box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.25); }
@@ -122,23 +129,71 @@
     max-width: 100%;
 }
 
-/* Overtime warning badge — amber/orange to draw attention without alarming red */
-.work-item-overtime {
-    font-size: 0.65rem;
+/* Shared chip style used for status indicators (cover request + overtime). */
+.work-item-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    width: fit-content;
+    max-width: 100%;
+    margin-top: 0.18rem;
+    padding: 0.08rem 0.38rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 0.63rem;
+    line-height: 1.2;
     font-weight: 700;
-    color: #b45309;
-    background: rgba(245, 158, 11, 0.15);
-    border-radius: 3px;
-    padding: 0.05rem 0.3rem;
-    margin-top: 0.15rem;
+    letter-spacing: 0.01em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 100%;
 }
 
-:global([data-bs-theme="dark"]) .work-item-overtime,
-:root[data-theme="dark"] .work-item-overtime {
-    color: #fbbf24;
-    background: rgba(245, 158, 11, 0.2);
+.work-item-chip-icon {
+    font-size: 0.62rem;
+    line-height: 1;
+    opacity: 0.95;
+}
+
+/* Theme-aware variables for status chips so light/dark contrast remains readable. */
+:global(:root) {
+    --work-item-cover-chip-text: #7c2d12;
+    --work-item-cover-chip-bg: rgba(245, 158, 11, 0.34);
+    --work-item-cover-chip-border: rgba(251, 191, 36, 0.62);
+
+    --work-item-overtime-chip-text: #78350f;
+    --work-item-overtime-chip-bg: rgba(217, 119, 6, 0.34);
+    --work-item-overtime-chip-border: rgba(251, 191, 36, 0.62);
+}
+
+:global([data-bs-theme="dark"]),
+:global([data-theme="dark"]),
+:global(html[data-theme="dark"]),
+:global(body[data-theme="dark"]) {
+    --work-item-cover-chip-text: #fff7d6;
+    --work-item-cover-chip-bg: rgba(245, 158, 11, 0.4);
+    --work-item-cover-chip-border: rgba(252, 211, 77, 0.7);
+
+    --work-item-overtime-chip-text: #fff8db;
+    --work-item-overtime-chip-bg: rgba(217, 119, 6, 0.42);
+    --work-item-overtime-chip-border: rgba(252, 211, 77, 0.72);
+}
+
+/* Cover request indicator badge shown on cards that are actively seeking coverage. */
+.work-item-cover-indicator {
+    color: var(--work-item-cover-chip-text);
+    background: var(--work-item-cover-chip-bg);
+    border-color: var(--work-item-cover-chip-border);
+}
+
+/* Overtime warning badge — amber/orange to draw attention without alarming red */
+.work-item-overtime {
+    color: var(--work-item-overtime-chip-text);
+    background: var(--work-item-overtime-chip-bg);
+    border-color: var(--work-item-overtime-chip-border);
+}
+
+/* Keep status chips readable on dimmed past cards. */
+.item--past .work-item-chip {
+    opacity: 0.96;
 }

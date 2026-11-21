@@ -62,6 +62,26 @@ namespace Rota.Models
         public string? AssignedToUserId { get; set; }
 
         /// <summary>
+        /// True when the assigned employee has requested a teammate to cover this work item.
+        /// </summary>
+        [BsonElement("coverRequested")]
+        public bool CoverRequested { get; set; }
+
+        /// <summary>
+        /// MongoDB ObjectId (string) for the employee who requested coverage.
+        /// </summary>
+        [BsonElement("coverRequestedByUserId")]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string? CoverRequestedByUserId { get; set; }
+
+        /// <summary>
+        /// UTC timestamp when coverage was requested.
+        /// </summary>
+        [BsonElement("coverRequestedAt")]
+        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+        public DateTime? CoverRequestedAt { get; set; }
+
+        /// <summary>
         /// The team's unique code. Used to group all work items for
         /// a team's roster and to serve the correct schedule to linked employees.
         /// </summary>

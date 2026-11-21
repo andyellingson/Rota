@@ -67,6 +67,7 @@
                     <DayContent Context="day">
                         <CalendarDayItems Items="GetSortedDayItems(day)"
                                           CanManageWorkItems="canManageWorkItems"
+                                          CanOpenWorkItems="(canManageWorkItems || _isEmployeeRole)"
                                           GetDisplayName="GetEmployeeDisplayNameById"
                                           GetFirstName="GetEmployeeFirstNameById"
                                           GetLastName="GetEmployeeLastNameById"
@@ -79,13 +80,17 @@
             }
             else
             {
-                <CalendarWeekView Current="current" SelectedDays="selectedDays" OnDayClick="HandleDayClick" OnAddClick="OpenAddReminderModal"
+                <CalendarWeekView Current="current" SelectedDays="selectedDays" OnDayClick="HandleDayClick"
+                                  OnAddWorkItemClick="OpenAddWorkItemModal"
+                                  OnAddClick="OpenAddReminderModal"
+                                  CanManageWorkItems="canManageWorkItems"
                                   OnPrev="Prev" OnNext="Next"
                                   View="view" OnViewChanged="SetView"
                                   OnPrint="OpenPrintModal">
                     <DayContent Context="day">
                         <CalendarDayItems Items="GetSortedDayItems(day)"
                                           CanManageWorkItems="canManageWorkItems"
+                                          CanOpenWorkItems="(canManageWorkItems || _isEmployeeRole)"
                                           GetDisplayName="GetEmployeeDisplayNameById"
                                           GetFirstName="GetEmployeeFirstNameById"
                                           GetLastName="GetEmployeeLastNameById"
@@ -108,6 +113,7 @@
         <DayDetailsModal State="dayModal"
                          WorkItems="detailWorkItems" Absences="detailAbsences" Reminders="detailReminders"
                          CanManageWorkItems="canManageWorkItems"
+                         CanOpenWorkItems="(canManageWorkItems || _isEmployeeRole)"
                          GetDisplayName="GetEmployeeDisplayNameById"
                          OnClose="CloseDayModal"
                          OnEditWorkItem="OpenEditWorkItemModal" OnEditAbsence="OpenEditAbsenceModal" OnEditReminder="OpenEditReminderModal"
@@ -227,6 +233,14 @@
                        OnUpdateWorkItem="UpdateWorkItem"
                        OnDeleteWorkItem="DeleteCurrentWorkItem"
                        OnDeleteWorkItemseries="DeleteWorkItemseries"
+                       CanEditWorkItem="canManageWorkItems"
+                       CanRequestWorkItemCover="modalState.CanRequestWorkItemCover"
+                       CanPickupWorkItemCover="modalState.CanPickupWorkItemCover"
+                       CanCancelWorkItemCover="modalState.CanCancelWorkItemCover"
+                       WorkItemCoverStatus="@modalState.WorkItemCoverStatus"
+                       OnRequestWorkItemCover="RequestCurrentWorkItemCover"
+                       OnPickupWorkItemCover="PickupCurrentWorkItemCover"
+                       OnCancelWorkItemCover="CancelCurrentWorkItemCover"
                        OnSaveAbsence="SaveAbsence"
                        OnUpdateAbsence="UpdateAbsence"
                        OnDeleteAbsence="DeleteCurrentAbsence" />
@@ -236,11 +250,13 @@
     @code {
         private ViewMode view = ViewMode.Month;
 
-        // Current user context resolved at initialization
+        // Current user context resolved at initialization.
         private string _username = string.Empty;
+        private User? _currentUser;
 
-        // True only for the manager role (not admin); only managers get roster-wide absence edit/delete rights.
+        // Role flags used to control UI affordances and permissions.
         private bool _isManagerRole;
+        private bool _isEmployeeRole;
 
         /// <summary>
         /// Returns true when the current user created the absence or is the manager linked to its roster.
@@ -452,11 +468,13 @@
             if (!string.IsNullOrEmpty(_username))
             {
                 var caller = await UserService.GetByUsernameAsync(_username);
+                _currentUser = caller;
                 _userId = caller?.Id;
                 _assignedScheduleIds = caller?.AssignedScheduleIds ?? new();
 
                 canManageWorkItems = user.IsInRole(Roles.Manager) || user.IsInRole(Roles.Admin);
                 _isManagerRole = user.IsInRole(Roles.Manager);
+                _isEmployeeRole = user.IsInRole(Roles.Employee);
                 if (canManageWorkItems)
                 {
                     _managerCode = caller?.TeamCode;
@@ -1216,14 +1234,22 @@
         }
 
         /// <summary>
+        /// Opens the add-work-item form for the specified date.
+        /// </summary>
+        private void OpenAddWorkItemModal(DateOnly date)
+        {
+            OpenAddReminderModal(date);
+            modalMode = ModalMode.WorkItem;
+        }
+
+        /// <summary>
         /// Closes the day detail modal and opens the add-work-item form for that day.
         /// </summary>
         private void AddWorkItemFromDayModal()
         {
             var date = dayModalDate;
             showDayModal = false;
-            OpenAddReminderModal(date);
-            modalMode = ModalMode.WorkItem;
+            OpenAddWorkItemModal(date);
         }
 
         /// <summary>
@@ -1434,6 +1460,107 @@
             return [.. items.OrderBy(i => i.SortKey)];
         }
 
+        /// <summary>
+        /// Returns true when the current user may open the work item dialog.
+        /// </summary>
+        private bool CanOpenWorkItemEditor(WorkItem WorkItem)
+        {
+            if (canManageWorkItems)
+            {
+                return true;
+            }
+
+            if (!_isEmployeeRole)
+            {
+                return false;
+            }
+
+            return CanEmployeeRequestCover(WorkItem)
+                || CanEmployeePickupCover(WorkItem)
+                || CanEmployeeCancelCover(WorkItem);
+        }
+
+        /// <summary>
+        /// Returns true when the current employee can request cover for this work item.
+        /// </summary>
+        private bool CanEmployeeRequestCover(WorkItem WorkItem)
+        {
+            if (!_isEmployeeRole || string.IsNullOrWhiteSpace(_userId))
+            {
+                return false;
+            }
+
+            return WorkItem.Start.ToUniversalTime() > DateTime.UtcNow
+                && !WorkItem.CoverRequested
+                && string.Equals(WorkItem.AssignedToUserId, _userId, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Returns true when the current employee can cancel their own cover request.
+        /// </summary>
+        private bool CanEmployeeCancelCover(WorkItem WorkItem)
+        {
+            if (!_isEmployeeRole || string.IsNullOrWhiteSpace(_userId))
+            {
+                return false;
+            }
+
+            return WorkItem.Start.ToUniversalTime() > DateTime.UtcNow
+                && WorkItem.CoverRequested
+                && string.Equals(WorkItem.AssignedToUserId, _userId, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Returns true when the current employee can pick up this cover request.
+        /// </summary>
+        private bool CanEmployeePickupCover(WorkItem WorkItem)
+        {
+            if (!_isEmployeeRole || string.IsNullOrWhiteSpace(_userId) || _currentUser is null)
+            {
+                return false;
+            }
+
+            if (WorkItem.Start.ToUniversalTime() <= DateTime.UtcNow || !WorkItem.CoverRequested)
+            {
+                return false;
+            }
+
+            if (string.Equals(WorkItem.AssignedToUserId, _userId, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var requiredType = string.IsNullOrWhiteSpace(WorkItem.WorkerType) ? "General" : WorkItem.WorkerType.Trim();
+            var primaryType = string.IsNullOrWhiteSpace(_currentUser.TeamMemberType) ? "General" : _currentUser.TeamMemberType.Trim();
+            if (string.Equals(requiredType, primaryType, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return (_currentUser.AvailableTeamMemberTypes ?? new List<string>())
+                .Any(t => string.Equals(t?.Trim(), requiredType, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Builds a short status label for the currently opened work item.
+        /// </summary>
+        private string? GetWorkItemCoverStatus(WorkItem WorkItem)
+        {
+            if (!WorkItem.CoverRequested)
+            {
+                return null;
+            }
+
+            var requesterName = GetEmployeeDisplayNameById(WorkItem.CoverRequestedByUserId);
+            var fallbackName = GetEmployeeDisplayNameById(WorkItem.AssignedToUserId);
+            var displayName = string.IsNullOrWhiteSpace(requesterName) ? fallbackName : requesterName;
+            var requestedText = WorkItem.CoverRequestedAt?.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
+
+            return string.IsNullOrWhiteSpace(requestedText)
+                ? $"Cover requested by {displayName}."
+                : $"Cover requested by {displayName} on {requestedText}.";
+        }
+
         private void OpenEditAbsenceModal(Absence absence)
         {
             showDayModal = false;
@@ -1480,6 +1607,11 @@
         /// </summary>
         private void OpenEditWorkItemModal(WorkItem WorkItem)
         {
+            if (!CanOpenWorkItemEditor(WorkItem))
+            {
+                return;
+            }
+
             showDayModal = false;
             editingWorkItem = WorkItem;
             editWorkItemId = WorkItem.Id ?? string.Empty;
@@ -1492,6 +1624,12 @@
             editWorkItemWorkerType = WorkItem.WorkerType;
             editWorkItemColor = WorkItem.Color ?? "#1890ff";
             editWorkItemAssignedTo = WorkItem.AssignedToUserId ?? string.Empty;
+
+            modalState.CanRequestWorkItemCover = CanEmployeeRequestCover(WorkItem);
+            modalState.CanPickupWorkItemCover = CanEmployeePickupCover(WorkItem);
+            modalState.CanCancelWorkItemCover = CanEmployeeCancelCover(WorkItem);
+            modalState.WorkItemCoverStatus = GetWorkItemCoverStatus(WorkItem);
+
             modalError = null;
             modalMode = ModalMode.WorkItem;
             showModal = true;
@@ -1578,6 +1716,10 @@
             showModal = false;
             selectedDate = null;
             editingReminder = null;
+            modalState.CanRequestWorkItemCover = false;
+            modalState.CanPickupWorkItemCover = false;
+            modalState.CanCancelWorkItemCover = false;
+            modalState.WorkItemCoverStatus = null;
             modalError = null;
         }
 
@@ -2039,6 +2181,111 @@
             {
                 Logger.LogError(ex, "Error updating WorkItem {Id}", editingWorkItem.Id);
                 modalError = "An error occurred. Please try again.";
+            }
+            finally
+            {
+                isBusy = false;
+            }
+        }
+
+        /// <summary>
+        /// Requests cover for the work item currently opened in the modal.
+        /// </summary>
+        private async Task RequestCurrentWorkItemCover()
+        {
+            modalError = null;
+            if (editingWorkItem?.Id is null || string.IsNullOrWhiteSpace(_userId))
+            {
+                return;
+            }
+
+            try
+            {
+                isBusy = true;
+                var result = await WorkItemservice.RequestCoverAsync(editingWorkItem.Id, _userId, _managerCode);
+                if (!result.Success)
+                {
+                    modalError = result.ErrorMessage ?? "Unable to request cover for this work item.";
+                    return;
+                }
+
+                CloseModal();
+                await LoadReminders();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error requesting cover for WorkItem {Id}", editingWorkItem.Id);
+                modalError = "An error occurred while requesting cover. Please try again.";
+            }
+            finally
+            {
+                isBusy = false;
+            }
+        }
+
+        /// <summary>
+        /// Picks up the cover request for the work item currently opened in the modal.
+        /// </summary>
+        private async Task PickupCurrentWorkItemCover()
+        {
+            modalError = null;
+            if (editingWorkItem?.Id is null || string.IsNullOrWhiteSpace(_userId))
+            {
+                return;
+            }
+
+            try
+            {
+                isBusy = true;
+                var result = await WorkItemservice.PickupCoverAsync(editingWorkItem.Id, _userId, _managerCode);
+                if (!result.Success)
+                {
+                    modalError = result.ErrorMessage ?? "Unable to pick up this work item.";
+                    return;
+                }
+
+                CloseModal();
+                await LoadReminders();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error picking up cover for WorkItem {Id}", editingWorkItem.Id);
+                modalError = "An error occurred while picking up this work item. Please try again.";
+            }
+            finally
+            {
+                isBusy = false;
+            }
+        }
+
+        /// <summary>
+        /// Cancels the current user's cover request for the work item opened in the modal.
+        /// </summary>
+        private async Task CancelCurrentWorkItemCover()
+        {
+            modalError = null;
+            if (editingWorkItem?.Id is null || string.IsNullOrWhiteSpace(_userId))
+            {
+                return;
+            }
+
+            try
+            {
+                isBusy = true;
+                var result = await WorkItemservice.CancelCoverAsync(editingWorkItem.Id, _userId, _managerCode);
+                if (!result.Success)
+                {
+                    modalError = result.ErrorMessage ?? "Unable to cancel this cover request.";
+                    return;
+                }
+
+                CloseModal();
+                await LoadReminders();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error canceling cover request for WorkItem {Id}", editingWorkItem.Id);
+                modalError = "An error occurred while canceling this cover request. Please try again.";
             }
             finally
             {
