@@ -83,7 +83,7 @@ public class CalendarRenderBenchmarks
             return new Reminder
             {
                 Id = $"reminder{i}",
-                Username = "manager1",
+                CreatedByUserId = "manager1",
                 Date = windowStart.AddDays(dayOffset).AddHours(rng.Next(8, 18)),
                 Title = $"Reminder {i}",
                 Color = "#ffeb3b",

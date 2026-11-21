@@ -59,10 +59,9 @@ namespace Rota.Services
         }
 
         /// <summary>
-        /// Fetches reminders matching
-        /// An OR filter is used so both shared (team) and personal reminders are returned.
+        /// Fetches public team reminders and private reminders for the recipient or team manager.
         /// </summary>
-        public async System.Threading.Tasks.Task<List<Reminder>> GetCalendarRemindersAsync(string? teamCode, string? ownerId, DateOnly startDate, DateOnly endDate)
+        public async System.Threading.Tasks.Task<List<Reminder>> GetCalendarRemindersAsync(string? teamCode, string? ownerId, DateOnly startDate, DateOnly endDate, bool isManager = false)
         {
             try
             {
@@ -74,20 +73,41 @@ namespace Rota.Services
                     Builders<Reminder>.Filter.Lte(r => r.Date, end)
                 );
 
-                var userFilters = new List<FilterDefinition<Reminder>>();
+                var visibilityFilters = new List<FilterDefinition<Reminder>>();
                 if (!string.IsNullOrEmpty(teamCode))
-                    userFilters.Add(Builders<Reminder>.Filter.Eq(r => r.TeamCode, teamCode));
+                {
+                    var isLegacyPublic = Builders<Reminder>.Filter.Exists("visibility", false);
+                    var isPublic = Builders<Reminder>.Filter.Or(
+                        Builders<Reminder>.Filter.Eq(r => r.Visibility, ReminderVisibility.Public),
+                        isLegacyPublic);
+                    visibilityFilters.Add(Builders<Reminder>.Filter.And(
+                        Builders<Reminder>.Filter.Eq(r => r.TeamCode, teamCode),
+                        isPublic));
+
+                    if (isManager)
+                    {
+                        visibilityFilters.Add(Builders<Reminder>.Filter.And(
+                            Builders<Reminder>.Filter.Eq(r => r.TeamCode, teamCode),
+                            Builders<Reminder>.Filter.Eq(r => r.Visibility, ReminderVisibility.Private)));
+                    }
+                }
+
                 if (!string.IsNullOrEmpty(ownerId))
-                    userFilters.Add(Builders<Reminder>.Filter.Eq(r => r.OwnerId, ownerId));
+                {
+                    var isLegacyReminder = Builders<Reminder>.Filter.Exists("visibility", false);
+                    visibilityFilters.Add(Builders<Reminder>.Filter.And(
+                        Builders<Reminder>.Filter.Eq(r => r.OwnerId, ownerId),
+                        Builders<Reminder>.Filter.Or(
+                            Builders<Reminder>.Filter.Eq(r => r.Visibility, ReminderVisibility.Private),
+                            isLegacyReminder)));
+                }
 
-                if (userFilters.Count == 0) return new List<Reminder>();
+                if (visibilityFilters.Count == 0) return new List<Reminder>();
 
-                var userFilter = userFilters.Count == 1
-                    ? userFilters[0]
-                    : Builders<Reminder>.Filter.Or(userFilters);
+                var visibilityFilter = Builders<Reminder>.Filter.Or(visibilityFilters);
 
                 return await _reminders.Find(
-                    Builders<Reminder>.Filter.And(dateFilter, userFilter)).ToListAsync();
+                    Builders<Reminder>.Filter.And(dateFilter, visibilityFilter)).ToListAsync();
             }
             catch (System.Exception ex)
             {
@@ -109,46 +129,64 @@ namespace Rota.Services
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error creating reminder for user {User}", reminder?.Username);
+                _logger.LogError(ex, "Error creating reminder for user {User}", reminder?.CreatedByUserId);
                 throw;
             }
         }
 
         /// <summary>
-        /// Deletes a reminder by ID (only if it belongs to the specified user).
-        /// Returns true if the reminder was deleted; false if not found or not owned by user.
+        /// Deletes a reminder when the requester created it or is its team manager.
         /// </summary>
-        public async System.Threading.Tasks.Task<bool> DeleteReminderAsync(string id, string username)
+        public async System.Threading.Tasks.Task<bool> DeleteReminderAsync(string id, string requesterId, bool isManager = false, string? teamCode = null)
         {
             try
             {
-                var filter = Builders<Reminder>.Filter.And(
-                    Builders<Reminder>.Filter.Eq(r => r.Id, id),
-                    Builders<Reminder>.Filter.Eq(r => r.Username, username)
-                );
+                var accessFilter = Builders<Reminder>.Filter.Or(
+                    Builders<Reminder>.Filter.Eq(r => r.CreatedByUserId, requesterId),
+                    Builders<Reminder>.Filter.And(
+                        Builders<Reminder>.Filter.Eq(r => r.OwnerId, requesterId),
+                        Builders<Reminder>.Filter.Or(
+                            Builders<Reminder>.Filter.Eq(r => r.Visibility, ReminderVisibility.Private),
+                            Builders<Reminder>.Filter.Exists("visibility", false))));
+                if (isManager && !string.IsNullOrEmpty(teamCode))
+                {
+                    accessFilter = Builders<Reminder>.Filter.Or(
+                        accessFilter,
+                        Builders<Reminder>.Filter.Eq(r => r.TeamCode, teamCode));
+                }
+                var filter = Builders<Reminder>.Filter.And(Builders<Reminder>.Filter.Eq(r => r.Id, id), accessFilter);
 
                 var result = await _reminders.DeleteOneAsync(filter);
                 return result.DeletedCount > 0;
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error deleting reminder {Id} for user {User}", id, username);
+                _logger.LogError(ex, "Error deleting reminder {Id} for user {User}", id, requesterId);
                 return false;
             }
         }
 
         /// <summary>
-        /// Updates an existing reminder (only if it belongs to the specified user).
-        /// Returns the updated reminder if successful; null if not found or not owned by user.
+        /// Updates a reminder when the requester created it or is its team manager.
         /// </summary>
-        public async System.Threading.Tasks.Task<Reminder?> UpdateReminderAsync(string id, string username, string title, string? notes, DateTime reminderDateTimeUtc, string? color, string? ownerId, string? forUsername, string? forDisplayName, string? teamCode)
+        public async System.Threading.Tasks.Task<Reminder?> UpdateReminderAsync(string id, string requesterId, bool isManager, string? teamCode, string title, string? notes, DateTime reminderDateTimeUtc, string? color, string? ownerId, string? forUsername, string? forDisplayName, ReminderVisibility visibility)
         {
             try
             {
-                var filter = Builders<Reminder>.Filter.And(
-                    Builders<Reminder>.Filter.Eq(r => r.Id, id),
-                    Builders<Reminder>.Filter.Eq(r => r.Username, username)
-                );
+                var accessFilter = Builders<Reminder>.Filter.Or(
+                    Builders<Reminder>.Filter.Eq(r => r.CreatedByUserId, requesterId),
+                    Builders<Reminder>.Filter.And(
+                        Builders<Reminder>.Filter.Eq(r => r.OwnerId, requesterId),
+                        Builders<Reminder>.Filter.Or(
+                            Builders<Reminder>.Filter.Eq(r => r.Visibility, ReminderVisibility.Private),
+                            Builders<Reminder>.Filter.Exists("visibility", false))));
+                if (isManager && !string.IsNullOrEmpty(teamCode))
+                {
+                    accessFilter = Builders<Reminder>.Filter.Or(
+                        accessFilter,
+                        Builders<Reminder>.Filter.Eq(r => r.TeamCode, teamCode));
+                }
+                var filter = Builders<Reminder>.Filter.And(Builders<Reminder>.Filter.Eq(r => r.Id, id), accessFilter);
 
                 var update = Builders<Reminder>.Update
                     .Set(r => r.Title, title)
@@ -158,7 +196,8 @@ namespace Rota.Services
                     .Set(r => r.OwnerId, ownerId)
                     .Set(r => r.ForUsername, forUsername)
                     .Set(r => r.ForDisplayName, forDisplayName)
-                    .Set(r => r.TeamCode, teamCode);
+                    .Set(r => r.TeamCode, teamCode)
+                    .Set(r => r.Visibility, visibility);
 
                 var options = new FindOneAndUpdateOptions<Reminder> { ReturnDocument = ReturnDocument.After };
                 var updated = await _reminders.FindOneAndUpdateAsync(filter, update, options);
@@ -166,7 +205,7 @@ namespace Rota.Services
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error updating reminder {Id} for user {User}", id, username);
+                _logger.LogError(ex, "Error updating reminder {Id} for user {User}", id, requesterId);
                 return null;
             }
         }

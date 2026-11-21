@@ -362,6 +362,7 @@
         private TimeOnly newReminderTime { get => modalState.NewReminderTime; set => modalState.NewReminderTime = value; }
         private string newReminderColor { get => modalState.NewReminderColor; set => modalState.NewReminderColor = value; }
         private string newReminderForUsername { get => modalState.NewReminderForUsername; set => modalState.NewReminderForUsername = value; }
+        private ReminderVisibility newReminderVisibility { get => modalState.NewReminderVisibility; set => modalState.NewReminderVisibility = value; }
         private string? modalError { get => modalState.ModalError; set => modalState.ModalError = value; }
         private bool isBusy { get => modalState.IsBusy; set => modalState.IsBusy = value; }
 
@@ -421,6 +422,7 @@
         private TimeOnly editReminderTime { get => modalState.EditReminderTime; set => modalState.EditReminderTime = value; }
         private string editReminderColor { get => modalState.EditReminderColor; set => modalState.EditReminderColor = value; }
         private string editReminderForUsername { get => modalState.EditReminderForUsername; set => modalState.EditReminderForUsername = value; }
+        private ReminderVisibility editReminderVisibility { get => modalState.EditReminderVisibility; set => modalState.EditReminderVisibility = value; }
 
         // Edit state for existing work item
         private string editWorkItemColor { get => modalState.EditWorkItemColor; set => modalState.EditWorkItemColor = value; }
@@ -747,7 +749,7 @@
                 var queryStart = start.AddDays(-1);
                 var queryEnd = end.AddDays(1);
 
-                reminders = await RemindersService.GetCalendarRemindersAsync(_managerCode, _userId, queryStart, queryEnd);
+                reminders = await RemindersService.GetCalendarRemindersAsync(_managerCode, _userId, queryStart, queryEnd, canManageWorkItems);
                 RebuildReminderDayBucket();
                 await LoadWorkItems(queryStart, queryEnd);
                 await LoadAbsences(queryStart, queryEnd);
@@ -799,6 +801,7 @@
             newReminderTime = TimeOnly.FromDateTime(DateTime.Now);
             newReminderColor = "#ffeb3b";
             newReminderForUsername = _username;
+            newReminderVisibility = canManageWorkItems ? ReminderVisibility.Public : ReminderVisibility.Private;
             editingReminder = null;
 
             // Reset work item fields
@@ -1186,7 +1189,7 @@
 
                 foreach (var reminder in remindersToDelete)
                 {
-                    await RemindersService.DeleteReminderAsync(reminder.Id!, reminder.Username ?? _username);
+                    await RemindersService.DeleteReminderAsync(reminder.Id!, _userId ?? string.Empty, canManageWorkItems, _managerCode);
                 }
 
                 showMultiDayConfirmModal = false;
@@ -1245,7 +1248,7 @@
                 // Pad the query by one day on each side to avoid UTC boundary gaps.
                 var queryStart = start.AddDays(-1);
                 var queryEnd = end.AddDays(1);
-                reminders = await RemindersService.GetCalendarRemindersAsync(_managerCode, _userId, queryStart, queryEnd);
+                reminders = await RemindersService.GetCalendarRemindersAsync(_managerCode, _userId, queryStart, queryEnd, canManageWorkItems);
                 WorkItems = await WorkItemservice.GetWorkItemsAsync(_username, _userId, _managerCode, queryStart, queryEnd);
                 await LoadAbsences(queryStart, queryEnd);
                 await InvokeAsync(StateHasChanged);
@@ -1735,6 +1738,7 @@
             editReminderTime = TimeOnly.FromDateTime(local);
             editReminderColor = reminder.Color ?? "#ffeb3b";
             editReminderForUsername = reminder.ForUsername ?? GetLinkedUser(_username)?.Username ?? _username;
+            editReminderVisibility = reminder.Visibility;
             modalError = null;
             showModal = true;
         }
@@ -1773,7 +1777,9 @@
                 isBusy = true;
                 var local = selectedDate.Value.ToDateTime(newReminderTime, DateTimeKind.Local);
                 var utc = local.ToUniversalTime();
-                var targetUser = GetLinkedUser(newReminderForUsername) ?? GetDefaultLinkedUser();
+                var targetUser = canManageWorkItems
+                    ? GetLinkedUser(newReminderForUsername)
+                    : _currentUser;
 
                 if (targetUser is null)
                 {
@@ -1783,9 +1789,10 @@
 
                 var reminder = new Reminder
                 {
-                    Username = _username,
+                    CreatedByUserId = _userId,
                     OwnerId = targetUser.Id,
                     TeamCode = _managerCode,
+                    Visibility = newReminderVisibility,
                     ScheduleId = selectedScheduleId,
                     Date = utc,
                     Title = newReminderTitle,
@@ -1914,7 +1921,7 @@
         {
             try
             {
-                await RemindersService.DeleteReminderAsync(id, _username);
+                await RemindersService.DeleteReminderAsync(id, _userId ?? string.Empty, canManageWorkItems, _managerCode);
                 await LoadReminders();
             }
             catch (Exception ex)
@@ -1933,7 +1940,7 @@
             try
             {
                 isBusy = true;
-                await RemindersService.DeleteReminderAsync(editingReminder.Id, _username);
+                await RemindersService.DeleteReminderAsync(editingReminder.Id, _userId ?? string.Empty, canManageWorkItems, _managerCode);
                 CloseModal();
                 await LoadReminders();
             }
@@ -1967,7 +1974,9 @@
                 isBusy = true;
                 var local = editReminderDate.ToDateTime(editReminderTime, DateTimeKind.Local);
                 var utc = local.ToUniversalTime();
-                var targetUser = GetLinkedUser(editReminderForUsername) ?? GetDefaultLinkedUser();
+                var targetUser = canManageWorkItems
+                    ? GetLinkedUser(editReminderForUsername)
+                    : _currentUser;
 
                 if (targetUser is null)
                 {
@@ -1975,7 +1984,7 @@
                     return;
                 }
 
-                var updated = await RemindersService.UpdateReminderAsync(editingReminder.Id, _username, editReminderTitle, editReminderNotes, utc, editReminderColor, targetUser.Id, targetUser.Username, targetUser.DisplayName ?? targetUser.Username, _managerCode);
+                var updated = await RemindersService.UpdateReminderAsync(editingReminder.Id, _userId ?? string.Empty, canManageWorkItems, _managerCode, editReminderTitle, editReminderNotes, utc, editReminderColor, targetUser.Id, targetUser.Username, targetUser.DisplayName ?? targetUser.Username, editReminderVisibility);
                 if (updated is null)
                 {
                     modalError = "Failed to update reminder";

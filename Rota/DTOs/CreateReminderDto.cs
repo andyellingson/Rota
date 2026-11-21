@@ -1,3 +1,5 @@
+using Rota.Models;
+
 namespace Rota.DTOs
 {
     /// <summary>
@@ -8,5 +10,6 @@ namespace Rota.DTOs
     /// <param name="Notes">Optional detailed notes.</param>
     /// <param name="Color">Optional CSS color string (e.g. "#ffeb3b").</param>
     /// <param name="ForUsername">Username of the worker or manager the reminder is for.</param>
-    public record CreateReminderDto(string Date, string Title, string? Notes, string? Color, string? ForUsername = null);
+    /// <param name="Visibility">Whether the reminder is public to the team or private to its recipient and manager.</param>
+    public record CreateReminderDto(string Date, string Title, string? Notes, string? Color, string? ForUsername = null, ReminderVisibility Visibility = ReminderVisibility.Public);
 }

@@ -84,6 +84,11 @@ namespace Rota.Components
         public string NewReminderForUsername { get; set; } = string.Empty;
 
         /// <summary>
+        /// Gets or sets the visibility for a new reminder.
+        /// </summary>
+        public ReminderVisibility NewReminderVisibility { get; set; } = ReminderVisibility.Private;
+
+        /// <summary>
         /// Gets or sets the title for the reminder being edited.
         /// </summary>
         public string EditReminderTitle { get; set; } = string.Empty;
@@ -112,6 +117,11 @@ namespace Rota.Components
         /// Gets or sets the target username for the reminder being edited.
         /// </summary>
         public string EditReminderForUsername { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the visibility for the reminder being edited.
+        /// </summary>
+        public ReminderVisibility EditReminderVisibility { get; set; } = ReminderVisibility.Private;
 
         /// <summary>
         /// Gets or sets the work item currently being edited.

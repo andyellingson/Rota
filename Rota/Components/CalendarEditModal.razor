@@ -30,6 +30,13 @@
                                 <label class="form-label">Time</label>
                                 <input type="time" class="form-control" @bind="State.NewReminderTime" />
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label">Visibility</label>
+                                <select class="form-select" @bind="State.NewReminderVisibility">
+                                    <option value="@ReminderVisibility.Public">Public — visible to the team</option>
+                                    <option value="@ReminderVisibility.Private">Private — visible to the recipient and manager</option>
+                                </select>
+                            </div>
                             @if (CanManageWorkItems)
                             {
                                 <div class="mb-3">
@@ -40,13 +47,6 @@
                                             <option value="@user.Username">@GetLinkedUserLabel(user)</option>
                                         }
                                     </select>
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="mb-3">
-                                    <label class="form-label">For</label>
-                                    <p class="form-control-plaintext">@(LinkedUsers.FirstOrDefault(u => u.Username == State.NewReminderForUsername)?.DisplayName ?? State.NewReminderForUsername)</p>
                                 </div>
                             }
                             <div class="mb-3">
@@ -73,6 +73,13 @@
                                 <label class="form-label">Time</label>
                                 <input type="time" class="form-control" @bind="State.EditReminderTime" />
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label">Visibility</label>
+                                <select class="form-select" @bind="State.EditReminderVisibility">
+                                    <option value="@ReminderVisibility.Public">Public — visible to the team</option>
+                                    <option value="@ReminderVisibility.Private">Private — visible to the recipient and manager</option>
+                                </select>
+                            </div>
                             @if (CanManageWorkItems)
                             {
                                 <div class="mb-3">
@@ -83,13 +90,6 @@
                                             <option value="@user.Username">@GetLinkedUserLabel(user)</option>
                                         }
                                     </select>
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="mb-3">
-                                    <label class="form-label">For</label>
-                                    <p class="form-control-plaintext">@(LinkedUsers.FirstOrDefault(u => u.Username == State.EditReminderForUsername)?.DisplayName ?? State.EditReminderForUsername)</p>
                                 </div>
                             }
                             <div class="mb-3">

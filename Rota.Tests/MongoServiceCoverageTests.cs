@@ -278,12 +278,34 @@ public class MongoRemindersServiceTests
     }
 
     [Test]
+    public async Task GetCalendarRemindersAsync_WithTeamAndOwner_FiltersByVisibilityAndDate()
+    {
+        var collection = new Mock<IMongoCollection<Reminder>>();
+        FilterDefinition<Reminder>? capturedFilter = null;
+        collection.Setup(c => c.FindAsync(
+                It.IsAny<FilterDefinition<Reminder>>(),
+                It.IsAny<FindOptions<Reminder, Reminder>>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<FilterDefinition<Reminder>, FindOptions<Reminder, Reminder>, CancellationToken>((filter, _, _) => capturedFilter = filter)
+            .ReturnsAsync(CreateReminderCursor());
+        var service = new MongoRemindersService(collection.Object, Mock.Of<ILogger<MongoRemindersService>>());
+
+        await service.GetCalendarRemindersAsync("team", "member-id", new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31));
+
+        Assert.That(capturedFilter, Is.Not.Null);
+        var rendered = capturedFilter!.Render(new RenderArgs<Reminder>(BsonSerializer.SerializerRegistry.GetSerializer<Reminder>(), BsonSerializer.SerializerRegistry));
+        Assert.That(rendered.ToJson(), Does.Contain("visibility"));
+        Assert.That(rendered.ToJson(), Does.Contain("teamCode"));
+        Assert.That(rendered.ToJson(), Does.Contain("ownerId"));
+    }
+
+    [Test]
     public async Task CreateReminderAsync_SetsCreatedAtAndPersists()
     {
         var collection = new Mock<IMongoCollection<Reminder>>();
         collection.Setup(c => c.InsertOneAsync(It.IsAny<Reminder>(), It.IsAny<InsertOneOptions>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         var service = new MongoRemindersService(collection.Object, Mock.Of<ILogger<MongoRemindersService>>());
-        var reminder = new Reminder { Username = "owner" };
+        var reminder = new Reminder { CreatedByUserId = "owner" };
 
         await service.CreateReminderAsync(reminder);
 
@@ -310,11 +332,20 @@ public class MongoRemindersServiceTests
             .ThrowsAsync(new InvalidOperationException());
         var service = new MongoRemindersService(collection.Object, Mock.Of<ILogger<MongoRemindersService>>());
 
-        var result = await service.UpdateReminderAsync("id", "owner", "title", null, DateTime.UtcNow, null, "owner-id", null, null, "manager");
+        var result = await service.UpdateReminderAsync("id", "owner", true, "manager", "title", null, DateTime.UtcNow, null, "owner-id", null, null, ReminderVisibility.Public);
 
         Assert.That(result, Is.Null);
         Assert.That(capturedUpdate, Is.Not.Null);
         Assert.That(capturedUpdate!.Render(new RenderArgs<Reminder>(BsonSerializer.SerializerRegistry.GetSerializer<Reminder>(), BsonSerializer.SerializerRegistry)).ToJson(), Does.Contain("#ffeb3b"));
+    }
+
+    private static IAsyncCursor<Reminder> CreateReminderCursor()
+    {
+        var cursor = new Mock<IAsyncCursor<Reminder>>();
+        cursor.SetupSequence(c => c.MoveNext(It.IsAny<CancellationToken>())).Returns(true).Returns(false);
+        cursor.SetupSequence(c => c.MoveNextAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true).ReturnsAsync(false);
+        cursor.SetupGet(c => c.Current).Returns(Array.Empty<Reminder>());
+        return cursor.Object;
     }
 }
 

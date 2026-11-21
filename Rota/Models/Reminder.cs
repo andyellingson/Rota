@@ -4,6 +4,15 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace Rota.Models
 {
     /// <summary>
+    /// Controls whether a reminder is shared with the team or limited to its recipient and manager.
+    /// </summary>
+    public enum ReminderVisibility
+    {
+        Public,
+        Private
+    }
+
+    /// <summary>
     /// Represents a reminder associated with a specific date and user.
     /// </summary>
     public class Reminder
@@ -14,12 +23,6 @@ namespace Rota.Models
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
         public string? Id { get; set; }
-
-        /// <summary>
-        /// The username of the user who owns this reminder.
-        /// </summary>
-        [BsonElement("username")]
-        public string Username { get; set; } = null!;
 
         /// <summary>
         /// The date for which this reminder is scheduled.
@@ -61,6 +64,13 @@ namespace Rota.Models
         public string? TeamCode { get; set; }
 
         /// <summary>
+        /// Visibility level; missing values in existing records default to Public.
+        /// </summary>
+        [BsonElement("visibility")]
+        [BsonRepresentation(BsonType.String)]
+        public ReminderVisibility Visibility { get; set; } = ReminderVisibility.Public;
+
+        /// <summary>
         /// The schedule ID this reminder belongs to (MongoDB ObjectId string).
         /// </summary>
         [BsonElement("scheduleId")]
@@ -68,11 +78,16 @@ namespace Rota.Models
         public string? ScheduleId { get; set; }
 
         /// <summary>
-        /// MongoDB ObjectId of the user who created this reminder.
-        /// Used to fetch personal reminders for employees independently of username.
+        /// MongoDB ObjectId of the user this reminder is for.
         /// </summary>
         [BsonElement("ownerId")]
         public string? OwnerId { get; set; }
+
+        /// <summary>
+        /// MongoDB ObjectId of the user who created this reminder.
+        /// </summary>
+        [BsonElement("createdByUserId")]
+        public string? CreatedByUserId { get; set; }
 
         /// <summary>
         /// Username of the worker or manager this reminder is for.

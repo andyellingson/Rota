@@ -70,7 +70,8 @@ namespace Rota.Endpoints
                     if (!string.IsNullOrWhiteSpace(end) && !DateOnly.TryParse(end, out endDate))
                         return Results.Json(new { ok = false, message = "Invalid end date", code = 400 }, statusCode: 400);
 
-                    var items = await reminders.GetCalendarRemindersAsync(queryTeamCode, queryOwnerId, startDate, endDate);
+                    var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
+                    var items = await reminders.GetCalendarRemindersAsync(queryTeamCode, queryOwnerId, startDate, endDate, isManager);
                     return Results.Json(new { ok = true, reminders = items, code = 200 }, statusCode: 200);
                 }
                 catch (Exception ex)
@@ -97,27 +98,41 @@ namespace Rota.Endpoints
                         return Results.Json(new { ok = false, message = "Invalid date format", code = 400 }, statusCode: 400);
 
                     var creator = await users.GetByUsernameAsync(username);
+                    if (creator?.Id is null)
+                        return Results.Json(new { ok = false, message = "User not found", code = 404 }, statusCode: 404);
+
                     var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
-                    string? teamCode = isManager ? creator?.TeamCode : creator?.TeamCode;
+                    var teamCode = creator.TeamCode;
 
                     var targetUsername = string.IsNullOrWhiteSpace(dto.ForUsername) ? username : dto.ForUsername;
-                    User? targetUser = null;
-
-                    if (!string.IsNullOrEmpty(teamCode))
+                    User? targetUser;
+                    if (isManager)
                     {
+                        if (string.IsNullOrEmpty(teamCode))
+                            return Results.Json(new { ok = false, message = "Manager team not found", code = 400 }, statusCode: 400);
+
                         var linkedUsers = await users.GetLinkedUsersForManagerAsync(teamCode);
                         targetUser = linkedUsers.FirstOrDefault(u => u.Username == targetUsername);
                     }
+                    else
+                    {
+                        if (targetUsername != username)
+                            return Results.Json(new { ok = false, message = "You can only create reminders for yourself", code = 403 }, statusCode: 403);
+                        targetUser = creator;
+                    }
 
-                    targetUser ??= targetUsername == username ? creator : await users.GetByUsernameAsync(targetUsername);
                     if (targetUser is null)
-                        return Results.Json(new { ok = false, message = "Target user not found", code = 400 }, statusCode: 400);
+                        return Results.Json(new { ok = false, message = "Target user is not in your team", code = 400 }, statusCode: 400);
+
+                    if (!Enum.IsDefined(dto.Visibility))
+                        return Results.Json(new { ok = false, message = "Invalid reminder visibility", code = 400 }, statusCode: 400);
 
                     var reminder = new Reminder
                     {
-                        Username = username,
+                        CreatedByUserId = creator.Id,
                         OwnerId = targetUser.Id,
                         TeamCode = teamCode,
+                        Visibility = dto.Visibility,
                         Date = reminderDateTimeUtc,
                         Title = dto.Title,
                         Notes = dto.Notes,
@@ -137,7 +152,7 @@ namespace Rota.Endpoints
             }).RequireAuthorization();
 
             // Delete a reminder by ID (only if owned by current user)
-            app.MapDelete("/api/reminders/{id}", async (string id, IRemindersService reminders, Microsoft.AspNetCore.Http.HttpContext context) =>
+            app.MapDelete("/api/reminders/{id}", async (string id, IRemindersService reminders, IUserService users, Microsoft.AspNetCore.Http.HttpContext context) =>
             {
                 try
                 {
@@ -145,7 +160,9 @@ namespace Rota.Endpoints
                     if (string.IsNullOrEmpty(username))
                         return Results.Json(new { ok = false, message = "Unauthorized", code = 401 }, statusCode: 401);
 
-                    var deleted = await reminders.DeleteReminderAsync(id, username);
+                    var caller = await users.GetByUsernameAsync(username);
+                    var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
+                    var deleted = await reminders.DeleteReminderAsync(id, caller?.Id ?? string.Empty, isManager, caller?.TeamCode);
                     if (!deleted)
                         return Results.Json(new { ok = false, message = "Reminder not found or access denied", code = 404 }, statusCode: 404);
 
@@ -174,23 +191,36 @@ namespace Rota.Endpoints
                         return Results.Json(new { ok = false, message = "Invalid date format", code = 400 }, statusCode: 400);
 
                     var creator = await users.GetByUsernameAsync(username);
+                    if (creator?.Id is null)
+                        return Results.Json(new { ok = false, message = "User not found", code = 404 }, statusCode: 404);
+
                     var isManager = context.User.IsInRole(Roles.Manager) || context.User.IsInRole(Roles.Admin);
-                    string? teamCode = isManager ? creator?.TeamCode : creator?.TeamCode;
+                    var teamCode = creator.TeamCode;
 
                     var targetUsername = string.IsNullOrWhiteSpace(dto.ForUsername) ? username : dto.ForUsername;
-                    User? targetUser = null;
-
-                    if (!string.IsNullOrEmpty(teamCode))
+                    User? targetUser;
+                    if (isManager)
                     {
+                        if (string.IsNullOrEmpty(teamCode))
+                            return Results.Json(new { ok = false, message = "Manager team not found", code = 400 }, statusCode: 400);
+
                         var linkedUsers = await users.GetLinkedUsersForManagerAsync(teamCode);
                         targetUser = linkedUsers.FirstOrDefault(u => u.Username == targetUsername);
                     }
+                    else
+                    {
+                        if (targetUsername != username)
+                            return Results.Json(new { ok = false, message = "You can only create reminders for yourself", code = 403 }, statusCode: 403);
+                        targetUser = creator;
+                    }
 
-                    targetUser ??= targetUsername == username ? creator : await users.GetByUsernameAsync(targetUsername);
                     if (targetUser is null)
-                        return Results.Json(new { ok = false, message = "Target user not found", code = 400 }, statusCode: 400);
+                        return Results.Json(new { ok = false, message = "Target user is not in your team", code = 400 }, statusCode: 400);
 
-                    var updated = await reminders.UpdateReminderAsync(id, username, dto.Title, dto.Notes, reminderDateTimeUtc, dto.Color ?? "#ffeb3b", targetUser.Id, targetUser.Username, targetUser.DisplayName ?? targetUser.Username, teamCode);
+                    if (!Enum.IsDefined(dto.Visibility))
+                        return Results.Json(new { ok = false, message = "Invalid reminder visibility", code = 400 }, statusCode: 400);
+
+                    var updated = await reminders.UpdateReminderAsync(id, creator.Id, isManager, teamCode, dto.Title, dto.Notes, reminderDateTimeUtc, dto.Color ?? "#ffeb3b", targetUser.Id, targetUser.Username, targetUser.DisplayName ?? targetUser.Username, dto.Visibility);
                     if (updated is null)
                         return Results.Json(new { ok = false, message = "Reminder not found or access denied", code = 404 }, statusCode: 404);
 
