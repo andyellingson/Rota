@@ -281,27 +281,30 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Number of Days</label>
-                                <select class="form-select" @bind="State.NewAbsenceDayCount">
+                                <select class="form-select" @bind="State.NewAbsenceDayCount" @bind:after="OnNewAbsenceDayCountChanged">
                                     @for (int day = 1; day <= 30; day++)
                                     {
                                         <option value="@day">@day @(day == 1 ? "day" : "days")</option>
                                     }
                                 </select>
                             </div>
-                            <div class="mb-3 form-check">
-                                <input class="form-check-input" type="checkbox" id="new-absence-part-day" @bind="State.NewAbsenceIsPartDay" />
-                                <label class="form-check-label" for="new-absence-part-day">Part of day</label>
-                            </div>
-                            @if (State.NewAbsenceIsPartDay)
+                            @if (State.NewAbsenceDayCount == 1)
                             {
-                                <div class="mb-3">
-                                    <label class="form-label">Start time</label>
-                                    <input type="time" class="form-control" @bind="State.NewAbsenceStartTime" />
+                                <div class="mb-3 form-check">
+                                    <input class="form-check-input" type="checkbox" id="new-absence-part-day" @bind="State.NewAbsenceIsPartDay" />
+                                    <label class="form-check-label" for="new-absence-part-day">Part of day</label>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">End time</label>
-                                    <input type="time" class="form-control" @bind="State.NewAbsenceEndTime" />
-                                </div>
+                                @if (State.NewAbsenceIsPartDay)
+                                {
+                                    <div class="mb-3">
+                                        <label class="form-label">Start time</label>
+                                        <input type="time" class="form-control" @bind="State.NewAbsenceStartTime" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">End time</label>
+                                        <input type="time" class="form-control" @bind="State.NewAbsenceEndTime" />
+                                    </div>
+                                }
                             }
                             @if (CanManageWorkItems)
                             {
@@ -381,27 +384,30 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Number of Days</label>
-                                <select class="form-select" @bind="State.EditAbsenceDayCount">
+                                <select class="form-select" @bind="State.EditAbsenceDayCount" @bind:after="OnEditAbsenceDayCountChanged">
                                     @for (int day = 1; day <= 30; day++)
                                     {
                                         <option value="@day">@day @(day == 1 ? "day" : "days")</option>
                                     }
                                 </select>
                             </div>
-                            <div class="mb-3 form-check">
-                                <input class="form-check-input" type="checkbox" id="edit-absence-part-day" @bind="State.EditAbsenceIsPartDay" />
-                                <label class="form-check-label" for="edit-absence-part-day">Part of day</label>
-                            </div>
-                            @if (State.EditAbsenceIsPartDay)
+                            @if (State.EditAbsenceDayCount == 1)
                             {
-                                <div class="mb-3">
-                                    <label class="form-label">Start time</label>
-                                    <input type="time" class="form-control" @bind="State.EditAbsenceStartTime" />
+                                <div class="mb-3 form-check">
+                                    <input class="form-check-input" type="checkbox" id="edit-absence-part-day" @bind="State.EditAbsenceIsPartDay" />
+                                    <label class="form-check-label" for="edit-absence-part-day">Part of day</label>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">End time</label>
-                                    <input type="time" class="form-control" @bind="State.EditAbsenceEndTime" />
-                                </div>
+                                @if (State.EditAbsenceIsPartDay)
+                                {
+                                    <div class="mb-3">
+                                        <label class="form-label">Start time</label>
+                                        <input type="time" class="form-control" @bind="State.EditAbsenceStartTime" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">End time</label>
+                                        <input type="time" class="form-control" @bind="State.EditAbsenceEndTime" />
+                                    </div>
+                                }
                             }
                             @if (CanManageWorkItems)
                             {
@@ -655,6 +661,28 @@
 
     [Parameter]
     public EventCallback OnDeleteAbsence { get; set; }
+
+    /// <summary>
+    /// Clears the part-day selection when a new absence spans multiple days.
+    /// </summary>
+    private void OnNewAbsenceDayCountChanged()
+    {
+        if (State.NewAbsenceDayCount > 1)
+        {
+            State.NewAbsenceIsPartDay = false;
+        }
+    }
+
+    /// <summary>
+    /// Clears the part-day selection when an edited absence spans multiple days.
+    /// </summary>
+    private void OnEditAbsenceDayCountChanged()
+    {
+        if (State.EditAbsenceDayCount > 1)
+        {
+            State.EditAbsenceIsPartDay = false;
+        }
+    }
 
     private static string GetLinkedUserLabel(User user)
     {

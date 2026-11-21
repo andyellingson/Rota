@@ -273,7 +273,7 @@
 /* Two-column info grid inside detail panel */
 .team-detail-info-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
     gap: 1.25rem 2rem;
     margin-top: 0.75rem;
 }
