@@ -26,7 +26,7 @@ public class WorkItemTemplateApplyServiceTests
             Assert.That(result.CreatedCount, Is.Zero);
             Assert.That(result.Error, Is.EqualTo("No template work items found for the selected Work Item Template."));
         });
-        WorkItems.Verify(s => s.CreateWorkItemAsync(It.IsAny<WorkItem>()), Times.Never);
+        WorkItems.Verify(s => s.CreateWorkItemsAsync(It.IsAny<IEnumerable<WorkItem>>()), Times.Never);
     }
 
     [Test]
@@ -44,37 +44,47 @@ public class WorkItemTemplateApplyServiceTests
             AssignedToUserId = "507f1f77bcf86cd799439011",
             RotationId = "507f1f77bcf86cd799439012",
         };
+        var tuesdayTemplate = new WorkItem
+        {
+            WorkDay = DayOfWeek.Tuesday,
+            Start = new DateTime(2000, 1, 4, 10, 0, 0, DateTimeKind.Utc),
+            End = new DateTime(2000, 1, 4, 16, 0, 0, DateTimeKind.Utc),
+            Title = "Closing"
+        };
         var WorkItems = new Mock<IWorkItemsService>();
         WorkItems.Setup(s => s.GetWorkItemTemplateWorkItemsAsync("rotation", "manager"))
-            .ReturnsAsync([mondayTemplate]);
-        WorkItem? created = null;
-        WorkItems.Setup(s => s.CreateWorkItemAsync(It.IsAny<WorkItem>()))
-            .Callback<WorkItem>(WorkItem => created = WorkItem)
-            .ReturnsAsync((WorkItem WorkItem) => WorkItem);
+            .ReturnsAsync([mondayTemplate, tuesdayTemplate]);
+        List<WorkItem>? created = null;
+        WorkItems.Setup(s => s.CreateWorkItemsAsync(It.IsAny<IEnumerable<WorkItem>>()))
+            .Callback<IEnumerable<WorkItem>>(workItems => created = workItems.ToList())
+            .ReturnsAsync((IEnumerable<WorkItem> workItems) => workItems.ToList());
         var service = new WorkItemTemplateApplyService(WorkItems.Object);
         var monday = new DateOnly(2026, 10, 5);
         var tuesday = monday.AddDays(1);
 
         var result = await service.ApplyAsync("rotation", "owner", "manager", "schedule", [monday, tuesday]);
 
-        Assert.That(result, Is.EqualTo(new WorkItemTemplateApplyResult(1)));
+        Assert.That(result, Is.EqualTo(new WorkItemTemplateApplyResult(2)));
         Assert.That(created, Is.Not.Null);
+        Assert.That(created, Has.Count.EqualTo(2));
         Assert.Multiple(() =>
         {
-            Assert.That(created!.Username, Is.EqualTo("owner"));
-            Assert.That(created.TeamCode, Is.EqualTo("manager"));
-            Assert.That(created.ScheduleId, Is.EqualTo("schedule"));
-            Assert.That(created.Title, Is.EqualTo("Opening"));
-            Assert.That(created.Notes, Is.EqualTo("front desk"));
-            Assert.That(created.Color, Is.EqualTo("#123456"));
-            Assert.That(created.WorkerType, Is.EqualTo("Reception"));
-            Assert.That(created.AssignedToUserId, Is.EqualTo(mondayTemplate.AssignedToUserId));
-            Assert.That(created.RotationId, Is.Null);
-            Assert.That(created.WorkDay, Is.Null);
-            Assert.That(created.Start.ToLocalTime().TimeOfDay, Is.EqualTo(new TimeSpan(9, 30, 0)));
-            Assert.That(created.Start.ToLocalTime().Date, Is.EqualTo(monday.ToDateTime(TimeOnly.MinValue).Date));
+            Assert.That(created![0].Username, Is.EqualTo("owner"));
+            Assert.That(created[0].TeamCode, Is.EqualTo("manager"));
+            Assert.That(created[0].ScheduleId, Is.EqualTo("schedule"));
+            Assert.That(created[0].Title, Is.EqualTo("Opening"));
+            Assert.That(created[0].Notes, Is.EqualTo("front desk"));
+            Assert.That(created[0].Color, Is.EqualTo("#123456"));
+            Assert.That(created[0].WorkerType, Is.EqualTo("Reception"));
+            Assert.That(created[0].AssignedToUserId, Is.EqualTo(mondayTemplate.AssignedToUserId));
+            Assert.That(created[0].RotationId, Is.Null);
+            Assert.That(created[0].WorkDay, Is.Null);
+            Assert.That(created[0].Start.ToLocalTime().TimeOfDay, Is.EqualTo(new TimeSpan(9, 30, 0)));
+            Assert.That(created[0].Start.ToLocalTime().Date, Is.EqualTo(monday.ToDateTime(TimeOnly.MinValue).Date));
+            Assert.That(created[1].Title, Is.EqualTo("Closing"));
         });
-        WorkItems.Verify(s => s.CreateWorkItemAsync(It.IsAny<WorkItem>()), Times.Once);
+        WorkItems.Verify(s => s.CreateWorkItemsAsync(It.IsAny<IEnumerable<WorkItem>>()), Times.Once);
+        WorkItems.Verify(s => s.CreateWorkItemAsync(It.IsAny<WorkItem>()), Times.Never);
     }
 
     [Test]
@@ -89,10 +99,10 @@ public class WorkItemTemplateApplyServiceTests
         var WorkItems = new Mock<IWorkItemsService>();
         WorkItems.Setup(s => s.GetWorkItemTemplateWorkItemsAsync("rotation", "manager"))
             .ReturnsAsync([template]);
-        WorkItem? created = null;
-        WorkItems.Setup(s => s.CreateWorkItemAsync(It.IsAny<WorkItem>()))
-            .Callback<WorkItem>(WorkItem => created = WorkItem)
-            .ReturnsAsync((WorkItem WorkItem) => WorkItem);
+        List<WorkItem>? created = null;
+        WorkItems.Setup(s => s.CreateWorkItemsAsync(It.IsAny<IEnumerable<WorkItem>>()))
+            .Callback<IEnumerable<WorkItem>>(workItems => created = workItems.ToList())
+            .ReturnsAsync((IEnumerable<WorkItem> workItems) => workItems.ToList());
         var service = new WorkItemTemplateApplyService(WorkItems.Object);
         var sunday = new DateOnly(2026, 10, 4);
 
@@ -100,13 +110,15 @@ public class WorkItemTemplateApplyServiceTests
 
         Assert.That(result.CreatedCount, Is.EqualTo(1));
         Assert.That(created, Is.Not.Null);
+        Assert.That(created, Has.Count.EqualTo(1));
         Assert.Multiple(() =>
         {
-            Assert.That(created!.Start.ToLocalTime().Date, Is.EqualTo(sunday.ToDateTime(TimeOnly.MinValue).Date));
-            Assert.That(created.Start.ToLocalTime().TimeOfDay, Is.EqualTo(new TimeSpan(16, 0, 0)));
-            Assert.That(created.End.ToLocalTime().Date, Is.EqualTo(sunday.AddDays(1).ToDateTime(TimeOnly.MinValue).Date));
-            Assert.That(created.End.ToLocalTime().TimeOfDay, Is.EqualTo(TimeSpan.Zero));
+            Assert.That(created![0].Start.ToLocalTime().Date, Is.EqualTo(sunday.ToDateTime(TimeOnly.MinValue).Date));
+            Assert.That(created[0].Start.ToLocalTime().TimeOfDay, Is.EqualTo(new TimeSpan(16, 0, 0)));
+            Assert.That(created[0].End.ToLocalTime().Date, Is.EqualTo(sunday.AddDays(1).ToDateTime(TimeOnly.MinValue).Date));
+            Assert.That(created[0].End.ToLocalTime().TimeOfDay, Is.EqualTo(TimeSpan.Zero));
         });
+        WorkItems.Verify(s => s.CreateWorkItemsAsync(It.IsAny<IEnumerable<WorkItem>>()), Times.Once);
     }
 }
 

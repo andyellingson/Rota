@@ -74,10 +74,8 @@ namespace Rota.Services
                 }
             }
 
-            foreach (var workItem in toCreate)
-            {
-                await _workItemsService.CreateWorkItemAsync(workItem);
-            }
+            if (toCreate.Count > 0)
+                await _workItemsService.CreateWorkItemsAsync(toCreate);
 
             return new WorkItemTemplateApplyResult(toCreate.Count);
         }

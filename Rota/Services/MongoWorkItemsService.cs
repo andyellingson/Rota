@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 using MongoDB.Driver;
 using Rota.Models;
 
@@ -103,6 +104,30 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
+        public async System.Threading.Tasks.Task<List<WorkItem>> CreateWorkItemsAsync(IEnumerable<WorkItem> workItems)
+        {
+            ArgumentNullException.ThrowIfNull(workItems);
+            var items = workItems.ToList();
+            if (items.Count == 0)
+                return items;
+
+            try
+            {
+                var createdAt = DateTime.UtcNow;
+                foreach (var workItem in items)
+                    workItem.CreatedAt = createdAt;
+
+                await _WorkItems.InsertManyAsync(items);
+                return items;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error creating {WorkItemCount} WorkItems", items.Count);
+                throw;
+            }
+        }
+
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<WorkItem> CreateWorkItemAsync(WorkItem WorkItem)
         {
             try
@@ -119,8 +144,38 @@ namespace Rota.Services
         }
 
         /// <inheritdoc />
+        public async System.Threading.Tasks.Task<int> DeleteWorkItemsAsync(IEnumerable<string> ids, string username)
+        {
+            ArgumentNullException.ThrowIfNull(ids);
+            var workItemIds = ids
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+            if (workItemIds.Count == 0 || string.IsNullOrWhiteSpace(username))
+                return 0;
+
+            try
+            {
+                var filter = Builders<WorkItem>.Filter.And(
+                    Builders<WorkItem>.Filter.In(s => s.Id, workItemIds),
+                    Builders<WorkItem>.Filter.Eq(s => s.Username, username)
+                );
+
+                var result = await _WorkItems.DeleteManyAsync(filter);
+                return (int)result.DeletedCount;
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting {WorkItemCount} WorkItems for user {User}", workItemIds.Count, username);
+                throw;
+            }
+        }
+
+        /// <inheritdoc />
         public async System.Threading.Tasks.Task<bool> DeleteWorkItemAsync(string id, string username)
         {
+            // Separate each Mongo delete duration from the overall Calendar handler timing.
+            var timer = Stopwatch.StartNew();
             try
             {
                 var filter = Builders<WorkItem>.Filter.And(
@@ -129,11 +184,12 @@ namespace Rota.Services
                 );
 
                 var result = await _WorkItems.DeleteOneAsync(filter);
+                _logger.LogDebug("Mongo work item DeleteOneAsync completed in {ElapsedMs} ms; deleted {DeletedCount}", timer.ElapsedMilliseconds, result.DeletedCount);
                 return result.DeletedCount > 0;
             }
             catch (System.Exception ex)
             {
-                _logger.LogError(ex, "Error deleting WorkItem {Id} for user {User}", id, username);
+                _logger.LogError(ex, "Error deleting WorkItem {Id} for user {User} after {ElapsedMs} ms", id, username, timer.ElapsedMilliseconds);
                 return false;
             }
         }

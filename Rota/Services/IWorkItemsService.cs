@@ -23,9 +23,19 @@ namespace Rota.Services
         System.Threading.Tasks.Task<WorkItem> CreateWorkItemAsync(WorkItem WorkItem);
 
         /// <summary>
+        /// Creates multiple work items in a single operation.
+        /// </summary>
+        System.Threading.Tasks.Task<List<WorkItem>> CreateWorkItemsAsync(IEnumerable<WorkItem> workItems);
+
+        /// <summary>
         /// Deletes a work item owned by the specified username.
         /// </summary>
         System.Threading.Tasks.Task<bool> DeleteWorkItemAsync(string id, string username);
+
+        /// <summary>
+        /// Deletes multiple work items owned by the specified username.
+        /// </summary>
+        System.Threading.Tasks.Task<int> DeleteWorkItemsAsync(IEnumerable<string> ids, string username);
 
         /// <summary>
         /// Deletes every work item belonging to the specified schedule.

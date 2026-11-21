@@ -1,5 +1,6 @@
 @page "/calendar"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
+@using System.Diagnostics
 @using System.Globalization
 @using Rota.Models
 @using Rota.Services
@@ -641,6 +642,7 @@
             try
             {
                 multiDayIsApplying = true;
+                await YieldToUiAsync();
                 var result = await WorkItemTemplateApplyService.ApplyAsync(multiDaySelectedWorkItemTemplateId, _username,
                     _managerCode, selectedScheduleId, selectedDays.OrderBy(day => day));
                 if (result.Error is not null)
@@ -1052,6 +1054,12 @@
             }
         }
 
+        private async Task YieldToUiAsync()
+        {
+            await InvokeAsync(StateHasChanged);
+            await Task.Yield();
+        }
+
         /// <summary>
         /// Deletes all visible work items across the currently selected days and reloads the calendar.
         /// </summary>
@@ -1059,25 +1067,36 @@
         {
             isBulkDeleting = true;
             multiDayActionError = null;
+            var totalTimer = Stopwatch.StartNew();
+            var collectionTimer = new Stopwatch();
+            var deleteTimer = new Stopwatch();
+            var refreshTimer = new Stopwatch();
+            var workItemCount = 0;
 
             try
             {
+                await YieldToUiAsync();
+
                 // Collect distinct work item IDs across all selected days respecting active filters
-                var WorkItemIds = selectedDays
+                collectionTimer.Start();
+                var workItemIds = selectedDays
                     .SelectMany(d => GetWorkItemsForDay(d))
                     .Select(s => s.Id)
-                    .Where(id => id is not null)
+                    .OfType<string>()
                     .Distinct()
                     .ToList();
+                collectionTimer.Stop();
+                workItemCount = workItemIds.Count;
 
-                foreach (var id in WorkItemIds)
-                {
-                    await WorkItemservice.DeleteWorkItemAsync(id!, _username);
-                }
+                deleteTimer.Start();
+                await WorkItemservice.DeleteWorkItemsAsync(workItemIds, _username);
+                deleteTimer.Stop();
 
                 showMultiDayConfirmModal = false;
                 selectedDays.Clear();
+                refreshTimer.Start();
                 await LoadReminders();
+                refreshTimer.Stop();
             }
             catch (Exception ex)
             {
@@ -1086,6 +1105,14 @@
             }
             finally
             {
+                totalTimer.Stop();
+                Logger.LogDebug(
+                    "Bulk delete timing for {WorkItemCount} work items: ID collection {CollectionElapsedMs} ms, batch delete {DeleteElapsedMs} ms, calendar refresh {RefreshElapsedMs} ms, total {TotalElapsedMs} ms",
+                    workItemCount,
+                    collectionTimer.ElapsedMilliseconds,
+                    deleteTimer.ElapsedMilliseconds,
+                    refreshTimer.ElapsedMilliseconds,
+                    totalTimer.ElapsedMilliseconds);
                 isBulkDeleting = false;
             }
         }
@@ -1100,6 +1127,8 @@
 
             try
             {
+                await YieldToUiAsync();
+
                 var absencesToDelete = selectedDays
                     .SelectMany(d => GetAbsencesForDay(d))
                     .Where(a => a.Id is not null)
@@ -1143,6 +1172,8 @@
 
             try
             {
+                await YieldToUiAsync();
+
                 // Collect distinct reminder objects so we can pass each one's own Username to the
                 // delete call — the service filters by both id AND username, so using _username
                 // would silently skip reminders whose Username differs from the current user.

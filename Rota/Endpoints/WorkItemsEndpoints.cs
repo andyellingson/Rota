@@ -114,6 +114,27 @@ namespace Rota.Endpoints
                 }
             }).RequireAuthorization();
 
+            app.MapDelete("/api/workitems", async ([Microsoft.AspNetCore.Mvc.FromBody] List<string>? ids, IWorkItemsService WorkItems, Microsoft.AspNetCore.Http.HttpContext context) =>
+            {
+                try
+                {
+                    var username = context.User.Identity?.Name;
+                    if (string.IsNullOrEmpty(username))
+                        return Results.Json(new { ok = false, message = "Unauthorized", code = 401 }, statusCode: 401);
+
+                    if (ids is null || ids.Count == 0 || ids.All(string.IsNullOrWhiteSpace))
+                        return Results.Json(new { ok = false, message = "At least one work item ID is required", code = 400 }, statusCode: 400);
+
+                    var deletedCount = await WorkItems.DeleteWorkItemsAsync(ids, username);
+                    return Results.Json(new { ok = true, deletedCount, message = $"Deleted {deletedCount} work items", code = 200 }, statusCode: 200);
+                }
+                catch (Exception ex)
+                {
+                    app.Logger.LogError(ex, "Unhandled exception in DELETE /api/workitems");
+                    return Results.Json(new { ok = false, message = "Internal server error", code = 500 }, statusCode: 500);
+                }
+            }).RequireAuthorization();
+
             app.MapDelete("/api/workitems/{id}", async (string id, IWorkItemsService WorkItems, Microsoft.AspNetCore.Http.HttpContext context) =>
             {
                 try
