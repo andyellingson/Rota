@@ -2108,7 +2108,9 @@
                 }
                 else
                 {
-                    startUtc = startUtcParsed;
+                    var sourceWasPartDay = !string.IsNullOrWhiteSpace(editingAbsence.StartTime)
+                        && !string.IsNullOrWhiteSpace(editingAbsence.EndTime);
+                    startUtc = AbsenceDateUtilities.NormalizeFullDayStartDateUtc(startUtcParsed, sourceWasPartDay);
                     endUtc = startUtc.AddDays(dayCount);
                 }
                 var targetUser = GetLinkedUserById(editAbsenceForUsername) ?? GetDefaultLinkedUser();
@@ -2398,8 +2400,12 @@
             var newMap = new Dictionary<DateOnly, List<Absence>>();
             foreach (var absence in absences)
             {
-                var startDay = DateOnly.FromDateTime(absence.StartDate.ToLocalTime());
-                var endDay = DateOnly.FromDateTime(absence.EndDate.AddTicks(-1).ToLocalTime());
+                var isPartDay = absence.DayCount == 1
+                    && !string.IsNullOrWhiteSpace(absence.StartTime)
+                    && !string.IsNullOrWhiteSpace(absence.EndTime);
+                var hasTimedStart = isPartDay || absence.StartDate.TimeOfDay != TimeSpan.Zero;
+                var startDay = DateOnly.FromDateTime(hasTimedStart ? absence.StartDate.ToLocalTime() : absence.StartDate);
+                var endDay = startDay.AddDays(Math.Max(1, absence.DayCount) - 1);
                 for (var day = startDay; day <= endDay; day = day.AddDays(1))
                 {
                     if (!newMap.TryGetValue(day, out var dayAbsences))

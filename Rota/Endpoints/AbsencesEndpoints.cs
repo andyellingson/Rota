@@ -227,7 +227,7 @@ namespace Rota.Endpoints
                     }
                     else
                     {
-                        startUtcFinal = DateTime.SpecifyKind(startUtc, DateTimeKind.Utc);
+                        startUtcFinal = AbsenceDateUtilities.NormalizeFullDayStartDateUtc(startUtc);
                         endUtcFinal = startUtcFinal.AddDays(dayCount);
                     }
 

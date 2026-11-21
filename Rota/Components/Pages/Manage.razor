@@ -1518,6 +1518,9 @@
             }
             else
             {
+                var sourceWasPartDay = !string.IsNullOrWhiteSpace(absence.StartTime)
+                    && !string.IsNullOrWhiteSpace(absence.EndTime);
+                startUtc = AbsenceDateUtilities.NormalizeFullDayStartDateUtc(startUtc, sourceWasPartDay);
                 endUtc = startUtc.AddDays(dayCount);
             }
 

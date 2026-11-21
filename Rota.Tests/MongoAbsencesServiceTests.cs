@@ -74,6 +74,33 @@ namespace Rota.Tests
             Assert.That(rendered, Does.Not.Contain("teamCode"));
         }
 
+        [Test]
+        public async Task UpdateAbsenceAsync_WithTeamCode_FiltersByAbsenceIdAndManagerScope()
+        {
+            const string absenceId = "507f1f77bcf86cd799439011";
+            var collection = new Mock<IMongoCollection<Absence>>();
+            FilterDefinition<Absence>? capturedFilter = null;
+            collection
+                .Setup(c => c.FindOneAndUpdateAsync(
+                    It.IsAny<FilterDefinition<Absence>>(),
+                    It.IsAny<UpdateDefinition<Absence>>(),
+                    It.IsAny<FindOneAndUpdateOptions<Absence, Absence>>(),
+                    It.IsAny<CancellationToken>()))
+                .Callback<FilterDefinition<Absence>, UpdateDefinition<Absence>, FindOneAndUpdateOptions<Absence, Absence>, CancellationToken>((filter, _, _, _) => capturedFilter = filter)
+                .ReturnsAsync((Absence?)null);
+
+            var service = CreateService(collection);
+            await service.UpdateAbsenceAsync(
+                absenceId, "manager", "title", null,
+                DateTime.UtcNow, DateTime.UtcNow.AddDays(1), 1, null,
+                null, null, "linked-manager-code");
+
+            var rendered = Render(capturedFilter).ToJson();
+            Assert.That(rendered, Does.Contain(absenceId));
+            Assert.That(rendered, Does.Contain("teamCode"));
+            Assert.That(rendered, Does.Contain("linked-manager-code"));
+        }
+
         private sealed class TestDeleteResult : DeleteResult
         {
             public override long DeletedCount => 0;

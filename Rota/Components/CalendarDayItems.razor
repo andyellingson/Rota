@@ -15,6 +15,7 @@
     else if (item.Absence is { } ab)
     {
         <AbsenceItem Absence="ab"
+                     @key="ab.Id"
                      AssignedToDisplayName="@GetDisplayName(ab.AssignedToUserId)"
                      ShowApprovalState="CanManageWorkItems"
                      OnEdit="OnEditAbsence" />
